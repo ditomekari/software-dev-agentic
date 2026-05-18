@@ -5,11 +5,11 @@ description: |
 user-invocable: false
 ---
 
-Create a UseCase following `.claude/reference/builder/domain-impl.md ## Use Cases section` and DI rules in `.claude/reference/builder/di-impl.md ## DI Principles section`.
+Create a UseCase following `.claude/reference/code-architecture/domain-impl.md ## Use Cases section` and DI rules in `.claude/reference/code-architecture/di-impl.md ## DI Principles section`.
 
 ## Steps
 
-1. **Grep** `.claude/reference/builder/domain-impl.md` for `## Use Cases` and `.claude/reference/builder/di-impl.md` for `## DI Principles`; only **Read** a file in full if the section cannot be located
+1. **Grep** `.claude/reference/code-architecture/domain-impl.md` for `## Use Cases` and `.claude/reference/code-architecture/di-impl.md` for `## DI Principles`; only **Read** a file in full if the section cannot be located
 2. **Locate** the correct path: `feature_[module]/src/main/java/co/talenta/feature_[module]/domain/usecase/`
 3. **Create** `[Action][Entity]UseCase.kt`
 4. **Add** `@Provides` entry in the feature's DI module

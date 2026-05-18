@@ -5,11 +5,11 @@ description: |
 user-invocable: false
 ---
 
-Create a Mapper following `.claude/reference/builder/data-impl.md ## Mappers section` and null-safety extensions in `.claude/reference/builder/utilities-impl.md ## Null Safety Extensions section`.
+Create a Mapper following `.claude/reference/code-architecture/data-impl.md ## Mappers section` and null-safety extensions in `.claude/reference/code-architecture/utilities-impl.md ## Null Safety Extensions section`.
 
 ## Steps
 
-1. **Grep** `.claude/reference/builder/data-impl.md` for `## Mappers` and `.claude/reference/builder/utilities-impl.md` for `## Null Safety Extensions`; only **Read** a file in full if the section cannot be located
+1. **Grep** `.claude/reference/code-architecture/data-impl.md` for `## Mappers` and `.claude/reference/code-architecture/utilities-impl.md` for `## Null Safety Extensions`; only **Read** a file in full if the section cannot be located
 2. **Read** the Response class and Entity class to understand all fields
 3. **Locate** the correct path: `feature_[module]/src/main/java/co/talenta/feature_[module]/data/mapper/`
 4. **Create** `[Entity]Mapper.kt`

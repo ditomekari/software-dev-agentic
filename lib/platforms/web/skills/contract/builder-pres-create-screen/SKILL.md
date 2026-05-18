@@ -36,6 +36,6 @@ Create the View component and App Router page. Pattern depends on which ViewMode
 
 **Route constant:** add to `src/presentation/navigation/routes.ts`
 
-**Pattern:** `reference/builder/presentation-impl.md` — Grep `## React Component (View)`, `## Server-Side ViewModel (Pure Function)` · `reference/builder/navigation-impl.md` — Grep `## Route Constants` · `reference/ssr.md` — Grep `## Presentation Layer — Mostly Client`
+**Pattern:** `reference/code-architecture/presentation-impl.md` — Grep `## React Component (View)`, `## Server-Side ViewModel (Pure Function)` · `reference/code-architecture/navigation-impl.md` — Grep `## Route Constants` · `reference/ssr.md` — Grep `## Presentation Layer — Mostly Client`
 
 **Return:** created file paths.

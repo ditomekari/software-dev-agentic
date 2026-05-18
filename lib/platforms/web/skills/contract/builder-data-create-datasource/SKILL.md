@@ -19,6 +19,6 @@ Create two files for a remote (external API) data source:
 - Implementation uses injected `HTTPClient` — never import Axios directly
 - Use `APIResponse<T>` wrapper type for list responses where applicable
 
-**Pattern:** `reference/builder/data-impl.md` — Grep `## Data Sources`
+**Pattern:** `reference/code-architecture/data-impl.md` — Grep `## Data Sources`
 
 **Return:** both created file paths. Suggest next step: `data-create-repository-impl`.

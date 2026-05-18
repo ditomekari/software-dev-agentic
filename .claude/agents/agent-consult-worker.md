@@ -104,7 +104,7 @@ When the engineer is ready to act, name the exact tool or command:
 | Create a missing component | `/scaffold` |
 | Fix convention violations | `/migrate <file>` |
 | Check structural + convention integrity first | `/audit <scope>` |
-| Review convention compliance only | natural language → `arch-review-orchestrator` |
+| Review convention compliance only | `/audit <scope>` |
 | Simple targeted edit (clear, localized) | name the file and the specific change |
 
 Do not execute the handoff yourself — the engineer invokes it.

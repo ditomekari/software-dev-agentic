@@ -7,6 +7,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.3.0] — 2026-05-18
+
+### Changed
+- Skill taxonomy refactored from A/T/U to P/W — Procedure (worker-called) and Workflow (user-invocable, model-run); Type B (bash-only) removed in favor of hooks; T and U merged since both are the same workflow at different complexity levels
+- `/audit`, `/migrate`, `/scaffold` trigger skills now own their full runtime — routing, agent spawning, validation, and reporting inline; no longer hollow passthroughs
+- `reference/builder/` renamed to `reference/code-architecture/` across all 6 platforms and core — knowledge grouped by domain, not by persona
+- `agent-consult-worker` handoff for convention review updated from `arch-review-orchestrator` to `/audit`
+
+### Removed
+- `arch-review-orchestrator` — redundant now that each trigger skill owns its workflow directly
+
+---
+
 ## [7.2.3] — 2026-05-18
 
 ### Changed
@@ -45,7 +58,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [7.1.0] — 2026-05-18
 
 ### Changed
-- Theory reference files moved from `lib/platforms/<platform>/reference/builder/` to `lib/core/reference/builder/` — single source of truth, no duplication
+- Theory reference files moved from `lib/platforms/<platform>/reference/code-architecture/` to `lib/core/reference/code-architecture/` — single source of truth, no duplication
 - Setup script: core reference linking restored (`link_reference` call re-added for `lib/core/reference/`)
 - Principles docs updated to reflect core-theory + platform-impl split
 
@@ -57,19 +70,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [7.0.0] — 2026-05-18
 
 ### Changed
-- Reference docs restructured: theory and impl files co-located per platform as `<topic>-theory.md` / `<topic>-impl.md` under `lib/platforms/<platform>/reference/builder/`
-- `lib/core/reference/builder/` eliminated — theory content duplicated into each platform's `reference/builder/` directory (accepted tradeoff for single base path)
-- All `reference/contract/builder/<topic>.md` paths renamed to `reference/builder/<topic>-impl.md` across all agents, skills, and templates
+- Reference docs restructured: theory and impl files co-located per platform as `<topic>-theory.md` / `<topic>-impl.md` under `lib/platforms/<platform>/reference/code-architecture/`
+- `lib/core/reference/code-architecture/` eliminated — theory content duplicated into each platform's `reference/code-architecture/` directory (accepted tradeoff for single base path)
+- All `reference/contract/builder/<topic>.md` paths renamed to `reference/code-architecture/<topic>-impl.md` across all agents, skills, and templates
 - Setup script: removed core reference linking step (no longer a separate source)
 - Principles docs updated: Section 4 rewritten, all reference path examples updated
 - Deck (`docs/deck/agentic-deck.html`): MCP added as 4th building block on Anatomy slide; new Foundation MCP slide (s11); Collaboration, Distribution, Expansion slides added (s12–s14); official Claude docs definitions added to all four anatomy cards
 
 ### Removed
-- `lib/core/reference/builder/` — 10 theory files (content moved to each platform's `reference/builder/<topic>-theory.md`)
-- `lib/platforms/*/reference/contract/` — 40 impl files across iOS, Flutter, Web, Android (renamed to `reference/builder/<topic>-impl.md`)
+- `lib/core/reference/code-architecture/` — 10 theory files (content moved to each platform's `reference/code-architecture/<topic>-theory.md`)
+- `lib/platforms/*/reference/contract/` — 40 impl files across iOS, Flutter, Web, Android (renamed to `reference/code-architecture/<topic>-impl.md`)
 
 ### Migration
-Downstream projects must re-run `setup-symlinks.sh` to get the new symlink layout. Agent and skill files that hardcode old paths (`reference/builder/<topic>.md` or `reference/contract/builder/<topic>.md`) must be updated to the new `-theory.md` / `-impl.md` suffixes.
+Downstream projects must re-run `setup-symlinks.sh` to get the new symlink layout. Agent and skill files that hardcode old paths (`reference/code-architecture/<topic>.md` or `reference/contract/builder/<topic>.md`) must be updated to the new `-theory.md` / `-impl.md` suffixes.
 
 ---
 
@@ -90,7 +103,7 @@ Downstream projects must re-run `setup-symlinks.sh` to get the new symlink layou
 
 ### Fixed
 - Correct `<!-- N -->` line count annotations in platform `app-layer.md` files (Android, Flutter, iOS) — `Hybrid Embedding` and `Planner Search Patterns` section counts were off after content edits
-- Add canonical pointer (`reference/builder/ui.md — ## Navigator / Coordinator`) to all four platform `navigation.md` files — the back-reference was missing
+- Add canonical pointer (`reference/code-architecture/ui.md — ## Navigator / Coordinator`) to all four platform `navigation.md` files — the back-reference was missing
 
 ---
 
@@ -101,9 +114,9 @@ Downstream projects must re-run `setup-symlinks.sh` to get the new symlink layou
 - `builder-app-planner`: removed `di-containers.md` from reference list; `di` scope now points to platform `contract/builder/di.md` for container detail
 
 ### Removed
-- `lib/core/reference/builder/di-containers.md` — web-specific (Next.js server/client containers), redundant with `web/reference/contract/builder/di.md`, no other consumers
-- `lib/core/reference/builder/domain-purity.md` — web-specific import rules, zero agent/skill consumers, covered by `domain.md` `## Dependency Rule` and `## Entities`
-- `lib/core/reference/builder/layer-contracts.md` — inlined into `builder-feature-orchestrator`; single consumer, always loaded
+- `lib/core/reference/code-architecture/di-containers.md` — web-specific (Next.js server/client containers), redundant with `web/reference/contract/builder/di.md`, no other consumers
+- `lib/core/reference/code-architecture/domain-purity.md` — web-specific import rules, zero agent/skill consumers, covered by `domain.md` `## Dependency Rule` and `## Entities`
+- `lib/core/reference/code-architecture/layer-contracts.md` — inlined into `builder-feature-orchestrator`; single consumer, always loaded
 
 ## [6.4.1] — 2026-05-16
 
@@ -119,7 +132,7 @@ Downstream projects must re-run `setup-symlinks.sh` to get the new symlink layou
 ## [6.4.0] — 2026-05-16
 
 ### Added
-- `lib/core/reference/builder/app-layer.md`: `## Hybrid Embedding` section — canonical terms, communication directions (Host→Guest navigation, headless execution, Guest→Host response/action), and module registration pattern; grep-first selectable via `<!-- 64 -->` annotation
+- `lib/core/reference/code-architecture/app-layer.md`: `## Hybrid Embedding` section — canonical terms, communication directions (Host→Guest navigation, headless execution, Guest→Host response/action), and module registration pattern; grep-first selectable via `<!-- 64 -->` annotation
 - `lib/platforms/ios/reference/contract/builder/hybrid-embedding.md`: iOS-specific hybrid embedding patterns (BrickWrap, ModuleFactory, engine lifecycle)
 - `lib/platforms/android/reference/contract/builder/hybrid-embedding.md`: Android-specific hybrid embedding patterns (bricks-talenta, BrickHelper, ActionListener)
 - `lib/platforms/flutter/reference/contract/builder/hybrid-embedding.md`: Flutter guest-side patterns (brick_way, HostParams decoding, ExternalDataSourceHelper)
@@ -141,8 +154,8 @@ Downstream projects must re-run `setup-symlinks.sh` to get the new symlink layou
 - `builder-data-planner` Step 0 scope table: prerequisite chains for `mapper` (needs `DTO`, `Entit`) and `repository_impl` (needs `Data Source`, `Mapper`) made explicit
 - `builder-feature-worker` pre-flight: switched from "read all sections" to survey+load pattern across 6 reference files (core + contract: syntax-conventions, utilities, error-handling)
 - `builder-test-worker`: added explicit survey step after layer identification
-- `builder-feature-orchestrator`: fixed bare path `reference/builder/layer-contracts.md` → `.claude/reference/builder/layer-contracts.md`
-- `lib/core/reference/builder/domain.md`: `## Repository` → `## Repository Interfaces` (canonical heading alignment)
+- `builder-feature-orchestrator`: fixed bare path `reference/code-architecture/layer-contracts.md` → `.claude/reference/code-architecture/layer-contracts.md`
+- `lib/core/reference/code-architecture/domain.md`: `## Repository` → `## Repository Interfaces` (canonical heading alignment)
 - Platform contract `domain.md` files (web, ios, android): `## Services` → `## Domain Services`
 - `lib/platforms/web/reference/contract/builder/data.md`: `## DTOs (Data Transfer Objects)` → `## DTOs`
 - `lib/platforms/android/reference/contract/builder/data.md` and `flutter`: `## Repository Implementations` → `## Repository Implementation`
@@ -195,8 +208,8 @@ software-dev-agentic/scripts/setup-symlinks.sh --platform=<platform>
 ## [5.6.0] — 2026-05-14
 
 ### Added
-- `lib/core/reference/builder/syntax-conventions.md` — platform-agnostic Null Safety invariants (rules only; implementation code lives in platform contracts)
-- `lib/core/reference/builder/utilities.md` — platform-agnostic definitions for StorageService, DateService, Logger, and Helper Extensions
+- `lib/core/reference/code-architecture/syntax-conventions.md` — platform-agnostic Null Safety invariants (rules only; implementation code lives in platform contracts)
+- `lib/core/reference/code-architecture/utilities.md` — platform-agnostic definitions for StorageService, DateService, Logger, and Helper Extensions
 - `lib/platforms/{ios,android,flutter,web}/reference/contract/builder/syntax-conventions.md` — per-platform Null Safety extension implementation code (Swift, Kotlin, Dart, TypeScript)
 - `lib/platforms/web/reference/contract/builder/app-layer.md` — new file; all 7 app-layer sections present (most as stubs pending convention adoption)
 - iOS app-layer contract: Push Notification Registration — documents unified FCM + DeeplinkStream architecture; all notification sources converge on `DeeplinkStreamImpl.shared`
@@ -414,7 +427,7 @@ mv issue-worker.md          tracker-issue-worker.md
 ## [3.65.0] — 2026-05-10
 
 ### Added
-- `lib/core/reference/builder/app-layer.md`: two new canonical headings — `## Analytics Constants` and `## Feature Flag Registration` (platform-agnostic theory)
+- `lib/core/reference/code-architecture/app-layer.md`: two new canonical headings — `## Analytics Constants` and `## Feature Flag Registration` (platform-agnostic theory)
 - `lib/platforms/ios/reference/contract/builder/app-layer.md`: iOS implementations — `{Feature}FirebaseName.swift` struct pattern for analytics; `FeatureFlagKey` + `FeatureFlagCollection` registration steps in `Shared/Infrastructure/FeatureFlag/FeatureFlag.swift`
 - `lib/platforms/flutter/reference/contract/builder/app-layer.md`: Flutter stubs for Analytics Constants and Feature Flag Registration (discovery-oriented — pattern varies by project)
 
@@ -422,13 +435,13 @@ mv issue-worker.md          tracker-issue-worker.md
 - `lib/core/agents/builder/app-planner.md`: added Steps 5–6 (locate analytics constants files; locate feature flag registration files); Output block gains `### Analytics Constants` and `### Feature Flag Registration` sections; Naming Conventions gains `analytics_pattern` and `feature_flag_pattern`
 - `lib/core/agents/builder/feature-planner.md`: `## App Layer` plan.md table gains Analytics Constants and Feature Flag Registration rows
 - `lib/core/agents/builder/feature-worker.md`: App Layer execution section gains special-case handling for Analytics Constants (create) and Feature Flag Registration (update/skip)
-- `lib/core/reference/builder/app-layer.md`, `lib/platforms/ios/reference/contract/builder/app-layer.md`, `lib/platforms/flutter/reference/contract/builder/app-layer.md`: corrected `<!-- N -->` line counts on `## Module Registration` sections
+- `lib/core/reference/code-architecture/app-layer.md`, `lib/platforms/ios/reference/contract/builder/app-layer.md`, `lib/platforms/flutter/reference/contract/builder/app-layer.md`: corrected `<!-- N -->` line counts on `## Module Registration` sections
 
 ## [3.64.0] — 2026-05-10
 
 ### Added
 - `lib/core/agents/builder/app-planner.md`: new planner agent — explores DI registration, route registration, and module registration patterns for a feature; returns structured `## App Findings` block; no writes
-- `lib/core/reference/builder/app-layer.md`: platform-agnostic theory for Dependency Registration, Route Registration, and Module Registration concepts
+- `lib/core/reference/code-architecture/app-layer.md`: platform-agnostic theory for Dependency Registration, Route Registration, and Module Registration concepts
 - `lib/platforms/ios/reference/contract/builder/app-layer.md`: iOS/Needle/Coordinator patterns for all three app-layer concerns
 - `lib/platforms/flutter/reference/contract/builder/app-layer.md`: Flutter/get_it/BaseModule patterns for all three app-layer concerns
 
@@ -865,12 +878,12 @@ mv issue-worker.md          tracker-issue-worker.md
 ## [3.40.9] — 2026-04-23
 
 ### Fixed
-- `setup-symlinks.sh`, `sync.sh`, `setup-packages.sh`: prune dangling `reference/` symlinks recursively — all three scripts previously skipped `reference/` in their prune step, causing broken nested symlinks (e.g. `reference/builder/`, `reference/contract/builder/`) to survive re-runs because `link_if_absent` skips existing symlinks even when dangling
+- `setup-symlinks.sh`, `sync.sh`, `setup-packages.sh`: prune dangling `reference/` symlinks recursively — all three scripts previously skipped `reference/` in their prune step, causing broken nested symlinks (e.g. `reference/code-architecture/`, `reference/contract/builder/`) to survive re-runs because `link_if_absent` skips existing symlinks even when dangling
 
 ## [3.40.8] — 2026-04-23
 
 ### Fixed
-- `setup-symlinks.sh`: correct relative path depth in recursive `link_reference` — symlinks inside subdirectories (e.g. `reference/builder/`, `reference/contract/builder/`) were one `../` too shallow, causing broken symlinks in downstream projects
+- `setup-symlinks.sh`: correct relative path depth in recursive `link_reference` — symlinks inside subdirectories (e.g. `reference/code-architecture/`, `reference/contract/builder/`) were one `../` too shallow, causing broken symlinks in downstream projects
 - `data-worker`, `presentation-worker`: enforce skill-before-write precondition — new artifact creation must invoke the corresponding skill before any Write/Edit call to prevent pattern-error rework loops
 - `data-worker`, `presentation-worker`: prohibit Bash `cat` reads in Search Protocol — workers must use `Grep` or `Read` tools only
 - `feature-orchestrator`: add pre-flight test intent check — pure test-creation requests (matching "create tests", "write tests", etc.) are now routed to `test-worker` instead of self-executing
@@ -976,11 +989,11 @@ mv issue-worker.md          tracker-issue-worker.md
 ## [3.37.0] — 2026-04-22
 
 ### Changed
-- `lib/core/reference/clean-arch/` → `lib/core/reference/builder/`: renamed to align reference dir naming with the persona taxonomy — all files in this dir are owned and consumed by the builder persona
+- `lib/core/reference/clean-arch/` → `lib/core/reference/code-architecture/`: renamed to align reference dir naming with the persona taxonomy — all files in this dir are owned and consumed by the builder persona
 - `lib/platforms/{ios,web,flutter}/reference/contract/*.md` → `reference/contract/builder/*.md`: contract reference docs grouped under a persona subdir to make room for future personas (e.g. `contract/detective/`) without restructuring
 - `scripts/setup-symlinks.sh`: `link_reference` made fully recursive — handles any depth of subdir nesting; `contract/builder/` and future persona subdirs land downstream automatically with no further script changes
 - `scripts/local-sync.sh`: `copy_reference` made fully recursive to match; core reference call updated to pass `lib/core/reference/` root so `builder/` is preserved as a subdir rather than copied flat
-- All builder agents (`domain-worker`, `data-worker`, `presentation-worker`, `ui-worker`, `test-worker`, `feature-planner`): Grep paths updated to `reference/builder/` and `reference/contract/builder/`
+- All builder agents (`domain-worker`, `data-worker`, `presentation-worker`, `ui-worker`, `test-worker`, `feature-planner`): Grep paths updated to `reference/code-architecture/` and `reference/contract/builder/`
 - All platform contract skills (ios/web/flutter): `reference/contract/` paths updated to `reference/contract/builder/`
 - `docs/submodule-repo-structure.md`, `docs/core-design-principles.md`, `docs/contract/README.md`: updated to document `contract/<persona>/` grouping pattern
 

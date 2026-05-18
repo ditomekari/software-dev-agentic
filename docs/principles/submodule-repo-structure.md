@@ -64,12 +64,12 @@ Three-pass linking priority: `agents.local` > platform > core (first link wins)
 
 **Decision:** Each topic ships as a file pair across two source locations:
 
-- `lib/core/reference/builder/<topic>-theory.md` — what the concept IS and why it exists. Platform-agnostic, single source of truth. Downstream: `.claude/reference/builder/<topic>-theory.md`.
-- `lib/platforms/<platform>/reference/builder/<topic>-impl.md` — how to implement it in that platform's language and syntax. Downstream: `.claude/reference/builder/<topic>-impl.md`.
+- `lib/core/reference/code-architecture/<topic>-theory.md` — what the concept IS and why it exists. Platform-agnostic, single source of truth. Downstream: `.claude/reference/code-architecture/<topic>-theory.md`.
+- `lib/platforms/<platform>/reference/code-architecture/<topic>-impl.md` — how to implement it in that platform's language and syntax. Downstream: `.claude/reference/code-architecture/<topic>-impl.md`.
 - `lib/platforms/<platform>/reference/` (flat) — platform-specific patterns with no theory counterpart (e.g. `ssr.md`, `server-actions.md` for web). Lands flat as `.claude/reference/<name>.md`.
 - `lib/core/reference/README.md` — placement rules for reference vs agent body vs skills.
 
-**Rationale:** Theory is platform-agnostic — it belongs in `lib/core/` as a single source of truth. Impl files stay per-platform. The setup script links both: core reference lands at `.claude/reference/builder/<topic>-theory.md` and platform impl lands at `.claude/reference/builder/<topic>-impl.md`. Agents see a flat `builder/` dir with both files and can Grep either without knowing the source.
+**Rationale:** Theory is platform-agnostic — it belongs in `lib/core/` as a single source of truth. Impl files stay per-platform. The setup script links both: core reference lands at `.claude/reference/code-architecture/<topic>-theory.md` and platform impl lands at `.claude/reference/code-architecture/<topic>-impl.md`. Agents see a flat `builder/` dir with both files and can Grep either without knowing the source.
 
 **Reference subdir rule:** The `builder/` subdir is preserved downstream. Unlike agents and skills (always flat), reference docs maintain their subdir structure. Any new subdir added under `lib/platforms/<platform>/reference/` is automatically preserved by the setup script.
 
@@ -105,11 +105,11 @@ See [core-design-principles.md — Reference vocabulary](core-design-principles.
 |---|---|---|
 | `lib/platforms/<platform>/skills/contract/<name>/` | `.claude/skills/<name>/` | No — lands flat |
 | `lib/platforms/<platform>/skills/<name>/` | `.claude/skills/<name>/` | No — already flat |
-| `lib/core/reference/builder/<name>-theory.md` | `.claude/reference/builder/<name>-theory.md` | **Yes** — `builder/` preserved |
-| `lib/platforms/<platform>/reference/builder/<name>-impl.md` | `.claude/reference/builder/<name>-impl.md` | **Yes** — `builder/` preserved |
+| `lib/core/reference/code-architecture/<name>-theory.md` | `.claude/reference/code-architecture/<name>-theory.md` | **Yes** — `builder/` preserved |
+| `lib/platforms/<platform>/reference/code-architecture/<name>-impl.md` | `.claude/reference/code-architecture/<name>-impl.md` | **Yes** — `builder/` preserved |
 | `lib/platforms/<platform>/reference/<name>.md` | `.claude/reference/<name>.md` | No — already flat |
 
-Skills land flat because workers resolve via `.claude/skills/<name>/SKILL.md` — the `contract/` grouping is a source-level convention only. Both theory and impl reference files land under `builder/` downstream — agents resolve via `reference/builder/<topic>-theory.md` and `reference/builder/<topic>-impl.md`.
+Skills land flat because workers resolve via `.claude/skills/<name>/SKILL.md` — the `contract/` grouping is a source-level convention only. Both theory and impl reference files land under `builder/` downstream — agents resolve via `reference/code-architecture/<topic>-theory.md` and `reference/code-architecture/<topic>-impl.md`.
 
 ---
 
@@ -199,8 +199,8 @@ software-dev-agentic enforces its own conventions through an automated internal 
 | Platform-contract skills | `software-dev-agentic/lib/platforms/<platform>/skills/contract/` | Same name on all platforms, platform-specific implementation; create-only (`create-*`) — no update skills; lands flat in `.claude/skills/<name>/` downstream |
 | Platform-only skills | `software-dev-agentic/lib/platforms/<platform>/skills/` (flat) | Called by platform agents only |
 | Internal repo skills | `software-dev-agentic/skills/` | Convention checklist, report formatter — NOT symlinked to downstream projects |
-| Reference docs — theory | `software-dev-agentic/lib/core/reference/builder/<topic>-theory.md` | What/why — single source of truth, platform-agnostic |
-| Reference docs — impl | `software-dev-agentic/lib/platforms/<platform>/reference/builder/<topic>-impl.md` | How in that language — platform-specific |
+| Reference docs — theory | `software-dev-agentic/lib/core/reference/code-architecture/<topic>-theory.md` | What/why — single source of truth, platform-agnostic |
+| Reference docs — impl | `software-dev-agentic/lib/platforms/<platform>/reference/code-architecture/<topic>-impl.md` | How in that language — platform-specific |
 | Platform-specific reference docs | `software-dev-agentic/lib/platforms/<platform>/reference/` (flat) | Platform-unique patterns; lands flat in `.claude/reference/<name>.md` downstream |
 | Project-specific agents | `.claude/agents.local/` | Only relevant to one project |
 | Agent/skill extensions | `.claude/*/extensions/` | Additive delta, project-scoped |

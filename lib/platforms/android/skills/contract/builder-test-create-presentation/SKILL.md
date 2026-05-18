@@ -5,11 +5,11 @@ description: |
 user-invocable: false
 ---
 
-Create Presentation layer tests following `.claude/reference/builder/testing-impl.md ## Presenter Tests section`.
+Create Presentation layer tests following `.claude/reference/code-architecture/testing-impl.md ## Presenter Tests section`.
 
 ## Steps
 
-1. **Grep** `.claude/reference/builder/testing-impl.md` for `## Presenter Tests`; only **Read** the full file if the section cannot be located
+1. **Grep** `.claude/reference/code-architecture/testing-impl.md` for `## Presenter Tests`; only **Read** the full file if the section cannot be located
 2. **Read** the Presenter class and Contract interface to understand all methods
 3. **Locate** test path: `feature_[module]/src/test/java/co/talenta/feature_[module]/presentation/[feature]/`
 4. **Create** `[Feature]PresenterTest.kt`

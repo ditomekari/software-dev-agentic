@@ -26,6 +26,6 @@ Wire a new use case and its dependencies into the DI containers.
 - Add `import 'server-only'` guard check in server container (it must already be there)
 - Never add React imports or `client-only` to server container
 
-**Pattern:** `reference/builder/di-impl.md` — Grep `## Server Container`, `## Client Container`
+**Pattern:** `reference/code-architecture/di-impl.md` — Grep `## Server Container`, `## Client Container`
 
 **Return:** which container(s) were updated and what was added.

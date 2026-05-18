@@ -5,7 +5,7 @@ description: |
 user-invocable: false
 ---
 
-Create Domain layer tests following `.claude/reference/builder/testing-impl.md ## Service Tests, ## Mapper Tests sections` and patterns in `.claude/reference/testing-patterns-advanced.md`.
+Create Domain layer tests following `.claude/reference/code-architecture/testing-impl.md ## Service Tests, ## Mapper Tests sections` and patterns in `.claude/reference/testing-patterns-advanced.md`.
 
 ## Steps
 

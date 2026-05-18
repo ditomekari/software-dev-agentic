@@ -4,11 +4,11 @@ description: Create a Domain Entity class for a new feature using freezed.
 user-invocable: false
 ---
 
-Create a Domain Entity following `.claude/reference/builder/domain-impl.md ## Entities section`.
+Create a Domain Entity following `.claude/reference/code-architecture/domain-impl.md ## Entities section`.
 
 ## Steps
 
-1. **Grep** `.claude/reference/builder/domain-impl.md` for `## Entities`; only **Read** the full file if the section cannot be located
+1. **Grep** `.claude/reference/code-architecture/domain-impl.md` for `## Entities`; only **Read** the full file if the section cannot be located
 2. **Locate** the correct feature path: `lib/src/features/[feature]/domain/entities/`
 3. **Create** `[feature]_entity.dart`
 

@@ -36,10 +36,10 @@ Never skip or reorder layers. Each layer depends on the one above it being compl
 
 ## Platform Conventions
 
-@.claude/reference/builder/domain-theory.md
-@.claude/reference/builder/data-theory.md
-@.claude/reference/builder/presentation-theory.md
-@.claude/reference/builder/di-theory.md
+@.claude/reference/code-architecture/domain-theory.md
+@.claude/reference/code-architecture/data-theory.md
+@.claude/reference/code-architecture/presentation-theory.md
+@.claude/reference/code-architecture/di-theory.md
 
 ---
 

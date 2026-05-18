@@ -4,11 +4,11 @@ description: Create a RemoteDataSource abstract class and its Dio-based implemen
 user-invocable: false
 ---
 
-Create a DataSource following `.claude/reference/builder/data-impl.md ## Data Sources section`.
+Create a DataSource following `.claude/reference/code-architecture/data-impl.md ## Data Sources section`.
 
 ## Steps
 
-1. **Grep** `.claude/reference/builder/data-impl.md` for `## Data Sources`; only **Read** the full file if the section cannot be located
+1. **Grep** `.claude/reference/code-architecture/data-impl.md` for `## Data Sources`; only **Read** the full file if the section cannot be located
 2. **Verify** the Model exists — run `data-create-mapper` first if missing
 3. **Check** if a Payload is needed for write operations — create it under `data/models/` if so
 4. **Locate** path: `lib/src/features/[feature]/data/datasources/`

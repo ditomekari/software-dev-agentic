@@ -318,7 +318,7 @@ perf-worker           ← scores session D1–D7
 | 1 | Migration: talenta-ios | Agents/skills/reference content copied to `lib/platforms/ios/`. Full submodule wiring = separate session. |
 | 2 | Versioning | ✅ Resolved — semantic versioning established: v2.0.0 tagged. |
 | 3 | Naming alignment | Flutter/Android adopt `-orchestrator` / `-worker` suffix — required before migration |
-| 4 | Reference doc splitting | Structural split of `lib/platforms/web/reference/builder/data.md` and `lib/platforms/web/reference/utilities.md` by operation type |
+| 4 | Reference doc splitting | Structural split of `lib/platforms/web/reference/code-architecture/data.md` and `lib/platforms/web/reference/utilities.md` by operation type |
 | 5 | Flutter implementation | `lib/platforms/flutter/` is a stub — needs agents, skills, reference docs |
 
 ---

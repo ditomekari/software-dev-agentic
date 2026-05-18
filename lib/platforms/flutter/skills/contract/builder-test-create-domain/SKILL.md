@@ -4,11 +4,11 @@ description: Create unit tests for Domain layer artifacts — UseCase and Domain
 user-invocable: false
 ---
 
-Create domain tests following `.claude/reference/builder/testing-impl.md ## Use Case Tests section`.
+Create domain tests following `.claude/reference/code-architecture/testing-impl.md ## Use Case Tests section`.
 
 ## Steps
 
-1. **Grep** `.claude/reference/builder/testing-impl.md` for `## Use Case Tests`; only **Read** the full file if the section cannot be located
+1. **Grep** `.claude/reference/code-architecture/testing-impl.md` for `## Use Case Tests`; only **Read** the full file if the section cannot be located
 2. **Read** the UseCase/Service file being tested — map all inputs and return types
 3. **Check** `test/helpers/mocks/[feature]_mocks.dart` — create or update it with `@GenerateNiceMocks`
 4. **Check** `test/helpers/fixtures/[feature]_fixtures.dart` — create or update with test data

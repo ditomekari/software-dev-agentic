@@ -98,7 +98,7 @@ Current platform headings — none of the 3 platforms have a `##` heading coveri
 
 ### Gap 4 — `Registration Order`
 
-None of the 3 platform `di.md` files have a `## Registration Order` heading. The concept is covered in the core template (`lib/core/reference/builder/di.md`) but never surfaced in platform files.
+None of the 3 platform `di.md` files have a `## Registration Order` heading. The concept is covered in the core template (`lib/core/reference/code-architecture/di.md`) but never surfaced in platform files.
 
 **Required before registering:** Add a `## Registration Order` section to all 3 platform files showing the correct dependency-graph sequence for that platform's DI framework.
 

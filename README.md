@@ -378,7 +378,7 @@ Platform skill implementations handle the language and framework specifics:
 | Flutter | Dart | Flutter | BLoC |
 | Android | Kotlin | — | Presenter |
 
-Architecture reference docs live in `lib/core/reference/builder/` (universal) and `lib/platforms/<platform>/reference/` (platform-specific).
+Architecture reference docs live in `lib/core/reference/code-architecture/` (universal) and `lib/platforms/<platform>/reference/` (platform-specific).
 
 ---
 

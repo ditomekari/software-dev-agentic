@@ -7,11 +7,11 @@ user-invocable: false
 
 > **iOS mapping**: StateHolder = ViewModel (BaseViewModelV2 subclass)
 
-Create a StateHolder (ViewModel) following `.claude/reference/builder/presentation-impl.md ## State Management section` and DI rules in `.claude/reference/builder/di-impl.md ## DI Principles section`.
+Create a StateHolder (ViewModel) following `.claude/reference/code-architecture/presentation-impl.md ## State Management section` and DI rules in `.claude/reference/code-architecture/di-impl.md ## DI Principles section`.
 
 ## Steps
 
-1. **Grep** `.claude/reference/builder/presentation-impl.md` for `## State Management` and `.claude/reference/builder/di-impl.md` for `## DI Principles`; only **Read** a file in full if the section cannot be located
+1. **Grep** `.claude/reference/code-architecture/presentation-impl.md` for `## State Management` and `.claude/reference/code-architecture/di-impl.md` for `## DI Principles`; only **Read** a file in full if the section cannot be located
 2. **Read** the relevant UseCase protocol signatures (never guess)
 3. **Locate** module path: `Talenta/Module/[Module]/Presentation/ViewModel/`
 4. **Create** `[Feature]ViewModel.swift`

@@ -24,6 +24,6 @@ Write unit tests for a domain layer file.
 - Cover all branches: every condition, every edge case
 - 100% branch coverage target
 
-**Pattern:** `reference/builder/testing-impl.md` — Grep `## Service Tests`
+**Pattern:** `reference/code-architecture/testing-impl.md` — Grep `## Service Tests`
 
 **Return:** created test file path.

@@ -16,6 +16,6 @@ Create a domain service at `Talenta/Domain/Services/[Name]Service.swift`.
 - No display formatting (no `formatCurrency`, no color names) — return structured data (numbers, enums, booleans)
 - Defined as a `struct` with static methods, or a `final class` — match existing project style
 
-**Pattern:** **Grep** `.claude/reference/builder/domain-impl.md` for `## Services`; only **Read** the full file if the section cannot be located
+**Pattern:** **Grep** `.claude/reference/code-architecture/domain-impl.md` for `## Services`; only **Read** the full file if the section cannot be located
 
 **Return:** created file path.

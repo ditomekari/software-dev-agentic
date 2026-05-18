@@ -25,13 +25,13 @@ A coding assistant where Claude autonomously routes, decides, and executes — w
 
 ### 1. Skill-First Entry
 
-**Trigger skills are the only supported entry path.** A Type T skill owns the full entry sequence before any agent is spawned: routing (resume vs new run), context pre-loading from the runs directory, and building the spawn prompt with context already inlined. This eliminates cold pre-flight reads, gives the user clear options, and keeps orchestration efficient.
+**Trigger skills are the only supported entry path.** A Type W skill owns the full entry sequence before any agent is spawned: routing (resume vs new run), context pre-loading from the runs directory, and building the spawn prompt with context already inlined. This eliminates cold pre-flight reads, gives the user clear options, and keeps orchestration efficient.
 
 > Not every request needs an agent. If a change is simple and localized (rename a variable, fix a typo, add an import), act directly — the cost of delegation exceeds the task itself.
 
 **Skill-First Entry for Personas:**
 
-Every persona must have exactly one primary entry agent. That agent must have a corresponding Type T trigger skill. The skill is the only supported entry path — direct agent invocation bypasses context loading and is unsupported.
+Every persona must have exactly one primary entry agent. That agent must have a corresponding Type W workflow skill. The skill is the only supported entry path — direct agent invocation bypasses context loading and is unsupported.
 
 | Role | Has trigger skill? | Spawned by |
 |---|---|---|
@@ -45,7 +45,7 @@ The trigger skill owns three responsibilities before spawning the agent:
 
 The agent detects the `Pre-loaded context` block in its prompt and jumps directly to the first pending phase. Without it, the agent warns that direct invocation is unsupported.
 
-**Multiple workflow skills per persona are allowed** — as long as they all route through the same primary entry agent. Example: the builder persona has three Type T skills: `builder-build-feature` (direct build or resume), `builder-plan-feature` (planning-first workflow that runs a convergence planning loop → user approval → `feature-worker`), and `builder-build-from-ticket` (non-interactive CI/remote path — fetches a Jira ticket, runs the planning loop automatically, then `feature-worker` without any user prompts). All converge on the same executor; the rule guards against direct-invocation bypasses, not workflow variations.
+**Multiple workflow skills per persona are allowed** — as long as they all route through the same primary entry agent. Example: the builder persona has three Type W skills: `builder-build-feature` (direct build or resume), `builder-plan-feature` (planning-first workflow that runs a convergence planning loop → user approval → `feature-worker`), and `builder-build-from-ticket` (non-interactive CI/remote path — fetches a Jira ticket, runs the planning loop automatically, then `feature-worker` without any user prompts). All converge on the same executor; the rule guards against direct-invocation bypasses, not workflow variations.
 
 A sub-agent used only as a step inside a workflow skill (e.g. `feature-planner` inside `builder-plan-feature`) does not need its own standalone trigger skill.
 
@@ -200,22 +200,21 @@ Skills are focused, reusable workflow procedures. Each skill:
 
 | Type | Natural size | Reason |
 |---|---|---|
-| A — Regular (platform-contract) | Short — ~10–30 lines | Thin create-only procedure; logic belongs in the worker |
-| T — Trigger | Scales with routing complexity | Owns routing, context relay, spawn prompt construction, convergence loops, and approval flows — grows with the workflow it drives |
-| U — Utility (runbook) | As long as needed | All-Bash diagnostic/operational steps; nothing to extract to a worker |
+| P — Procedure | Short — ~10–30 lines | Thin create-only procedure; logic belongs in the worker |
+| W — Workflow | Scales with workflow complexity | Owns the full runtime — may do its own work or delegate to agents. Grows with the workflow it drives. |
 
 There is no universal line limit. The constraint is not length — it is scope. A skill that grows because it is doing what a worker should do is wrong. A skill that grows because its type genuinely requires more steps is correct.
 
 > Naming: `<layer>-<action>-<target>`. Platform-contract skills use `create-*` for new artifact creation only — there are no `update-*` skills. Skills are either **core-dependency** (same name on all platforms) or **platform-specific** (one platform only) — see [persona-builder.md](persona/builder.md).
 
-**Trigger skill naming — persona prefix rule:**
+**Workflow skill naming — persona prefix rule:**
 
-Every Type T skill that is the entry point for a persona must be prefixed with the persona name: `<persona>-<action>`. This makes the relationship between skill and persona explicit at a glance and prevents naming collisions as the persona roster grows.
+Every Type W skill that is the entry point for a persona must be prefixed with the persona name: `<persona>-<action>`. This makes the relationship between skill and persona explicit at a glance and prevents naming collisions as the persona roster grows.
 
 | Pattern | Example | When to use |
 |---|---|---|
-| `<persona>-<action>` | `builder-build-feature`, `detective-debug`, `auditor-arch-review` | Type T trigger skill that enters a persona workflow |
-| `<persona>-<layer>-<action>-<target>` | `builder-domain-create-entity`, `builder-data-create-mapper` | Type A platform-contract skill called by a worker |
+| `<persona>-<action>` | `builder-build-feature`, `detective-debug`, `auditor-arch-review` | Type W workflow skill that enters a persona workflow |
+| `<persona>-<layer>-<action>-<target>` | `builder-domain-create-entity`, `builder-data-create-mapper` | Type P procedure skill called by a worker |
 
 > Exception: standalone utility skills with no persona owner (e.g. `release`, `agentic-perf-review`) are named descriptively without a prefix until a persona is assigned.
 
@@ -299,10 +298,10 @@ Reference docs are organized around two levels:
 |---|---|---|
 | Topic | `domain` | One reference file pair per topic per platform |
 | Term | `UseCase` | Same `##` heading on every platform that implements it |
-| Theory file | what a UseCase IS | `lib/core/reference/builder/<topic>-theory.md` |
-| Impl file | how to write a UseCase in Swift | `lib/platforms/<platform>/reference/builder/<topic>-impl.md` |
+| Theory file | what a UseCase IS | `lib/core/reference/code-architecture/<topic>-theory.md` |
+| Impl file | how to write a UseCase in Swift | `lib/platforms/<platform>/reference/code-architecture/<topic>-impl.md` |
 
-Theory lives in `lib/core/` — single source of truth, platform-agnostic. Impl lives per platform. Both land at `.claude/reference/builder/` downstream via symlinks. The theory file answers *what* and *why*; the impl file answers *how* in that language and syntax. A worker Greps the theory file to understand the contract, then Greps the impl file to write the correct code. One Grep each. Never the full file.
+Theory lives in `lib/core/` — single source of truth, platform-agnostic. Impl lives per platform. Both land at `.claude/reference/code-architecture/` downstream via symlinks. The theory file answers *what* and *why*; the impl file answers *how* in that language and syntax. A worker Greps the theory file to understand the contract, then Greps the impl file to write the correct code. One Grep each. Never the full file.
 
 **Placement decision rule — reference vs agent body:**
 
@@ -428,15 +427,12 @@ Sub-planners are all leaf agents: they explore, report, and return. No further s
 
 | Type | Config | Who triggers | Use for |
 |---|---|---|---|
-| **A — Regular** | `user-invocable: false` | Worker (agent) only | Standard build/update procedures |
-| **T — Trigger** | `user-invocable: true` + uses `Agent` tool | User only | Entry point that spawns an agent workflow |
-| **U — Utility** | `user-invocable: true`, no `Agent` tool | User only | Self-contained interactive tool — runs with model, does not spawn agents |
-
-> **Type T vs Type U:** Both are user-invocable and model-run. Type T spawns an agent workflow (`agentic-perf-review` → `perf-worker`). Type U does its own work directly (`doctor`, `clear-runs`, `release`).
+| **P — Procedure** | `user-invocable: false` | Worker (agent) only | Thin create-only procedures |
+| **W — Workflow** | `user-invocable: true` | User only | User entry point — owns and runs the workflow. Simple workflows do their own work; complex ones delegate to agents. |
 
 > For automated bash execution without model involvement, use hooks in `settings.json` — not a skill.
 
-**Why no Type C (default — both user and agent):** Every default skill's description loads into the main session context on every turn. Types A, T, and U all eliminate this overhead.
+**Why no default skill type (invocable by both user and agent):** Every default skill's description loads into the main session context on every turn. Types P and W eliminate this overhead.
 
 #### By Scope
 
@@ -454,15 +450,15 @@ Sub-planners are all leaf agents: they explore, report, and return. No further s
 
 Not all combinations are meaningful. Use this as the decision gate when adding a new skill:
 
-| Scope | A — Regular | T — Trigger | U — Utility |
-|---|---|---|---|
-| Toolkit | — | ✓ | ✓ |
-| Platform-contract | ✓ | — | — |
-| Platform-only | ✓ | — | ✓ |
-| Project | ✓ | ✓ | ✓ |
-| Repo | ✓ | ✓ | ✓ |
+| Scope | P — Procedure | W — Workflow |
+|---|---|---|
+| Toolkit | — | ✓ |
+| Platform-contract | ✓ | — |
+| Platform-only | ✓ | ✓ |
+| Project | ✓ | ✓ |
+| Repo | ✓ | ✓ |
 
-> Toolkit skills are always user-facing (Type T or U) — agents don't call them, workers call platform-contract skills instead. Platform-contract skills are always Type A — they're called by workers programmatically, never by users directly.
+> Toolkit skills are always user-facing (Type W) — agents don't call them, workers call platform-contract skills instead. Platform-contract skills are always Type P — they're called by workers programmatically, never by users directly.
 
 ### Reference Docs
 
@@ -470,8 +466,8 @@ Not all combinations are meaningful. Use this as the decision gate when adding a
 
 | Scope | Location | Ships downstream? |
 |---|---|---|
-| **Core reference** | `lib/core/reference/builder/` | Yes — all platforms. Contains `<topic>-theory.md` (what/why, platform-agnostic, single source of truth). |
-| **Platform reference** | `lib/platforms/<platform>/reference/builder/` | Yes — matching platform. Contains `<topic>-impl.md` (how in that language). |
+| **Core reference** | `lib/core/reference/code-architecture/` | Yes — all platforms. Contains `<topic>-theory.md` (what/why, platform-agnostic, single source of truth). |
+| **Platform reference** | `lib/platforms/<platform>/reference/code-architecture/` | Yes — matching platform. Contains `<topic>-impl.md` (how in that language). |
 | **Project reference** | `.claude/reference.local/` | No — project-owned, not in this repo. Overrides platform docs for project-specific conventions. |
 
 ---
@@ -486,7 +482,7 @@ A persona is composed of layered components that connect user intent to executed
 User
  │
  ▼
-Trigger Skill (Type T)     — routes (resume vs new), pre-loads context, builds spawn prompt, owns convergence loop, spawns agents, approval
+Workflow Skill (Type W)     — routes (resume vs new), pre-loads context, builds spawn prompt, owns convergence loop, spawns agents, approval
  │
  ▼  (gather-intent / decision round)
 Orchestrator               — brain only; returns Decision blocks; never spawns agents or writes files
@@ -544,7 +540,7 @@ Not every persona uses all layers. A simple persona may have only a trigger skil
 | New orchestration flow, same on all platforms | Core orchestrator |
 | New code generation pattern for one platform | Platform-contract skill (same name, platform implements) → `lib/platforms/<platform>/skills/contract/` |
 | Workflow too platform-specific for any core agent | Platform agent + platform skill → `lib/platforms/<platform>/skills/` (flat) |
-| Architecture reference knowledge (any topic) | `lib/core/reference/builder/<topic>-theory.md` (what/why) + `lib/platforms/<platform>/reference/builder/<topic>-impl.md` (how) — both land at `.claude/reference/builder/` downstream |
+| Architecture reference knowledge (any topic) | `lib/core/reference/code-architecture/<topic>-theory.md` (what/why) + `lib/platforms/<platform>/reference/code-architecture/<topic>-impl.md` (how) — both land at `.claude/reference/code-architecture/` downstream |
 | Architecture reference knowledge (platform-specific, no theory counterpart) | `lib/platforms/<platform>/reference/` (flat) |
 
 **Planner vs Worker — when to use which:**

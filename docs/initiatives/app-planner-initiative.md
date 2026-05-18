@@ -66,7 +66,7 @@ These three headings apply across all platforms. Same heading text, platform-spe
 
 ### 1. Core Reference Doc
 
-**`lib/core/reference/builder/app-layer.md`**
+**`lib/core/reference/code-architecture/app-layer.md`**
 
 Defines what each concept IS — platform-agnostic theory.
 
@@ -157,7 +157,7 @@ Add App Layer step after Presentation Layer execution:
 
 ## Execution Order
 
-1. Write `lib/core/reference/builder/app-layer.md` (core theory)
+1. Write `lib/core/reference/code-architecture/app-layer.md` (core theory)
 2. Write `lib/platforms/ios/reference/contract/builder/app-layer.md`
 3. Write `lib/platforms/flutter/reference/contract/builder/app-layer.md`
 4. Write `lib/core/agents/builder/app-planner.md`

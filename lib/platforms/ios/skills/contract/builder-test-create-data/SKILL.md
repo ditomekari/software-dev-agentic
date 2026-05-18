@@ -5,7 +5,7 @@ description: |
 user-invocable: false
 ---
 
-Create Data layer tests following `.claude/reference/builder/testing-impl.md ## Mapper Tests section` and patterns in `.claude/reference/testing-patterns-advanced.md`.
+Create Data layer tests following `.claude/reference/code-architecture/testing-impl.md ## Mapper Tests section` and patterns in `.claude/reference/testing-patterns-advanced.md`.
 
 ## Steps
 

@@ -5,11 +5,11 @@ description: |
 user-invocable: false
 ---
 
-Create a Repository protocol following `.claude/reference/builder/domain-impl.md ## Repository Interfaces section`.
+Create a Repository protocol following `.claude/reference/code-architecture/domain-impl.md ## Repository Interfaces section`.
 
 ## Steps
 
-1. **Grep** `.claude/reference/builder/domain-impl.md` for `## Repository Interfaces`; only **Read** the full file if the section cannot be located
+1. **Grep** `.claude/reference/code-architecture/domain-impl.md` for `## Repository Interfaces`; only **Read** the full file if the section cannot be located
 2. **Locate** module path: `Talenta/Module/[Module]/Domain/Repository/`
 3. **Create** `[Feature]RepositoryProtocol.swift`
 

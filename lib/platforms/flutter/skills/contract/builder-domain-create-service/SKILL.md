@@ -4,11 +4,11 @@ description: Create a Domain Service class for pure synchronous business logic.
 user-invocable: false
 ---
 
-Create a Domain Service following `.claude/reference/builder/domain-impl.md ## Domain Services section`.
+Create a Domain Service following `.claude/reference/code-architecture/domain-impl.md ## Domain Services section`.
 
 ## Steps
 
-1. **Grep** `.claude/reference/builder/domain-impl.md` for `## Domain Services`; only **Read** the full file if the section cannot be located
+1. **Grep** `.claude/reference/code-architecture/domain-impl.md` for `## Domain Services`; only **Read** the full file if the section cannot be located
 2. **Locate** path: `lib/src/features/[feature]/domain/services/`
 3. **Create** `[feature]_[noun].dart` (e.g. `leave_balance_calculator.dart`)
 

@@ -17,6 +17,6 @@ Create a domain service at `src/domain/services/[Name]Service.ts`.
 - No display formatting (no `formatCurrency`, no CSS class names) — return structured data (numbers, enums, booleans)
 - Exported as a class with static methods, or plain exported functions — your call, match existing project style
 
-**Pattern:** `reference/builder/domain-impl.md` — Grep `## Services`
+**Pattern:** `reference/code-architecture/domain-impl.md` — Grep `## Services`
 
 **Return:** created file path.

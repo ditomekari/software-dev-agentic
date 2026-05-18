@@ -5,11 +5,11 @@ description: |
 user-invocable: false
 ---
 
-Create a Domain Entity following `.claude/reference/builder/domain-impl.md ## Entities section` and naming conventions in `.claude/reference/project.md ## Conventions & Naming section`.
+Create a Domain Entity following `.claude/reference/code-architecture/domain-impl.md ## Entities section` and naming conventions in `.claude/reference/project.md ## Conventions & Naming section`.
 
 ## Steps
 
-1. **Grep** `.claude/reference/builder/domain-impl.md` for `## Entities`; only **Read** the full file if the section cannot be located
+1. **Grep** `.claude/reference/code-architecture/domain-impl.md` for `## Entities`; only **Read** the full file if the section cannot be located
 2. **Locate** the correct path: `feature_[module]/src/main/java/co/talenta/feature_[module]/domain/entity/`
 3. **Create** `[Entity].kt`
 

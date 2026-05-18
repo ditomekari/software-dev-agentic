@@ -1,6 +1,6 @@
 ---
 name: migrate
-description: Migrate an existing agent or skill file to comply with software-dev-agentic conventions. Routes through arch-review-orchestrator which runs agent-migrate-worker then verifies the fix with arch-review-worker.
+description: Migrate an existing agent or skill file to comply with software-dev-agentic conventions. Runs agent-migrate-worker then verifies the fix with arch-review-worker.
 user-invocable: true
 tools: Agent
 ---
@@ -11,14 +11,28 @@ tools: Agent
 /migrate [file]
 ```
 
-- `file` — optional. Path to the agent or skill file to migrate. If omitted, the orchestrator will ask.
+- `file` — optional. Path to the agent or skill file to migrate. If omitted, the worker will ask.
 
 ## Steps
 
-Invoke `arch-review-orchestrator` with:
+### 1 — Migrate
 
-```
-Intent: migrate <file>
-```
+Spawn `agent-migrate-worker`.
 
-If no file was provided, omit it — the orchestrator will pass through to agent-migrate-worker which will ask interactively.
+If `file` was provided, pass it in the spawn prompt: `File: <file>`
+If omitted, pass no arguments — the worker will ask interactively.
+
+Validate: response must contain a migration report — STOP if no output.
+
+### 2 — Verify
+
+Extract the migrated file path from the report.
+
+Spawn `arch-review-worker` with: `Scope: <migrated file path>. Check convention compliance.`
+
+- Clean → confirm fix succeeded
+- Violations remain → list as residual — user decides next step
+
+### 3 — Report
+
+Migration report + verification result. If residual violations: list them and suggest `/migrate` again.

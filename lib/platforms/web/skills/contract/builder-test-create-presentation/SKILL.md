@@ -34,6 +34,6 @@ Write tests for a presentation layer file.
 - For pure-fn views: pass a pre-built `viewModel` prop directly — no mocking needed
 - Cover each render state: loading, error, data
 
-**Pattern:** `reference/builder/testing-impl.md` — Grep `## Presenter Tests` · `reference/builder/presentation-impl.md` — Grep `## Server-Side ViewModel (Pure Function)`
+**Pattern:** `reference/code-architecture/testing-impl.md` — Grep `## Presenter Tests` · `reference/code-architecture/presentation-impl.md` — Grep `## Server-Side ViewModel (Pure Function)`
 
 **Return:** created test file path.

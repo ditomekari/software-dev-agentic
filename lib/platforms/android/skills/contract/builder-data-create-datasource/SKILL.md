@@ -7,11 +7,11 @@ user-invocable: false
 
 > **Android mapping**: DataSource = Retrofit API service interface (`*Api.kt`)
 
-Create an API service following `.claude/reference/builder/data-impl.md ## API Service section`.
+Create an API service following `.claude/reference/code-architecture/data-impl.md ## API Service section`.
 
 ## Steps
 
-1. **Grep** `.claude/reference/builder/data-impl.md` for `## API Service`; only **Read** the full file if the section cannot be located
+1. **Grep** `.claude/reference/code-architecture/data-impl.md` for `## API Service`; only **Read** the full file if the section cannot be located
 2. **Locate** the correct path: `feature_[module]/src/main/java/co/talenta/feature_[module]/service/`
 3. **Create** `[Module]Api.kt`
 4. **Create** response model(s) in `data/response/[Entity]Response.kt` if not already present

@@ -16,6 +16,6 @@ Create a repository interface at `src/domain/repositories/[Feature]Repository.ts
 - Methods return domain entities, never DTOs or DB records
 - Method signatures match the CRUD operations requested
 
-**Pattern:** `reference/builder/domain-impl.md` — Grep `## Repository Interfaces`
+**Pattern:** `reference/code-architecture/domain-impl.md` — Grep `## Repository Interfaces`
 
 **Return:** created file path. Suggest next step: `domain-create-usecase`.

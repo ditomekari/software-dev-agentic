@@ -5,11 +5,11 @@ description: |
 user-invocable: false
 ---
 
-Create a Domain Service following DI rules in `.claude/reference/builder/di-impl.md ## DI Principles section`.
+Create a Domain Service following DI rules in `.claude/reference/code-architecture/di-impl.md ## DI Principles section`.
 
 ## Steps
 
-1. **Grep** `.claude/reference/builder/di-impl.md` for `## DI Principles`; only **Read** the full file if the section cannot be located
+1. **Grep** `.claude/reference/code-architecture/di-impl.md` for `## DI Principles`; only **Read** the full file if the section cannot be located
 2. **Locate** the correct path: `feature_[module]/src/main/java/co/talenta/feature_[module]/domain/`
 3. **Create** `[Feature]Service.kt`
 4. **Add** `@Provides` entry in the feature's DI module

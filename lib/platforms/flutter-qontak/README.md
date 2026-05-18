@@ -29,12 +29,12 @@ lib/platforms/flutter-qontak/
 | Concept | Where |
 |---|---|
 | Workspace layout, module types, package naming | `reference/project.md` |
-| Creating a new feature module | `reference/builder/modular-structure-impl.md` |
-| Cross-module communication | `reference/builder/module-communication-impl.md` |
-| DI per module | `reference/builder/di-impl.md` |
-| Localization per feature | `reference/builder/localization-impl.md` |
-| Flavors | `reference/builder/flavor-impl.md` |
-| Tech stack | `reference/builder/tech-stack-impl.md` |
+| Creating a new feature module | `reference/code-architecture/modular-structure-impl.md` |
+| Cross-module communication | `reference/code-architecture/module-communication-impl.md` |
+| DI per module | `reference/code-architecture/di-impl.md` |
+| Localization per feature | `reference/code-architecture/localization-impl.md` |
+| Flavors | `reference/code-architecture/flavor-impl.md` |
+| Tech stack | `reference/code-architecture/tech-stack-impl.md` |
 
 ## Relationship to `flutter` Platform
 

@@ -5,11 +5,11 @@ description: |
 user-invocable: false
 ---
 
-Create Domain layer tests following `.claude/reference/builder/testing-impl.md ## Use Case Tests section`.
+Create Domain layer tests following `.claude/reference/code-architecture/testing-impl.md ## Use Case Tests section`.
 
 ## Steps
 
-1. **Grep** `.claude/reference/builder/testing-impl.md` for `## Use Case Tests`; only **Read** the full file if the section cannot be located
+1. **Grep** `.claude/reference/code-architecture/testing-impl.md` for `## Use Case Tests`; only **Read** the full file if the section cannot be located
 2. **Read** the UseCase class and its Params to understand all parameters and repository calls
 3. **Locate** test path: `feature_[module]/src/test/java/co/talenta/feature_[module]/domain/usecase/`
 4. **Create** `[UseCase]Test.kt`

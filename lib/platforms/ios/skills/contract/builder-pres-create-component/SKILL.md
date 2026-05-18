@@ -5,11 +5,11 @@ description: |
 user-invocable: false
 ---
 
-Create a Cell following `.claude/reference/builder/presentation-impl.md ## ViewController section` and UIModel Advanced Pattern.
+Create a Cell following `.claude/reference/code-architecture/presentation-impl.md ## ViewController section` and UIModel Advanced Pattern.
 
 ## Steps
 
-1. **Grep** `.claude/reference/builder/presentation-impl.md` for `## ViewController`; only **Read** the full file if the section cannot be located
+1. **Grep** `.claude/reference/code-architecture/presentation-impl.md` for `## ViewController`; only **Read** the full file if the section cannot be located
 2. **Locate** module path: `Talenta/Module/[Module]/Presentation/View/Cell/`
 3. **Create** `[Feature]TableViewCell.swift` (or `CollectionViewCell`)
 

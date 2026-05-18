@@ -5,12 +5,12 @@ description: |
 user-invocable: false
 ---
 
-Create a Presenter and Activity following `.claude/reference/builder/presentation-impl.md ## Presenter section` and `## Activity / Fragment section`, and error handling in `.claude/reference/builder/error-handling-impl.md ## ErrorHandler section`.
+Create a Presenter and Activity following `.claude/reference/code-architecture/presentation-impl.md ## Presenter section` and `## Activity / Fragment section`, and error handling in `.claude/reference/code-architecture/error-handling-impl.md ## ErrorHandler section`.
 
 ## Steps
 
-1. **Grep** `.claude/reference/builder/presentation-impl.md` for `## Presenter` and `## Activity`; only **Read** the full file if the section cannot be located
-2. **Grep** `.claude/reference/builder/error-handling-impl.md` for `## ErrorHandler`
+1. **Grep** `.claude/reference/code-architecture/presentation-impl.md` for `## Presenter` and `## Activity`; only **Read** the full file if the section cannot be located
+2. **Grep** `.claude/reference/code-architecture/error-handling-impl.md` for `## ErrorHandler`
 3. **Read** the Contract interface to understand all View and Presenter methods — never guess
 4. **Locate** the correct path: `feature_[module]/src/main/java/co/talenta/feature_[module]/presentation/[feature]/`
 5. **Create** `[Feature]Presenter.kt` and `[Feature]Activity.kt` (or `[Feature]Fragment.kt`)

@@ -18,6 +18,6 @@ Create `__tests__/mocks/Mock[InterfaceName].ts`.
 - No logic — mocks are pure stubs
 - If test framework is Jest: use `jest.fn()` from `@jest/globals`
 
-**Pattern:** `reference/builder/testing-impl.md` — Grep `## Presenter Tests`
+**Pattern:** `reference/code-architecture/testing-impl.md` — Grep `## Presenter Tests`
 
 **Return:** created/updated file path and a minimal usage example.

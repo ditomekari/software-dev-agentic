@@ -4,12 +4,12 @@ description: Create a Screen widget with BlocProvider and a View widget with Blo
 user-invocable: false
 ---
 
-Create a Screen following `.claude/reference/builder/presentation-impl.md ## Screen Structure section`.
+Create a Screen following `.claude/reference/code-architecture/presentation-impl.md ## Screen Structure section`.
 
 ## Steps
 
 1. **Read** the BLoC's Event and State files completely — must match types exactly
-2. **Grep** `.claude/reference/builder/presentation-impl.md` for `## Screen Structure` and `## BlocListener (Side Effects)`
+2. **Grep** `.claude/reference/code-architecture/presentation-impl.md` for `## Screen Structure` and `## BlocListener (Side Effects)`
 3. **Locate** path: `lib/src/features/[feature]/presentation/screens/`
 4. **Create** `[feature]_screen.dart`
 

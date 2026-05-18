@@ -7,11 +7,11 @@ user-invocable: false
 
 > **Android mapping**: StateHolder = MVP Contract interface (`[Feature]Contract.kt`)
 
-Create a Contract interface following `.claude/reference/builder/presentation-impl.md ## MVP Contract section`.
+Create a Contract interface following `.claude/reference/code-architecture/presentation-impl.md ## MVP Contract section`.
 
 ## Steps
 
-1. **Grep** `.claude/reference/builder/presentation-impl.md` for `## MVP Contract`; only **Read** the full file if the section cannot be located
+1. **Grep** `.claude/reference/code-architecture/presentation-impl.md` for `## MVP Contract`; only **Read** the full file if the section cannot be located
 2. **Read** the domain entity and use case to understand what the screen needs to display
 3. **Locate** the correct path: `feature_[module]/src/main/java/co/talenta/feature_[module]/presentation/[feature]/`
 4. **Create** `[Feature]Contract.kt`

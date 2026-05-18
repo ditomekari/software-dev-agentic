@@ -31,6 +31,6 @@ Write tests for a data layer file (mapper or repository impl).
   - Network failure (no response) → `DomainError.networkFailure`
   - Assert `errorMapper.map` is always called with the original error
 
-**Pattern:** `reference/builder/testing-impl.md` — Grep `## Mapper Tests`, `## Repository Tests`
+**Pattern:** `reference/code-architecture/testing-impl.md` — Grep `## Mapper Tests`, `## Repository Tests`
 
 **Return:** created test file path.

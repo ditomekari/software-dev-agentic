@@ -17,6 +17,6 @@ Create a domain entity at `src/domain/entities/[Name].ts`.
 - Interface only — no class, no decorators
 - Properties represent business concepts, not API field names
 
-**Pattern:** `reference/builder/domain-impl.md` — Grep `## Entities`
+**Pattern:** `reference/code-architecture/domain-impl.md` — Grep `## Entities`
 
 **Return:** created file path. Suggest next step: `domain-create-repository` or `domain-create-usecase`.

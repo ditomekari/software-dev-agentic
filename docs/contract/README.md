@@ -20,7 +20,7 @@ Every file under `lib/platforms/<platform>/reference/contract/<persona>/` must f
 
 Platforms may add platform-specific `##` sections and adapt content to their syntax — but every required keyword must be in a `##` heading.
 
-**Core templates** — each contract file has a platform-agnostic counterpart in `lib/platforms/<platform>/reference/builder/<filename>` that defines concepts and invariants. Platform files implement those concepts in their own syntax. Currently available: `domain.md`, `data.md`, `presentation.md`, `ui.md`, `di.md`, `testing.md`, `error-handling.md`.
+**Core templates** — each contract file has a platform-agnostic counterpart in `lib/platforms/<platform>/reference/code-architecture/<filename>` that defines concepts and invariants. Platform files implement those concepts in their own syntax. Currently available: `domain.md`, `data.md`, `presentation.md`, `ui.md`, `di.md`, `testing.md`, `error-handling.md`.
 
 ---
 
@@ -29,7 +29,7 @@ Platforms may add platform-specific `##` sections and adapt content to their syn
 ```bash
 # Check one file — exits non-zero if any keyword is missing
 for keyword in "Entities" "Repository" "Use Cases" "Services" "Domain Errors"; do
-  grep -q "^## .*$keyword" lib/platforms/web/reference/builder/domain.md \
+  grep -q "^## .*$keyword" lib/platforms/web/reference/code-architecture/domain.md \
     || echo "MISSING: $keyword"
 done
 ```
@@ -46,6 +46,6 @@ These 8 reference contract files are a **prerequisite for the builder and audito
 - **Auditor** (`arch-check-conventions`) enforces keyword presence — a platform without these files will fail every convention check
 
 When adding a 4th platform:
-1. Create `lib/platforms/<platform>/reference/builder/` with all 8 files
+1. Create `lib/platforms/<platform>/reference/code-architecture/` with all 8 files
 2. Each file must contain the required keywords defined in `builder-auditor-schema.md`
 3. Run `arch-check-conventions` on the new platform's contract directory to verify compliance before merging

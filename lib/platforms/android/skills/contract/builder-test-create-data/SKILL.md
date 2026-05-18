@@ -5,11 +5,11 @@ description: |
 user-invocable: false
 ---
 
-Create Data layer tests following `.claude/reference/builder/testing-impl.md ## Mapper Tests section`.
+Create Data layer tests following `.claude/reference/code-architecture/testing-impl.md ## Mapper Tests section`.
 
 ## Steps
 
-1. **Grep** `.claude/reference/builder/testing-impl.md` for `## Mapper Tests`; only **Read** the full file if the section cannot be located
+1. **Grep** `.claude/reference/code-architecture/testing-impl.md` for `## Mapper Tests`; only **Read** the full file if the section cannot be located
 2. **Read** the Mapper class, Response model, and Entity to understand all fields
 3. **Locate** test path: `feature_[module]/src/test/java/co/talenta/feature_[module]/data/mapper/`
 4. **Create** `[Entity]MapperTest.kt`

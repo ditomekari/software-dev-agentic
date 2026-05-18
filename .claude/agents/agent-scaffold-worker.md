@@ -55,7 +55,7 @@ Grep `.claude/reference/agent-conventions.md` for `## Component Types` to load t
 
 Apply the decision tree to the four signals. Determine:
 - Component type: Skill / Worker / Orchestrator / New Persona
-- If Skill: invocation type (A / B / T / U) and scope
+- If Skill: invocation type (P / W) and scope
 - If Worker or Orchestrator: scope (Persona agent / Platform agent / Repo agent)
 - Persona fit: which existing persona, or new persona needed
 
@@ -73,7 +73,7 @@ Branching: <none — linear | conditional logic | phase coordination>
 
 RECOMMENDATION
 ──────────────
-Type:     <Skill Type A/B/T/U | Worker | Orchestrator | New Persona>
+Type:     <Skill Type P/W | Worker | Orchestrator | New Persona>
 Scope:    <Toolkit | Platform-contract | Platform-only | Repo | Persona agent | Platform agent>
 Location: <exact target path>
 Reason:   <one sentence — why this type fits>
@@ -263,7 +263,7 @@ After completing, check for `.claude/agents.local/extensions/<name>.md` — if i
 
 ### Skill templates
 
-**Type A (Regular):**
+**Type P (Procedure):**
 ```
 ---
 name: <name>
@@ -275,44 +275,24 @@ tools: <tools>
 <procedure — one focused task, under 30 lines, no branching>
 ```
 
-**Type B (Destructive):**
-```
----
-name: <name>
-description: <description>
-disable-model-invocation: true
----
-
-<bash commands only>
-```
-
-**Type T (Trigger):**
+**Type W (Workflow):**
 ```
 ---
 name: <name>
 description: <description>
 user-invocable: true
-tools: Agent, <other tools>
+tools: <tools — include Agent if the workflow delegates to agents>
 ---
 
 ## Arguments
 <parse user invocation args if needed>
 
 ## Steps
-1. <setup step>
-2. Spawn `<agent>` with: ...
-```
+### 1 — <first step>
+<setup, routing, or direct work>
 
-**Type U (Utility):**
-```
----
-name: <name>
-description: <description>
-user-invocable: true
-tools: <tools>
----
-
-<interactive steps — model-run, self-contained, no agent spawning>
+### 2 — <next step>
+<spawn agent, or continue doing own work>
 ```
 
 ---

@@ -47,12 +47,12 @@ Extract from the inlined content:
 
 Survey reference files before writing any code:
 ```
-.claude/reference/builder/syntax-conventions-theory.md
-.claude/reference/builder/utilities-theory.md
-.claude/reference/builder/error-handling-theory.md
-.claude/reference/builder/syntax-conventions-impl.md
-.claude/reference/builder/utilities-impl.md
-.claude/reference/builder/error-handling-impl.md
+.claude/reference/code-architecture/syntax-conventions-theory.md
+.claude/reference/code-architecture/utilities-theory.md
+.claude/reference/code-architecture/error-handling-theory.md
+.claude/reference/code-architecture/syntax-conventions-impl.md
+.claude/reference/code-architecture/utilities-impl.md
+.claude/reference/code-architecture/error-handling-impl.md
 ```
 
 Grep `^## ` in each file to list all headings. From the artifact types present in plan.md, decide which sections are needed — load only those. If a section turns out to be needed mid-execution and was not loaded, read it then. Apply every loaded convention throughout all artifacts — this is not optional.
@@ -100,7 +100,7 @@ Derive the skill from each artifact's type in plan.md:
 Before executing any Screen or Component artifact, check whether an existing one already covers the need.
 
 **Step 1 — Find the platform's shared component paths:**
-Grep `.claude/reference/builder/presentation-impl.md` for the section heading `Shared Component Paths`. This section lists the exact directories and file patterns to search for this platform.
+Grep `.claude/reference/code-architecture/presentation-impl.md` for the section heading `Shared Component Paths`. This section lists the exact directories and file patterns to search for this platform.
 
 **Step 2 — Search those paths:**
 For each path listed, run a Grep for keywords matching the component need (e.g. the component type, a key prop name, or a UI concept like "card", "list", "avatar"). Use the file pattern from the section (e.g. `*View.swift`, `*.tsx`, `*.dart`).
@@ -141,7 +141,7 @@ App layer wiring is always direct `Read` + `Edit` — no skill is needed. For ea
 
 1. Load the platform app-layer reference to confirm the exact pattern:
    ```
-   .claude/reference/builder/app-layer-impl.md
+   .claude/reference/code-architecture/app-layer-impl.md
    ```
    Grep for the section heading, then `Read` with `offset` + `limit`.
 2. `Read` the target file using `offset` + `limit` around the insertion point (Grep for a known symbol or section marker first).
