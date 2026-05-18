@@ -25,11 +25,7 @@ The calling skill passes all of the following inline:
 git rev-parse --show-toplevel
 ```
 
-Create output directory:
-
-```bash
-mkdir -p <root>/.claude/agentic-state/rfc
-```
+Output directory `.claude/agentic-state/rfc/` is created by the setup script — do not mkdir.
 
 ## Step 2 — Write RFC
 

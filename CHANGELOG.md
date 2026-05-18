@@ -7,6 +7,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.2.2] — 2026-05-18
+
+### Fixed
+- `setup-symlinks.sh`: pre-creates `.claude/agentic-state/rfc/` alongside `runs/`
+- `builder-rfc-writer`: removed self-`mkdir` — output directory is guaranteed by setup
+
+---
+
 ## [7.2.1] — 2026-05-18
 
 ### Fixed

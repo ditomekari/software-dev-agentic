@@ -80,7 +80,8 @@ mkdir -p \
   "$CLAUDE_DIR/agents.local/extensions" \
   "$CLAUDE_DIR/skills.local/extensions" \
   "$CLAUDE_DIR/reference.local" \
-  "$CLAUDE_DIR/agentic-state/runs"
+  "$CLAUDE_DIR/agentic-state/runs" \
+  "$CLAUDE_DIR/agentic-state/rfc"
 
 # ── Link function (local > platform > core) ───────────────────────────────────
 
