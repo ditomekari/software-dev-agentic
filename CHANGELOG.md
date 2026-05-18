@@ -7,6 +7,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.2.0] — 2026-05-18
+
+### Added
+- `builder-rfc` skill — generates an RFC and ticket breakdown from a Jira Epic + PRD + optional Figma design; drives the full Clean Architecture convergence planning loop interactively
+- `builder-rfc-writer` agent — pure writer; receives converged plan context inline and writes `<epic-slug>-rfc.md` + `<epic-slug>-breakdown.md` to `.claude/agentic-state/rfc/`
+
+---
+
 ## [7.1.0] — 2026-05-18
 
 ### Changed
