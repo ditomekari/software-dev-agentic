@@ -69,9 +69,9 @@ Three-pass linking priority: `agents.local` > platform > core (first link wins)
 - `lib/platforms/<platform>/reference/` (flat) — platform-specific patterns with no theory counterpart (e.g. `ssr.md`, `server-actions.md` for web). Lands flat as `.claude/reference/<name>.md`.
 - `lib/core/reference/README.md` — placement rules for reference vs agent body vs skills.
 
-**Rationale:** Theory is platform-agnostic — it belongs in `lib/core/` as a single source of truth. Impl files stay per-platform. The setup script links both: core reference lands at `.claude/reference/code-architecture/<topic>-theory.md` and platform impl lands at `.claude/reference/code-architecture/<topic>-impl.md`. Agents see a flat `builder/` dir with both files and can Grep either without knowing the source.
+**Rationale:** Theory is platform-agnostic — it belongs in `lib/core/` as a single source of truth. Impl files stay per-platform. The setup script links both: core reference lands at `.claude/reference/code-architecture/<topic>-theory.md` and platform impl lands at `.claude/reference/code-architecture/<topic>-impl.md`. Agents see a flat `code-architecture/` dir with both files and can Grep either without knowing the source.
 
-**Reference subdir rule:** The `builder/` subdir is preserved downstream. Unlike agents and skills (always flat), reference docs maintain their subdir structure. Any new subdir added under `lib/platforms/<platform>/reference/` is automatically preserved by the setup script.
+**Reference subdir rule:** The `code-architecture/` subdir is preserved downstream. Unlike agents and skills (always flat), reference docs maintain their subdir structure. Any new subdir added under `lib/platforms/<platform>/reference/` is automatically preserved by the setup script.
 
 Every file follows a strict heading structure: `#` platform+topic title, `##` canonical Terms (agent-greppable grep keys), `###` subsections. This makes `grep "^## Term"` deterministic across all platforms.
 
@@ -105,11 +105,11 @@ See [core-design-principles.md — Reference vocabulary](core-design-principles.
 |---|---|---|
 | `lib/platforms/<platform>/skills/contract/<name>/` | `.claude/skills/<name>/` | No — lands flat |
 | `lib/platforms/<platform>/skills/<name>/` | `.claude/skills/<name>/` | No — already flat |
-| `lib/core/reference/code-architecture/<name>-theory.md` | `.claude/reference/code-architecture/<name>-theory.md` | **Yes** — `builder/` preserved |
-| `lib/platforms/<platform>/reference/code-architecture/<name>-impl.md` | `.claude/reference/code-architecture/<name>-impl.md` | **Yes** — `builder/` preserved |
+| `lib/core/reference/code-architecture/<name>-theory.md` | `.claude/reference/code-architecture/<name>-theory.md` | **Yes** — `code-architecture/` preserved |
+| `lib/platforms/<platform>/reference/code-architecture/<name>-impl.md` | `.claude/reference/code-architecture/<name>-impl.md` | **Yes** — `code-architecture/` preserved |
 | `lib/platforms/<platform>/reference/<name>.md` | `.claude/reference/<name>.md` | No — already flat |
 
-Skills land flat because workers resolve via `.claude/skills/<name>/SKILL.md` — the `contract/` grouping is a source-level convention only. Both theory and impl reference files land under `builder/` downstream — agents resolve via `reference/code-architecture/<topic>-theory.md` and `reference/code-architecture/<topic>-impl.md`.
+Skills land flat because workers resolve via `.claude/skills/<name>/SKILL.md` — the `contract/` grouping is a source-level convention only. Both theory and impl reference files land under `code-architecture/` downstream — agents resolve via `reference/code-architecture/<topic>-theory.md` and `reference/code-architecture/<topic>-impl.md`.
 
 ---
 
