@@ -7,6 +7,18 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.1.0] — 2026-05-18
+
+### Changed
+- Theory reference files moved from `lib/platforms/<platform>/reference/builder/` to `lib/core/reference/builder/` — single source of truth, no duplication
+- Setup script: core reference linking restored (`link_reference` call re-added for `lib/core/reference/`)
+- Principles docs updated to reflect core-theory + platform-impl split
+
+### Removed
+- 30 duplicate `*-theory.md` files across ios, web, android platforms (flutter's copy promoted to canonical in core)
+
+---
+
 ## [7.0.0] — 2026-05-18
 
 ### Changed

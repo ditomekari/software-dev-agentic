@@ -159,7 +159,7 @@ echo ""
 echo "3/3 Linking core..."
 link_agents "$SUBMODULE/lib/core/agents" "$REL_CORE/agents"
 link_skills "$SUBMODULE/lib/core/skills" "$REL_CORE/skills"
-# core reference removed — theory files now co-located with impl in each platform's reference/builder/
+link_reference "$SUBMODULE/lib/core/reference" "$REL_CORE/reference"
 
 # ── Prune dangling symlinks ───────────────────────────────────────────────────
 
