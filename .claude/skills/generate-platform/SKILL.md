@@ -43,13 +43,18 @@ If result is `EXISTS`: tell the user "Platform `<platform>` already exists. Run 
 
 ### 4 — Spawn Worker
 
-Spawn `agent-generate-platform-worker` with:
+**Read** `.claude/agents/agent-generate-platform-worker.md` to load the worker's full instructions.
+
+Spawn a `general-purpose` agent using those instructions as the prompt body, appended with:
 
 ```
+## Inputs
+
 mode: generate
 repo_path: <repo_path>
 platform: <platform>
 arch_docs: <arch_docs>
+working_directory: <absolute path of current working directory>
 ```
 
 Wait for completion. Validate that the response contains an `## Output` section — STOP with "Worker returned no Output section. Check agent-generate-platform-worker for errors." if missing.

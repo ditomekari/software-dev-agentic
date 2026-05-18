@@ -36,12 +36,17 @@ For each platform in `platforms`:
 
 #### 3a — Spawn Worker
 
-Spawn `agent-generate-platform-worker` with:
+**Read** `.claude/agents/agent-generate-platform-worker.md` to load the worker's full instructions.
+
+Spawn a `general-purpose` agent using those instructions as the prompt body, appended with:
 
 ```
+## Inputs
+
 mode: sync
 repo_path: <repo_path>
 platform: <platform>
+working_directory: <absolute path of current working directory>
 ```
 
 Wait for completion. Validate that the response contains an `## Output` section — STOP with "Worker returned no Output section for platform `<platform>`. Check agent-generate-platform-worker for errors." if missing.

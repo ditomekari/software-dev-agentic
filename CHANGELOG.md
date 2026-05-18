@@ -7,6 +7,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.8.1] — 2026-05-18
+
+### Fixed
+- `generate-platform` and `sync-platform` skills — Step 4 now reads `agent-generate-platform-worker.md` and spawns a `general-purpose` agent with the worker's instructions, instead of naming the worker directly (which had no valid `subagent_type` route and caused fallback to `agent-scaffold-worker` with a wrong monolithic output structure)
+
+---
+
 ## [7.8.0] — 2026-05-18
 
 ### Added
