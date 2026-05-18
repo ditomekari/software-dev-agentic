@@ -72,7 +72,13 @@ Three-pass linking priority: `agents.local` > platform > core (first link wins)
 
 **Reference subdir rule:** All subdirectories under a reference source dir are preserved downstream. `contract/` and `builder/` both land as-is. Unlike agents and skills (always flat), reference docs maintain their subdir structure because agents reference them by path (e.g. `reference/builder/domain.md`, `reference/contract/builder/domain.md`). Any new subdir added under `lib/core/reference/` or `lib/platforms/<platform>/reference/` is automatically preserved.
 
-Every contract file follows a strict heading structure: `#` platform+topic title, `##` canonical sections (agent-greppable keywords), `###` subsections. This makes `grep "^## Keyword"` deterministic across all platforms.
+Every contract file follows a strict heading structure: `#` platform+topic title, `##` canonical Terms (agent-greppable grep keys), `###` subsections. This makes `grep "^## Term"` deterministic across all platforms.
+
+**Topic and Term vocabulary:**
+- **Topic** — the subject area a reference file covers (e.g. `domain`, `data`, `presentation`). Not engineering-specific: design, requirements, and testing references are also organized by topic.
+- **Term** — the canonical name for one concept within a topic. Each `##` heading is a Term. One Term = one name = one `##` heading across every platform. Platform dialect belongs in the body, never the heading.
+
+See [core-design-principles.md — Reference vocabulary](core-design-principles.md#reference-vocabulary--topic-and-term) for the full decision table.
 
 **Grep-first rule (P6 enforcement):** Workers Grep reference files by section keyword before reading in full. If uncertain which file covers a topic, check `reference/index.md` first.
 

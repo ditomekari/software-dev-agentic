@@ -469,7 +469,7 @@
 <body>
 
 <div id="progress"></div>
-<div id="counter">1 / 20</div>
+<div id="counter">1 / 10</div>
 <div id="deck">
 
   <!-- ═══════════════════════════════════════════
@@ -492,1316 +492,609 @@
   </section>
 
   <!-- ═══════════════════════════════════════════
-       SLIDE 2 — THE PROBLEM (INTRO)
+       SLIDE 2 — BACKGROUND
   ════════════════════════════════════════════ -->
   <section class="slide" id="s2">
-    <div class="label">The Problem</div>
-    <h2 class="headline">Building features across platforms creates <em>invisible drift</em></h2>
-    <ul class="bullets">
-      <li>
-        An engineer picks up a ticket. The first hour is spent reading code —
-        understanding structure, conventions, where things go.
-        <strong>Not building.</strong>
-      </li>
-      <li>
-        Three platforms. Three codebases. <strong>The same architecture decisions made differently</strong>,
-        drifting over time, slowing down every engineer who touches them next.
-      </li>
-      <li>
-        Agents in Claude Code promised to help — but without a shared system,
-        every project grew its own. <strong>The problems got worse, not better.</strong>
-      </li>
-    </ul>
-    <div class="divider"></div>
-    <p class="body-text"><strong>This is not a people problem. It is a system problem.</strong></p>
-  </section>
-
-  <!-- ═══════════════════════════════════════════
-       SLIDE 3 — PROBLEM 1: BLOATED CONTEXT
-  ════════════════════════════════════════════ -->
-  <section class="slide" id="s3">
-    <div class="label">Problem 1 of 3</div>
-    <h2 class="headline">Every task loads knowledge that <em>isn't needed</em></h2>
-    <div class="compare">
-      <div class="code-panel">
-        <div class="code-panel-header bad">❌  CLAUDE.md grows without limits</div>
-        <pre><span class="cm"># CLAUDE.md  (~400 lines)</span>
-
-<span class="bd">## Domain Layer Rules</span>
-- Entities: pure Dart classes, no Flutter imports
-- Use cases implement UseCase&lt;Params, Result&gt;
-- Never import dio, hive, or any data package
-- Repository interfaces: domain/repository/
-<span class="cm">... 40 more domain rules ...</span>
-
-<span class="bd">## Data Layer Rules</span>
-- Response models use @JsonSerializable
-- Mappers implement Mapper&lt;Remote, Domain&gt;
-<span class="cm">... 35 more data rules ...</span>
-
-<span class="bd">## BLoC / Presentation Rules</span>
-- Events extend Equatable
-- States are sealed classes
-<span class="cm">... 30 more presentation rules ...</span></pre>
-      </div>
-      <div class="code-panel">
-        <div class="code-panel-header good">✓  Lean CLAUDE.md — knowledge deferred</div>
-        <pre><span class="cm"># CLAUDE.md  (~1 page)</span>
-
-<span class="ac">## Stack</span>
-Flutter · Dart · BLoC · Clean Architecture
-
-<span class="ac">## Rules</span>
-- Domain: zero Flutter/package imports
-- Agents: feature-orchestrator →
-    domain-worker → data-worker
-- Reference docs: .claude/reference/
-  Agents load sections on demand via Grep</pre>
-      </div>
-    </div>
-    <div class="caption">
-      <strong>Bloated CLAUDE.md</strong> = tokens wasted on every turn, even when the agent
-      is just creating a UI widget. Every session starts by paying for knowledge it may never use.
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════
-       SLIDE 4 — PROBLEM 2: KNOWLEDGE NOT ISOLATED
-  ════════════════════════════════════════════ -->
-  <section class="slide" id="s4">
-    <div class="label">Problem 2 of 3</div>
-    <h2 class="headline">The agent reads everything. <em>Even what it doesn't need.</em></h2>
-    <div class="compare">
-      <div class="code-panel">
-        <div class="code-panel-header bad">❌  domain-worker.md — 450 lines</div>
-        <pre><span class="cm"># Agent for domain layer</span>
-
-<span class="ac">## Entity Pattern</span>
-class LeaveRequest {
-  final String id;
-  final LeaveStatus status;
-}
-
-<span class="bd">## Data Layer Rules  ← not your layer</span>
-@JsonSerializable()
-class LeaveResponse { ... }
-class LeaveMapper
-  implements Mapper&lt;LeaveResponse,
-                    LeaveRequest&gt;
-
-<span class="bd">## BLoC Patterns  ← not your layer</span>
-class LeaveBloc
-  extends Bloc&lt;LeaveEvent,
-               LeaveState&gt; { ... }
-<span class="cm">... 200 more lines ...</span></pre>
-      </div>
-      <div class="code-panel">
-        <div class="code-panel-header good">✓  domain-worker.md — 80 lines</div>
-        <pre><span class="cm"># Agent for domain layer only</span>
-
-<span class="ac">## Scope Boundary</span>
-Own:  domain/entities/
-      domain/usecases/
-      domain/repository/
-
-Delegate data work   → data-worker
-Delegate BLoC/UI     → presentation-worker
-
-<span class="ac">## Search Protocol</span>
-<span class="cm"># Load only the section needed, when needed</span>
-Grep(<span class="ac">"^## Entity"</span>,
-  <span class="ac">"reference/contract/builder/domain.md"</span>)
-<span class="cm"># → 15 lines. Only when creating an entity.</span>
-<span class="cm"># Not 450 lines. Not on every call.</span></pre>
-      </div>
-    </div>
-    <div class="caption">
-      Isolated context = agents only pay for the knowledge they actually use.
-      <strong>This is the primary driver behind the 85% token reduction.</strong>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════
-       SLIDE 5 — PROBLEM 3: NO SHARED AGENTS
-  ════════════════════════════════════════════ -->
-  <section class="slide" id="s5">
-    <div class="label">Problem 3 of 3</div>
-    <h2 class="headline">Three projects. Three copies. <em>Three drift paths.</em></h2>
-    <div class="compare">
-      <div class="code-panel">
-        <div class="code-panel-header bad">❌  Each project maintains its own agents</div>
-        <pre>mobile-talenta/
-  .claude/agents/
-    <span class="bd">domain-worker.md</span>  <span class="cm">← updated last month</span>
-    <span class="bd">data-worker.md</span>    <span class="cm">← project hacks baked in</span>
-
-talenta-mobile-android/
-  .claude/agents/
-    <span class="bd">domain-worker.md</span>  <span class="cm">← copy from 3mo ago, drifted</span>
-    <span class="bd">data-worker.md</span>    <span class="cm">← different conventions</span>
-
-talenta-ios/
-  .claude/agents/
-    <span class="bd">domain-worker.md</span>  <span class="cm">← separate evolution</span>
-    <span class="bd">data-worker.md</span>    <span class="cm">← iOS assumptions baked in</span></pre>
-      </div>
-      <div class="code-panel">
-        <div class="code-panel-header good">✓  One source, symlinked everywhere</div>
-        <pre>software-dev-agentic/     <span class="cm">← submodule</span>
-  lib/core/agents/builder/
-    <span class="ac">domain-worker.md</span>        <span class="cm">← ONE file</span>
-    <span class="ac">data-worker.md</span>
-  lib/platforms/
-    flutter/skills/ <span class="cm">← Dart/BLoC here</span>
-    ios/skills/     <span class="cm">← Swift here</span>
-    web/skills/     <span class="cm">← TypeScript here</span>
-
-mobile-talenta/.claude/agents/
-  <span class="ac">domain-worker.md</span> → <span class="cm">symlink ──┐</span>
-talenta-mobile-android/.claude/agents/              <span class="cm">│</span>
-  <span class="ac">domain-worker.md</span> → <span class="cm">symlink ──┤ same file</span>
-talenta-ios/.claude/agents/         <span class="cm">│</span>
-  <span class="ac">domain-worker.md</span> → <span class="cm">symlink ──┘</span></pre>
-      </div>
-    </div>
-    <div class="caption">
-      One improvement to <strong>domain-worker</strong> ships to all three products simultaneously.
-      No copy-paste. No drift. No synchronisation cost.
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════
-       SLIDE 6 — SOLUTION TRANSITION
-  ════════════════════════════════════════════ -->
-  <section class="slide" id="s6">
-    <div class="label">The Architecture</div>
-    <h2 class="headline">Three problems. <em>Three architectural answers.</em></h2>
+    <div class="label">Context</div>
+    <h2 class="headline">Software engineering was never about coding. <em>AI just made it obvious.</em></h2>
     <div class="t-table">
       <div class="t-head">
-        <div class="t-head-cell">Problem</div>
-        <div class="t-head-cell">Solution</div>
+        <div class="t-head-cell">Before AI</div>
+        <div class="t-head-cell">With AI</div>
       </div>
       <div class="t-row">
-        <div class="t-cell prob">Bloated context — agents and CLAUDE.md carry everything</div>
-        <div class="t-cell sol">Tiered knowledge architecture — lean agents, reference docs loaded on demand</div>
+        <div class="t-cell prob">Coding was the slowest, largest, and most expensive part of building software.</div>
+        <div class="t-cell sol">AI writes code. Coding is no longer the bottleneck.</div>
       </div>
       <div class="t-row">
-        <div class="t-cell prob">Knowledge not isolated — full reference file read on every call</div>
-        <div class="t-cell sol">Grep over Read — fetch only the section needed, only when needed</div>
+        <div class="t-cell prob">Engineers spent most of their time typing — so software engineering looked like typing.</div>
+        <div class="t-cell sol">The bottleneck shifted to the idea: what system to build, how it scales, how it holds under load.</div>
       </div>
       <div class="t-row">
-        <div class="t-cell prob">No shared agents — three projects, three copies, constant drift</div>
-        <div class="t-cell sol">Git submodule — one file, symlinked to every project, updated once</div>
-      </div>
-    </div>
-    <div class="caption" style="margin-top: 22px;">
-      Together with <strong>prompt caching</strong>, these three decisions reduced
-      AI compute cost by 85% in four calendar days.
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════
-       SLIDE 7 — SOLUTION: GREP OVER READ
-  ════════════════════════════════════════════ -->
-  <section class="slide" id="s7">
-    <div class="label">Solution — Token Efficiency</div>
-    <h2 class="headline">Same file. <em>A fraction of the context.</em></h2>
-    <div class="compare">
-      <div class="code-panel">
-        <div class="code-panel-header bad">❌  Read — entire file enters context</div>
-        <pre><span class="cm"># Returns the whole file to the agent</span>
-Read(<span class="bd">"reference/contract/builder/domain.md"</span>)
-
-<span class="cm"># → 200 lines added to context window</span>
-<span class="cm"># → Agent pays for all of it, every call</span>
-<span class="cm"># → Even when only one section is relevant</span></pre>
-      </div>
-      <div class="code-panel">
-        <div class="code-panel-header good">✓  Grep + targeted Read — only the section needed</div>
-        <pre id="grep-example"></pre>
-      </div>
-    </div>
-    <div style="margin-top: 14px;">
-      <div class="code-panel">
-        <div class="code-panel-header" style="color: var(--muted);">reference/contract/builder/domain.md — what the file actually looks like</div>
-        <pre id="annotation-example"></pre>
+        <div class="t-cell prob">"Software engineering = coding." That assumption made sense then. Coding was the constraint.</div>
+        <div class="t-cell sol">Software engineering = building stable, scalable systems aligned with product needs. It always was.</div>
       </div>
     </div>
     <div class="caption">
-      The line count is maintained manually when authoring a section.
-      The internal arch-reviewer (<strong>arch-check-conventions</strong>) enforces the format on every audit —
-      a missing or non-integer count is flagged as a Warning violation before the file ships downstream.
+      AI didn't change what software engineering is. <strong>It confirmed what it always was.</strong>
+      The engineer's job is now fully about the system — the idea, the architecture, the decisions.
+      The code follows.
     </div>
   </section>
 
   <!-- ═══════════════════════════════════════════
-       SLIDE 8 — SOLUTION: PROMPT CACHING
+       SLIDE 3 — THE SHIFT ACROSS ALL PROCESSES
   ════════════════════════════════════════════ -->
-  <section class="slide" id="s8">
-    <div class="label">Solution — Prompt Caching</div>
-    <h2 class="headline">Pay once. <em>Reuse many times.</em></h2>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start;">
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        <div class="cache-box stable">
-          <div class="cache-label">Cached — paid once per session</div>
-          Agent system prompt (agent file content)<br>
-          Preloaded skills (SKILL.md files)<br>
-          CLAUDE.md (universal project rules)
-        </div>
-        <div class="cache-arrow">↕ cache boundary</div>
-        <div class="cache-box dynamic">
-          <div class="cache-label">Not cached — changes each call</div>
-          Current task / user message<br>
-          Grepped reference snippets<br>
-          Worker outputs from prior phases
-        </div>
-      </div>
-      <div>
-        <ul class="bullets" style="gap: 18px;">
-          <li><strong>Agent files are stable</strong> — cache hit on every subsequent worker spawn in a session.</li>
-          <li><strong>Preloaded skills injected once</strong> at startup, cached for the whole session.</li>
-          <li><strong>CLAUDE.md is short (~1 page)</strong> — small stable prefix, high cache efficiency.</li>
-          <li><strong>Compounds across workers</strong> — in a 5-worker feature build, the stable prefix is paid for once. Workers 2–5 reuse it from cache.</li>
-          <li><strong>Context relay</strong> — on resume, trigger skills read <code style="font-family:var(--mono);font-size:12px;color:var(--accent)">plan.md</code>, <code style="font-family:var(--mono);font-size:12px;color:var(--accent)">context.md</code>, and <code style="font-family:var(--mono);font-size:12px;color:var(--accent)">state.json</code> from disk and pass them inline to the spawn prompt. The orchestrator receives context on its first token and skips all pre-flight reads — works in both same-session and new-session resumes.</li>
-        </ul>
-      </div>
-    </div>
-    <div class="caption">
-      Lean agents + Grep-first + caching = <strong>the cost curve bends down
-      as usage goes up, not up.</strong>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════
-       SLIDE 9 — SOLUTION: SHARED SUBMODULE
-  ════════════════════════════════════════════ -->
-  <section class="slide" id="s9">
-    <div class="label">Solution — Shared Submodule</div>
-    <h2 class="headline">One toolkit. <em>Every platform.</em> Updated once.</h2>
-    <div class="tree" style="font-size: 12.5px; line-height: 1.72;">
-<span class="ac">software-dev-agentic/</span>  <span class="dm">← git submodule — single source of truth</span>
-  lib/
-    core/
-      agents/builder/
-        <span class="ac">feature-orchestrator.md</span>  <span class="dm">← brain: decides which planners, synthesizes plan</span>
-        <span class="ac">feature-worker.md</span>        <span class="dm">← single executor across all CLEAN layers</span>
-        <span class="ac">domain/data/pres/app-planner.md</span>  <span class="dm">← spawned by entry skill per round</span>
-      reference/builder/       <span class="dm">← what each concept IS (platform-agnostic)</span>
-        <span class="rl">domain.md · data.md · presentation.md · di.md ···</span>
-    platforms/
-      flutter/
-        skills/                <span class="dm">← Dart/BLoC implementations</span>
-        reference/contract/builder/  <span class="dm">← how Flutter implements each concept</span>
-      ios/
-        skills/                <span class="dm">← Swift/UIKit implementations</span>
-        reference/contract/builder/  <span class="dm">← how iOS implements each concept</span>
-      web/skills/              <span class="dm">← TypeScript/Next.js implementations</span>
-      android/skills/          <span class="dm">← Kotlin/MVP implementations</span>
-
-<span class="dm">At setup time, symlinks wire the right platform skills into each project:</span>
-
-mobile-talenta/.claude/
-  agents/<span class="ac">feature-worker.md</span>      → <span class="dm">symlink ──┐</span>
-  skills/<span class="ac">domain-create-entity/</span>  → <span class="dm">symlink   │ flutter skills</span>
-talenta-mobile-android/.claude/
-  agents/<span class="ac">feature-worker.md</span>      → <span class="dm">symlink ──┤ same agent</span>
-talenta-ios/.claude/
-  agents/<span class="ac">feature-worker.md</span>      → <span class="dm">symlink ──┘ ios skills</span>
-    </div>
-    <div class="caption">
-      Adding a new platform requires only a new
-      <strong>lib/platforms/&lt;platform&gt;/skills/</strong> directory.
-      No changes to any agent.
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════
-       SLIDE — LOCAL OVERRIDES
-  ════════════════════════════════════════════ -->
-  <section class="slide" id="s9a">
-    <div class="label">Solution — Project Customisation</div>
-    <h2 class="headline">Override without forking. <em>Extend without copying.</em></h2>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; margin-top: 8px;">
-      <div>
-        <div class="cache-box stable" style="margin-bottom: 16px;">
-          <div class="cache-label">Priority order — first link wins</div>
-          <code style="font-family:var(--mono);font-size:12px;">*.local/ &gt; platform/ &gt; core/</code><br><br>
-          Drop a file in <code style="font-family:var(--mono);font-size:12px;">*.local/</code> and it silently shadows the submodule version. The submodule is never touched — <code style="font-family:var(--mono);font-size:12px;">sync.sh</code> never overwrites local files.
-        </div>
-        <div class="cache-box dynamic">
-          <div class="cache-label">Three local directories</div>
-          <code style="font-family:var(--mono);font-size:12px;">agents.local/</code> — override or extend agents<br>
-          <code style="font-family:var(--mono);font-size:12px;">skills.local/</code> — override skills<br>
-          <code style="font-family:var(--mono);font-size:12px;">reference.local/</code> — override reference docs
-        </div>
-      </div>
-      <div>
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-          <thead>
-            <tr style="color:var(--muted);text-align:left;border-bottom:1px solid #333;">
-              <th style="padding:6px 8px;">Directory</th>
-              <th style="padding:6px 8px;">Override</th>
-              <th style="padding:6px 8px;">Extend</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr style="border-bottom:1px solid #222;">
-              <td style="padding:6px 8px;font-family:var(--mono);font-size:12px;">agents.local/</td>
-              <td style="padding:6px 8px;color:#4ade80;">✓</td>
-              <td style="padding:6px 8px;color:#4ade80;">✓ via <code style="font-family:var(--mono);font-size:11px;">extensions/</code></td>
-            </tr>
-            <tr style="border-bottom:1px solid #222;">
-              <td style="padding:6px 8px;font-family:var(--mono);font-size:12px;">skills.local/</td>
-              <td style="padding:6px 8px;color:#4ade80;">✓</td>
-              <td style="padding:6px 8px;color:var(--muted);">—</td>
-            </tr>
-            <tr>
-              <td style="padding:6px 8px;font-family:var(--mono);font-size:12px;">reference.local/</td>
-              <td style="padding:6px 8px;color:#4ade80;">✓</td>
-              <td style="padding:6px 8px;color:var(--muted);">—</td>
-            </tr>
-          </tbody>
-        </table>
-        <div style="margin-top:14px;font-size:12px;color:var(--muted);line-height:1.6;">
-          Reference docs are <strong style="color:var(--text);">override-only</strong> — they use <code style="font-family:var(--mono);">## Section <!-- N --></code> line-count headers that agents Grep by offset. Extending would corrupt those offsets.
-        </div>
-      </div>
-    </div>
-    <div class="caption">
-      Agent extensions (<code>agents.local/extensions/&lt;name&gt;.md</code>) contain only the delta — the base agent still runs and inherits all submodule updates automatically.
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════
-       SLIDE — REFERENCE TIERS
-  ════════════════════════════════════════════ -->
-  <section class="slide" id="s9b">
-    <div class="label">Solution — Reference Architecture</div>
-    <h2 class="headline">Two tiers of reference docs. <em>Same Grep pattern. Different purpose.</em></h2>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start;">
-      <div style="display: flex; flex-direction: column; gap: 14px;">
-        <div class="cache-box stable">
-          <div class="cache-label">Tier 1 — Core reference · lib/core/reference/builder/</div>
-          <strong style="color: var(--text);">What each concept IS</strong> — canonical, platform-agnostic.<br>
-          <span style="color: var(--muted); font-size: 13px;">Defines the contract: "A use case encapsulates one business rule." "A repository is an interface, not an implementation." Shared by every platform.</span><br><br>
-          <code style="font-family:var(--mono);font-size:12px;color:var(--accent);">domain.md · data.md · presentation.md · di.md</code>
-        </div>
-        <div class="cache-arrow">↓  agents read Tier 1 first, then look up Tier 2</div>
-        <div class="cache-box dynamic">
-          <div class="cache-label">Tier 2 — Platform contract · lib/platforms/&lt;p&gt;/reference/contract/builder/</div>
-          <strong style="color: var(--text);">How to implement it in this platform</strong> — Swift, Dart, Kotlin, TypeScript.<br>
-          <span style="color: var(--muted); font-size: 13px;">Provides the code pattern: "In Swift a UseCase is a final class with a nested Params struct." "In Flutter use @JsonSerializable on the DTO." Each platform has its own copy.</span><br><br>
-          <code style="font-family:var(--mono);font-size:12px;color:var(--accent);">ios/reference/contract/builder/domain.md</code><br>
-          <code style="font-family:var(--mono);font-size:12px;color:var(--accent);">flutter/reference/contract/builder/domain.md</code>
-        </div>
-      </div>
-      <div>
-        <table style="margin-bottom: 18px;">
-          <thead>
-            <tr><th></th><th>Core reference</th><th>Platform reference</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Answers</td>
-              <td>What is a UseCase?<br>What belongs in Domain?</td>
-              <td>How do I write a UseCase in Swift?<br>Which class pattern does Flutter use?</td>
-            </tr>
-            <tr>
-              <td>Contains</td>
-              <td>Definitions, invariants, layer rules</td>
-              <td>Code templates, platform idioms, import conventions</td>
-            </tr>
-            <tr>
-              <td>Shared by</td>
-              <td>All platforms</td>
-              <td>One platform only</td>
-            </tr>
-            <tr>
-              <td>Read by</td>
-              <td>feature-worker when reasoning about architecture</td>
-              <td>feature-worker when generating code</td>
-            </tr>
-          </tbody>
-        </table>
-        <div class="caption">
-          The files cross-reference each other — Tier 1 says "platform syntax: see contract/"
-          and Tier 2 says "concepts: see core/reference/".
-          <strong>A worker Greps Tier 1 to understand the contract, then Greps Tier 2 to write the correct code. One Grep each. Never the full file.</strong>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════
-       SLIDE 9c — UBIQUITOUS LANGUAGE
-  ════════════════════════════════════════════ -->
-  <section class="slide" id="s9c">
-    <div class="label">Solution — Reference Architecture</div>
-    <h2 class="headline">Headings are the <em>agent's grep key.</em> One term. Every platform.</h2>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start;">
-      <div style="display: flex; flex-direction: column; gap: 14px;">
-        <div class="code-panel">
-          <div class="code-panel-header bad">✗ &nbsp;inconsistent — agent grep misses iOS</div>
-          <pre><span class="cm"># ios/domain.md</span>
-<span class="bd">## Repository Protocols</span>   <span class="cm">← Swift dialect in the heading</span>
-
-<span class="cm"># web/domain.md</span>
-<span class="ac">## Repository Interfaces</span>
-
-<span class="cm"># android/domain.md</span>
-<span class="ac">## Repository Interfaces</span>
-
-<span class="cm"># flutter/domain.md</span>
-<span class="ac">## Repository Interfaces</span></pre>
-        </div>
-        <div class="code-panel">
-          <div class="code-panel-header good">✓ &nbsp;canonical — one grep, all four platforms</div>
-          <pre><span class="cm"># ios/domain.md</span>
-<span class="ac">## Repository Interfaces <!-- 31 --></span>
-<span class="cm">In Swift, these are declared as protocols...</span>
-<span class="cm">protocol UserRepository { ... }</span>
-
-<span class="cm"># flutter/domain.md</span>
-<span class="ac">## Repository Interfaces <!-- 28 --></span>
-<span class="cm">abstract class UserRepository { ... }</span></pre>
-        </div>
-        <div class="caption">
-          <strong>The heading is the interface. The body is the implementation.</strong> Platform dialect belongs in the body — never the heading.
-        </div>
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 18px;">
-        <table>
-          <thead>
-            <tr><th></th><th>Vertical contract</th><th>Horizontal contract</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Axis</td>
-              <td>Within one file</td>
-              <td>Across all platforms</td>
-            </tr>
-            <tr>
-              <td>Rule</td>
-              <td><code style="font-family:var(--mono);font-size:12px;color:var(--accent);">## Section &lt;!-- N --&gt;</code><br>agents extract N as read limit</td>
-              <td>Same <code style="font-family:var(--mono);font-size:12px;color:var(--accent);">##</code> text for the same concept — one grep finds all platforms</td>
-            </tr>
-            <tr>
-              <td>Broken by</td>
-              <td>Missing or non-integer comment</td>
-              <td>Platform synonym in the heading</td>
-            </tr>
-          </tbody>
-        </table>
-        <div class="cache-box stable">
-          <div class="cache-label">Ubiquitous Language &nbsp;·&nbsp; Domain-Driven Design</div>
-          One concept = one term = one heading, everywhere. No synonyms at the <code style="font-family:var(--mono);font-size:12px;">##</code> level.<br><br>
-          A generic agent grepping <code style="font-family:var(--mono);font-size:12px;color:var(--accent);">## Repository Interfaces</code> finds all four platforms — or none, if any platform uses a dialect instead.
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════
-       SLIDE 10 — WHAT WE BUILT
-  ════════════════════════════════════════════ -->
-  <section class="slide" id="s10">
-    <div class="label">What We Built</div>
-    <h1 class="slide-title" style="font-size: 44px; max-width: 680px;">
-      Not a chatbot.<br>Not autocomplete.<br><em>A hierarchy of specialized AI agents.</em>
-    </h1>
-    <div class="divider"></div>
-    <ul class="bullets">
-      <li>Each agent is an expert in <strong>exactly one layer</strong> of the codebase — and nothing else.</li>
-      <li>A <strong>Tech Lead orchestrator</strong> coordinates them in the right order, passes only what each needs, and compiles the result.</li>
-      <li>The engineer's job shifts from writing boilerplate to reviewing output.</li>
-    </ul>
-  </section>
-
-  <!-- ═══════════════════════════════════════════
-       SLIDE 11 — THE ROLES (GENERIC)
-  ════════════════════════════════════════════ -->
-  <section class="slide" id="s11">
-    <div class="label">Architecture</div>
-    <h2 class="headline">Five roles. <em>Each knows exactly what it owns.</em></h2>
-    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 11px; margin-bottom: 18px;">
-      <div class="card" style="padding: 20px 16px;">
-        <div class="card-label">Trigger Skill</div>
-        <div style="font-size: 11px; font-family: var(--mono); color: var(--muted); margin-bottom: 10px; letter-spacing: 0.04em;">Skill — Type T</div>
-        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px;">Do</div>
-        <div style="margin-bottom: 10px;">
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative; margin-bottom: 3px;"><span style="position:absolute;left:0;color:var(--accent);">✓</span>Pre-load plan.md + context.md + state.json before spawning</div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative; margin-bottom: 3px;"><span style="position:absolute;left:0;color:var(--accent);">✓</span>Route: detect existing run vs new</div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative;"><span style="position:absolute;left:0;color:var(--accent);">✓</span>Pass full context inline to agent</div>
-        </div>
-        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--bad); margin-bottom: 4px;">Don't</div>
-        <div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative; margin-bottom: 3px;"><span style="position:absolute;left:0;color:var(--bad);">✗</span>Spawn without loading context</div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative; margin-bottom: 3px;"><span style="position:absolute;left:0;color:var(--bad);">✗</span>Write or modify source files</div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative;"><span style="position:absolute;left:0;color:var(--bad);">✗</span>Perform investigation or analysis</div>
-        </div>
-      </div>
-      <div class="card" style="padding: 20px 16px;">
-        <div class="card-label">Orchestrator</div>
-        <div style="font-size: 11px; font-family: var(--mono); color: var(--muted); margin-bottom: 10px; letter-spacing: 0.04em;">Agent — brain only</div>
-        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px;">Do</div>
-        <div style="margin-bottom: 10px;">
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative; margin-bottom: 3px;"><span style="position:absolute;left:0;color:var(--accent);">✓</span>Return structured Decision blocks to calling skill</div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative; margin-bottom: 3px;"><span style="position:absolute;left:0;color:var(--accent);">✓</span>Decide which planners are needed per round</div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative;"><span style="position:absolute;left:0;color:var(--accent);">✓</span>Synthesize findings into plan.md + context.md</div>
-        </div>
-        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--bad); margin-bottom: 4px;">Don't</div>
-        <div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative; margin-bottom: 3px;"><span style="position:absolute;left:0;color:var(--bad);">✗</span>Spawn agents — entry skill does this</div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative; margin-bottom: 3px;"><span style="position:absolute;left:0;color:var(--bad);">✗</span>Write source files directly</div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative;"><span style="position:absolute;left:0;color:var(--bad);">✗</span>Read codebase source files directly</div>
-        </div>
-      </div>
-      <div class="card" style="padding: 20px 16px;">
-        <div class="card-label">Planner</div>
-        <div style="font-size: 11px; font-family: var(--mono); color: var(--muted); margin-bottom: 10px; letter-spacing: 0.04em;">Agent — layer explorer</div>
-        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px;">Do</div>
-        <div style="margin-bottom: 10px;">
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative; margin-bottom: 3px;"><span style="position:absolute;left:0;color:var(--accent);">✓</span>Explore one CLEAN layer read-only</div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative; margin-bottom: 3px;"><span style="position:absolute;left:0;color:var(--accent);">✓</span>Return findings + Impact Recommendations</div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative;"><span style="position:absolute;left:0;color:var(--accent);">✓</span>Report which other layers are affected and why</div>
-        </div>
-        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--bad); margin-bottom: 4px;">Don't</div>
-        <div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative; margin-bottom: 3px;"><span style="position:absolute;left:0;color:var(--bad);">✗</span>Write any files</div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative; margin-bottom: 3px;"><span style="position:absolute;left:0;color:var(--bad);">✗</span>Spawn other agents</div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative;"><span style="position:absolute;left:0;color:var(--bad);">✗</span>Explore outside its assigned layer</div>
-        </div>
-      </div>
-      <div class="card" style="padding: 20px 16px;">
-        <div class="card-label">Worker</div>
-        <div style="font-size: 11px; font-family: var(--mono); color: var(--muted); margin-bottom: 10px; letter-spacing: 0.04em;">Agent</div>
-        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px;">Do</div>
-        <div style="margin-bottom: 10px;">
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative; margin-bottom: 3px;"><span style="position:absolute;left:0;color:var(--accent);">✓</span>Grep reference docs on demand, per task</div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative; margin-bottom: 3px;"><span style="position:absolute;left:0;color:var(--accent);">✓</span>Execute skills for each artifact type</div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative;"><span style="position:absolute;left:0;color:var(--accent);">✓</span>Return Glob+Grep-verified file paths</div>
-        </div>
-        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--bad); margin-bottom: 4px;">Don't</div>
-        <div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative; margin-bottom: 3px;"><span style="position:absolute;left:0;color:var(--bad);">✗</span>Work outside assigned scope or layer</div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative; margin-bottom: 3px;"><span style="position:absolute;left:0;color:var(--bad);">✗</span>Re-read a reference section already read</div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative;"><span style="position:absolute;left:0;color:var(--bad);">✗</span>Skip skill — write artifact code directly</div>
-        </div>
-      </div>
-      <div class="card" style="padding: 20px 16px;">
-        <div class="card-label">Skill</div>
-        <div style="font-size: 11px; font-family: var(--mono); color: var(--muted); margin-bottom: 10px; letter-spacing: 0.04em;">Skill — Type A / U</div>
-        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px;">Do</div>
-        <div style="margin-bottom: 10px;">
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative; margin-bottom: 3px;"><span style="position:absolute;left:0;color:var(--accent);">✓</span>Execute exactly one atomic task</div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative; margin-bottom: 3px;"><span style="position:absolute;left:0;color:var(--accent);">✓</span>Produce platform-specific output</div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative;"><span style="position:absolute;left:0;color:var(--accent);">✓</span>Scale in length only with what the type demands</div>
-        </div>
-        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--bad); margin-bottom: 4px;">Don't</div>
-        <div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative; margin-bottom: 3px;"><span style="position:absolute;left:0;color:var(--bad);">✗</span>Spawn agents</div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative; margin-bottom: 3px;"><span style="position:absolute;left:0;color:var(--bad);">✗</span>Handle more than one task</div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.55; padding-left: 13px; position: relative;"><span style="position:absolute;left:0;color:var(--bad);">✗</span>Add routing or decision logic</div>
-        </div>
-      </div>
-    </div>
-    <div class="caption">
-      Trigger skills own the convergence loop — spawning only the planners the orchestrator decides are needed, accumulating findings round by round, and gating execution on user approval.
-      <strong>Orchestrator is the brain. Worker is the hands. Trigger skill is the router and executor.</strong>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════
-       SLIDE — ANATOMY (GENERIC)
-  ════════════════════════════════════════════ -->
-  <section class="slide" id="s11b">
-    <div class="label">Anatomy</div>
-    <h2 class="headline">Every persona is the same layered stack. <em>Not every layer is always present.</em></h2>
-    <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 28px; align-items: start;">
-      <div class="tree" style="font-size: 12.5px; line-height: 1.8;">
-<span class="dm">User</span>
-<span class="dm"> │</span>
-<span class="dm"> ▼</span>
-<span class="ac">Trigger Skill</span> <span class="rl">(Type T)</span>     <span class="dm">— routes, pre-loads context, builds spawn prompt, convergence loop</span>
-<span class="dm"> │</span>
-<span class="dm"> ▼  gather-intent</span>
-<span class="ac">Orchestrator</span>               <span class="dm">— brain only; returns Decision blocks; never spawns or writes</span>
-<span class="dm"> │  Decision: spawn-planners</span>
-<span class="dm"> ▼</span>
-<span class="ac">Trigger Skill</span>              <span class="dm">— spawns planners in parallel; accumulates findings</span>
-<span class="dm"> │  process-findings (each round)</span>
-<span class="dm"> ▼</span>
-<span class="ac">Orchestrator</span>               <span class="dm">— converged? → synthesize; or → spawn-planners (next round)</span>
-<span class="dm"> │  Decision: spawn-worker</span>
-<span class="dm"> ▼</span>
-<span class="ac">Trigger Skill</span>              <span class="dm">— spawns Worker with plan + context injected inline</span>
-<span class="dm"> │</span>
-<span class="dm"> ▼</span>
-<span class="dm">           </span><span class="ac">Worker</span>         <span class="dm">— reads plan, calls skills, writes + validates source files</span>
-<span class="dm">               │</span>
-<span class="dm">               ▼</span>
-<span class="dm">           </span><span class="ac">Skill(s)</span>       <span class="dm">— concrete platform implementation (one per artifact type)</span>
-      </div>
-      <div>
-        <table>
-          <thead>
-            <tr>
-              <th>Handoff</th>
-              <th>Passes</th>
-              <th>Never passes</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Trigger Skill → Orch</td>
-              <td><strong>Intent / mode + accumulated findings</strong></td>
-              <td>Raw file reads from main session</td>
-            </tr>
-            <tr>
-              <td>Orch → Trigger Skill</td>
-              <td><strong>Decision block (spawn-planners / converged / spawn-worker / blocked)</strong></td>
-              <td>Agent spawns or file writes</td>
-            </tr>
-            <tr>
-              <td>Trigger Skill → Planner</td>
-              <td><strong>Feature name, platform, module-path, mode</strong></td>
-              <td>Orchestrator's reasoning</td>
-            </tr>
-            <tr>
-              <td>Planner → Trigger Skill</td>
-              <td><strong>Findings + Impact Recommendations</strong></td>
-              <td>Source file contents</td>
-            </tr>
-            <tr>
-              <td>Trigger Skill → Worker</td>
-              <td><strong>plan.md + context.md injected inline</strong></td>
-              <td>File paths only (always inline)</td>
-            </tr>
-          </tbody>
-        </table>
-        <div class="caption" style="margin-top: 16px;">
-          State files: <strong>state.json</strong> (phase pointer + next_phase) ·
-          <strong>plan.md</strong> (execution instructions per artifact) ·
-          <strong>context.md</strong> (key symbols, existing conventions)
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════
-       SLIDE — ANATOMY: BUILDER PERSONA
-  ════════════════════════════════════════════ -->
-  <section class="slide" id="s11c">
-    <div class="label">Anatomy — Builder Persona</div>
-    <h2 class="headline">Three entry skills. <em>Same orchestrator brain. Convergence loop.</em></h2>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
-      <div class="tree" style="font-size: 11.5px; line-height: 1.75;">
-<span class="rl">/builder-plan-feature</span>  <span class="dm">(interactive)</span>
-<span class="rl">/builder-build-feature</span>  <span class="dm">(resume or build-directly)</span>
-<span class="rl">/builder-build-from-ticket</span>  <span class="dm">(non-interactive, CI)</span>
-<span class="dm"> │</span>
-<span class="dm"> ▼  gather-intent (or gather-intent-prefilled for ticket path)</span>
-<span class="ac">feature-orchestrator</span>  <span class="dm">← brain; returns Decision: spawn-planners</span>
-<span class="dm"> │</span>
-<span class="dm"> ▼  skill spawns only decided planners in parallel</span>
-<span class="ac">domain-planner</span>  <span class="ac">data-planner</span>  <span class="ac">pres-planner</span>  <span class="ac">app-planner</span>
-<span class="dm"> │  each returns: findings + Impact Recommendations</span>
-<span class="dm"> ▼  skill sends accumulated findings back</span>
-<span class="ac">feature-orchestrator</span>  <span class="dm">← reads recommendations; decides: more rounds or converged?</span>
-<span class="dm"> │  loop (max 3 rounds) — new layers added per round only</span>
-<span class="dm"> ▼  Decision: converged → orchestrator synthesizes plan.md + context.md</span>
-<span class="dm">   [interactive: AskUserQuestion →  </span><span class="ac">Approve</span>  <span class="dm">· Discuss ·  </span><span class="bd">Discard</span><span class="dm">]</span>
-<span class="dm">   [ticket path: auto-approved]</span>
-<span class="dm"> ▼  Decision: spawn-worker</span>
-<span class="ac">feature-worker</span>  <span class="dm">← reads plan; executes skills layer by layer</span>
-<span class="dm"> │</span>
-<span class="dm"> ▼</span>
-<span class="ac">platform-contract skills</span>  <span class="dm">← Flutter / iOS / Web / Android per layer</span>
-      </div>
-      <div>
-        <table style="margin-bottom: 14px;">
-          <thead>
-            <tr><th>Entry skill</th><th>When to use</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>/builder-plan-feature</td>
-              <td>Complex or cross-layer feature. Interactive convergence loop — user approves plan before any source write.</td>
-            </tr>
-            <tr>
-              <td>/builder-build-feature</td>
-              <td>Known scope or resuming an existing run. Build-directly skips the loop.</td>
-            </tr>
-            <tr>
-              <td>/builder-build-from-ticket</td>
-              <td>CI job or API caller. Intent derived from Jira ticket. Fully automated — no user prompts.</td>
-            </tr>
-          </tbody>
-        </table>
-        <table>
-          <thead>
-            <tr><th>Planner</th><th>Explores</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>domain-planner</td><td>Entities, use cases, repository interfaces</td></tr>
-            <tr><td>data-planner</td><td>DTOs, mappers, datasources, repo implementations</td></tr>
-            <tr><td>pres-planner</td><td>StateHolders, screens, components, key symbols</td></tr>
-            <tr><td>app-planner</td><td>DI registration, routing, module, analytics, flags</td></tr>
-          </tbody>
-        </table>
-        <div class="caption" style="margin-top: 12px;">
-          <strong>feature-worker is the only agent that writes source files.</strong>
-          Each planner round spawns only the layers the orchestrator decides are needed — not all four every time.
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════
-       SLIDE 12 — THE ROLES (BUILDER PERSONA EXAMPLE)
-  ════════════════════════════════════════════ -->
-  <section class="slide" id="s12">
-    <div class="label">Architecture — Builder Persona Example</div>
-    <h2 class="headline">Builder persona. <em>Five roles in practice.</em></h2>
-    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 11px; margin-bottom: 18px;">
-      <div class="card">
-        <div class="card-label">Trigger Skill</div>
-        <div style="font-size: 11px; color: var(--accent); font-family: var(--mono); margin-bottom: 12px;">/builder-plan-feature · /builder-build-feature · /builder-build-from-ticket</div>
-        <div class="card-desc">
-          Three entry paths, one executor. All own the convergence planning loop — spawning only the planners the orchestrator decides, accumulating findings per round, gating execution on approval. Pre-load run context inline on resume.
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-label">Orchestrator</div>
-        <div style="font-size: 13px; color: var(--accent); font-family: var(--mono); margin-bottom: 12px;">feature-orchestrator</div>
-        <div class="card-desc">
-          Brain only — never spawns agents or writes source files. Returns structured Decision blocks: which planners to run, when planning is converged, and when to spawn the worker. Synthesizes plan.md + context.md from accumulated findings.
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-label">Planner</div>
-        <div style="font-size: 11px; color: var(--accent); font-family: var(--mono); margin-bottom: 12px;">domain-planner · data-planner · pres-planner · app-planner</div>
-        <div class="card-desc">
-          Each explores one CLEAN layer read-only and returns structured findings + Impact Recommendations — which other layers are affected and why. Spawned by the entry skill per round, only when the orchestrator decides they're needed.
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-label">Worker</div>
-        <div style="font-size: 13px; color: var(--accent); font-family: var(--mono); margin-bottom: 12px;">feature-worker (orchestrated) · domain-worker · data-worker · ui-worker (standalone)</div>
-        <div class="card-desc">
-          <strong style="color: var(--text);">feature-worker</strong> is the orchestrated-path executor — reads the approved plan and calls skills across all CLEAN layers in sequence.<br><br>
-          <strong style="color: var(--text);">domain-worker · data-worker · ui-worker</strong> handle single known artifacts directly, bypassing the orchestrator.
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-label">Skill</div>
-        <div style="font-size: 13px; color: var(--accent); font-family: var(--mono); margin-bottom: 12px;">domain-create-entity · data-create-mapper</div>
-        <div class="card-desc">
-          Generates a Dart class on Flutter, a Swift struct on iOS — same skill name, platform-specific output. Type A skills are thin create-only procedures; Type T trigger skills scale with the routing complexity they own.
-        </div>
-      </div>
-    </div>
-    <div class="caption">
-      This is the <strong>Builder</strong> persona — one example of how all five roles are applied.
-      Other personas (Detective, Auditor, Tracker, Installer) follow the same structure with different responsibilities.
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════
-       SLIDE — DETECTIVE PERSONA
-  ════════════════════════════════════════════ -->
-  <section class="slide" id="s12c">
-    <div class="label">Architecture — Detective Persona Example</div>
-    <h2 class="headline">Different goal. <em>Different shape. No Planner. No platform skills.</em></h2>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
-      <div class="tree" style="font-size: 12px; line-height: 1.78;">
-<span class="rl">/debug-orchestrator</span>  <span class="dm">(Skill — Type T)</span>
-<span class="dm"> collect intake: error · expected/actual · entry point · platform</span>
-<span class="dm"> spawn debug-orchestrator with full intake inlined</span>
-
-<span class="rl">debug-orchestrator</span>  <span class="dm">← scopes only; never investigates directly</span>
-<span class="dm"> Step 1: assess intake</span>
-<span class="dm"> Step 2: scope  ← </span><span class="bd">max 2 Grep/Glob calls</span><span class="dm">, then route</span>
-<span class="dm">   named file + CLEAN layer → route immediately</span>
-<span class="dm">   ambiguous               → route with layer: unknown</span>
-<span class="dm"> Step 3: route to worker(s)</span>
-
-<span class="dm"> ├── single module →  </span><span class="rl">debug-worker</span>  <span class="dm">(one instance)</span>
-<span class="dm"> └── multi-module  →  </span><span class="rl">debug-worker</span>  <span class="dm">(parallel, one per module)</span>
-
-<span class="rl">debug-worker</span>  <span class="dm">← traces root cause; never fixes code</span>
-<span class="dm"> Step 1: map error to CLEAN layer</span>
-<span class="dm"> Step 2: trace call chain  Domain → Data → Pres → DI</span>
-<span class="dm"> Step 3: report ranked hypotheses + evidence</span>
-<span class="dm"> Step 4: ask user → confirm instrumentation?</span>
-
-<span class="dm">   └──  </span><span class="rl">debug-log-worker</span>  <span class="dm">← spawned ONLY after user confirms</span>
-<span class="dm">         MODE=add    → inserts log statements per hypothesis</span>
-<span class="dm">         [user reproduces · shares logs → root cause confirmed]</span>
-<span class="dm">         MODE=remove → strips all log statements before commit</span>
-      </div>
-      <div>
-        <table style="margin-bottom: 18px;">
-          <thead>
-            <tr><th>Role</th><th>Builder</th><th>Detective</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Trigger Skill</td>
-              <td><strong>/feature-orchestrator</strong></td>
-              <td><strong>/debug-orchestrator</strong></td>
-            </tr>
-            <tr>
-              <td>Orchestrator</td>
-              <td style="color: var(--accent);">✓ feature-orchestrator</td>
-              <td style="color: var(--accent);">✓ debug-orchestrator</td>
-            </tr>
-            <tr>
-              <td>Planner</td>
-              <td style="color: var(--accent);">✓ domain/data/pres/app-planner (spawned by skill per round)</td>
-              <td style="color: var(--bad);">✗  not present — orchestrator scopes with 2-call budget</td>
-            </tr>
-            <tr>
-              <td>Worker</td>
-              <td style="color: var(--accent);">✓ feature-worker (writes source)</td>
-              <td style="color: var(--accent);">✓ debug-worker (analysis) + debug-log-worker</td>
-            </tr>
-            <tr>
-              <td>Platform Skills</td>
-              <td style="color: var(--accent);">✓ domain / data / pres / ui skills</td>
-              <td style="color: var(--bad);">✗  not present — workers investigate directly</td>
-            </tr>
-          </tbody>
-        </table>
-        <div class="caption">
-          Not every persona needs all five roles. Detective omits Planner
-          (scoping is minimal — 2 calls max, then route) and Platform Skills
-          (goal is root-cause analysis, not artifact creation).
-          <strong>Output = ranked hypotheses + fix recommendation, not source files.</strong>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════
-       SLIDE — TAXONOMY
-  ════════════════════════════════════════════ -->
-  <section class="slide" id="s12b">
-    <div class="label">Taxonomy</div>
-    <h2 class="headline">Decision gates. <em>Where does each new file belong?</em></h2>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start;">
-      <div>
-        <p style="font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px;">Agents — By Role</p>
-        <table>
-          <thead>
-            <tr><th>Role</th><th>Suffix</th><th>Writes files?</th><th>Has agents field?</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Orchestrator</td>
-              <td><strong>-orchestrator</strong></td>
-              <td>plan.md + context.md only (synthesize mode)</td>
-              <td>No — returns Decision blocks</td>
-            </tr>
-            <tr>
-              <td>Planner</td>
-              <td><strong>-planner</strong></td>
-              <td>No — read-only tools only</td>
-              <td>No — spawned by entry skill</td>
-            </tr>
-            <tr>
-              <td>Worker</td>
-              <td><strong>-worker</strong></td>
-              <td>Yes — source files only</td>
-              <td>No</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div>
-        <p style="font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px;">Skills — By Invocation Type</p>
-        <table>
-          <thead>
-            <tr><th>Type</th><th>Triggered by</th><th>Use for</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>A — Regular</strong></td>
-              <td>Worker (agent) only</td>
-              <td>Artifact creation procedures — create-only; workers handle modifications directly</td>
-            </tr>
-            <tr>
-              <td><strong>T — Trigger</strong></td>
-              <td>User only</td>
-              <td>Entry point that spawns an agent workflow</td>
-            </tr>
-            <tr>
-              <td><strong>U — Utility</strong></td>
-              <td>User only</td>
-              <td>Self-contained interactive tool — no agents spawned</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div class="caption">
-      Naming: agents follow <code style="font-family:var(--mono);font-size:12px;color:var(--accent)">&lt;domain&gt;-&lt;role&gt;.md</code> ·
-      skills follow <code style="font-family:var(--mono);font-size:12px;color:var(--accent)">&lt;layer&gt;-&lt;action&gt;-&lt;target&gt;</code>.
-      <strong>Toolkit skills are always T or U. Platform-contract skills are always A. Persona entry agents always have a Type T trigger skill. For automated bash without model involvement, use hooks.</strong>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════
-       SLIDE — CONTRIBUTION SCALING
-  ════════════════════════════════════════════ -->
-  <section class="slide" id="s12d">
-    <div class="label">Contributing to the Toolkit</div>
-    <h2 class="headline">Start small. <em>Scale as the need proves it.</em></h2>
-    <div style="display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 28px; align-items: start;">
-      <div>
-        <table>
-          <thead>
-            <tr>
-              <th>When your need is…</th>
-              <th>Build</th>
-              <th>Signs you've outgrown it</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Automate one user-triggered task — no agent reasoning needed</td>
-              <td><strong>Skill — Type U</strong></td>
-              <td>You find yourself adding branching logic</td>
-            </tr>
-            <tr>
-              <td>Worker needs a repeatable, platform-specific artifact procedure</td>
-              <td><strong>Skill — Type A</strong></td>
-              <td>The skill starts doing more than one thing</td>
-            </tr>
-            <tr>
-              <td>Multi-step workflow scoped to one concern — Grep, reason, write</td>
-              <td><strong>Worker</strong> agent</td>
-              <td>You spawn other workers or need phase validation</td>
-            </tr>
-            <tr>
-              <td>Multiple workers need sequencing, validation, and a user entry gate</td>
-              <td><strong>Orchestrator</strong> + Trigger Skill (Type T)</td>
-              <td>Workers sometimes produce wasteful rework on complex features</td>
-            </tr>
-            <tr>
-              <td>Workflow benefits from read-first exploration before any source write</td>
-              <td>Add a <strong>Planner</strong></td>
-              <td>You have all the roles — you've built a persona</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 14px;">
-        <div class="tree" style="font-size: 12px; line-height: 1.75;">
-<span class="dm">Maturity ladder</span>
-
-<span class="ac">Skill</span>          <span class="dm">← one task, one file, scoped to what the type demands</span>
-<span class="dm">  │</span>
-<span class="dm">  ▼  (need grows)</span>
-<span class="ac">+ Worker</span>       <span class="dm">← multi-step, scoped to one concern</span>
-<span class="dm">  │</span>
-<span class="dm">  ▼  (need grows)</span>
-<span class="ac">+ Orchestrator</span>  <span class="dm">← phases, validation, trigger gate</span>
-<span class="dm">  │</span>
-<span class="dm">  ▼  (need grows)</span>
-<span class="ac">+ Planner</span>      <span class="dm">← read-first, plan approval</span>
-<span class="dm">  │</span>
-<span class="dm">  ▼  (discipline proven)</span>
-<span class="rl">Full Persona</span>   <span class="dm">← formalizes an engineering discipline</span>
-        </div>
-        <div class="cache-box stable" style="font-size: 13px;">
-          <div class="cache-label">Before you build — use the internal toolkit</div>
-          <code style="font-family:var(--mono);color:var(--accent);">/consult [subject]</code><br>
-          <span style="color:var(--muted);">Reason through design with an agent that reads the repo, asks about intent, and recommends exactly what to build.</span><br><br>
-          <code style="font-family:var(--mono);color:var(--accent);">/scaffold</code><br>
-          <span style="color:var(--muted);">Generate a correctly-structured file with arch-review built in. No convention violations out of the gate.</span>
-        </div>
-      </div>
-    </div>
-    <div class="caption">
-      A persona earns its shape — don't design five roles on day one.
-      A Skill that proves recurring value becomes a Worker.
-      A Worker that proves orchestration need earns an Orchestrator.
-      <strong>Personas are the outcome of scaling, not the starting point.</strong>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════
-       SLIDE 13 — KNOWLEDGE ARCHITECTURE
-  ════════════════════════════════════════════ -->
-  <section class="slide" id="s13">
-    <div class="label">Knowledge</div>
-    <h2 class="headline">Three tiers. <em>Each loaded only when needed.</em></h2>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start;">
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        <div class="cache-box stable">
-          <div class="cache-label">Tier 1 — CLAUDE.md</div>
-          Universal rules. ~1 page. Loaded every turn.<br>
-          Naming conventions, architecture boundaries, quality gates.
-        </div>
-        <div class="cache-box dynamic" style="border-color: var(--accent-bd); background: var(--accent-bg);">
-          <div class="cache-label" style="color: var(--accent);">Tier 2 — Agent body</div>
-          Decision logic for that agent only.<br>
-          When to act, what to check, how to handle failure.<br>
-          <span style="color: var(--muted); font-size: 13px;">Not shared. Not duplicated. Scoped to one agent.</span>
-        </div>
-        <div class="cache-box dynamic">
-          <div class="cache-label">Tier 3 — Reference docs</div>
-          Deep architectural knowledge: layer contracts, patterns, platform examples.<br>
-          Loaded on demand via Grep — one section at a time.
-        </div>
-      </div>
-      <div>
-        <ul class="bullets" style="gap: 20px;">
-          <li>
-            <strong>Reference docs are greppable by design</strong> — every file uses the same heading structure
-            (<code style="font-family: var(--mono); font-size: 13px; color: var(--accent);">## SectionName</code>)
-            so workers fetch exactly the section they need.
-          </li>
-          <li>
-            <strong>Knowledge is never duplicated</strong> — one reference file, multiple workers reading the same section via Grep.
-            Update once, every agent sees it immediately.
-          </li>
-          <li>
-            <strong>Self-enforcing</strong> — an internal arch-reviewer audits every agent and skill file for convention violations before it ships to any downstream project. The system checks itself.
-          </li>
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════
-       SLIDE 14 — HOW IT WORKS
-  ════════════════════════════════════════════ -->
-  <section class="slide" id="s14">
-    <div class="label">How It Works — Builder Persona (example)</div>
-    <h2 class="headline">One slash command. <em>The team takes over.</em></h2>
-    <div class="tree">
-<span class="ac">You:</span>  /feature-orchestrator  <span class="dm">"leave request"</span>
-      <span class="dm">↓  (skill: detect existing run → resume or new?)</span>
-      <span class="dm">↓  (skill: read context.md + state.json → pass inline)</span>
-      <span class="dm">↓  (skill: spawn with pre-loaded context — no cold reads)</span>
-<span class="rl">Tech Lead</span>  <span class="dm">(feature-orchestrator)</span>
-<span class="dm">│</span>
-<span class="dm">└──</span> <span class="rl">feature-worker</span>  <span class="dm">← reads plan.md; calls platform-contract skills per layer</span>
-    <span class="dm">│</span>
-    <span class="dm">├──</span> <span class="rl">Domain</span>   <span class="dm">→</span>  <span class="ac">domain-create-entity</span>  <span class="dm">·</span>  <span class="ac">domain-create-usecase</span>
-    <span class="dm">│             </span><span class="ac">domain-create-repository</span>  <span class="dm">·</span>  <span class="ac">domain-create-service</span>
-    <span class="dm">│             </span><span class="dm">↳ each skill generates one artifact type</span>
-    <span class="dm">│</span>
-    <span class="dm">├──</span> <span class="rl">Data</span>     <span class="dm">→</span>  <span class="ac">data-create-datasource</span>  <span class="dm">·</span>  <span class="ac">data-create-mapper</span>
-    <span class="dm">│             </span><span class="ac">data-create-repository-impl</span>
-    <span class="dm">│</span>
-    <span class="dm">├──</span> <span class="rl">State</span>    <span class="dm">→</span>  <span class="ac">pres-create-stateholder</span>
-    <span class="dm">│</span>
-    <span class="dm">└──</span> <span class="rl">UI</span>       <span class="dm">→</span>  <span class="ac">pres-create-screen</span>  <span class="dm">·</span>  <span class="ac">pres-create-component</span>
-      <span class="dm">↓</span>
-<span class="ac">Complete feature, all layers, ready for review</span>
-    </div>
-    <div class="caption">
-      Skills are the enforced entry — they route, pre-load warm-cache context, and spawn with it already inlined.
-      <strong>The orchestrator skips cold pre-flight reads entirely.</strong>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════
-       SLIDE 15 — MEET THE TEAM
-  ════════════════════════════════════════════ -->
-  <section class="slide" id="s15">
-    <div class="label">The Team</div>
-    <h2 class="headline">Five personas <em>so far</em>. Anyone can add more.</h2>
+  <section class="slide" id="s3">
+    <div class="label">The Shift</div>
+    <h2 class="headline">Every discipline had its own "coding". <em>AI just removed all of them.</em></h2>
     <table>
       <thead>
         <tr>
-          <th>Persona</th>
-          <th>What it handles</th>
-          <th>Trigger skill(s)</th>
-          <th>Ships to</th>
+          <th style="width: 140px;">Process</th>
+          <th>The old bottleneck</th>
+          <th>The system — what remains</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td>Builder</td>
-          <td>Feature development — domain, data, state, UI delivered in sequence</td>
-          <td><strong>/feature-orchestrator · /plan-feature · /backend-orchestrator</strong></td>
-          <td>iOS · Flutter · Web</td>
+          <td>Requirement</td>
+          <td>Writing specs, PRDs, and user stories</td>
+          <td><strong>Deciding what problem is worth solving — and what to leave out</strong></td>
         </tr>
         <tr>
-          <td>Detective</td>
-          <td>Debugging, performance analysis, root cause investigation</td>
-          <td><strong>/debug-orchestrator</strong></td>
-          <td>iOS · Flutter · Web</td>
+          <td>Design</td>
+          <td>Creating mockups, iterating on pixels, building prototypes</td>
+          <td><strong>How users experience the product. The flow. The information architecture.</strong></td>
         </tr>
         <tr>
-          <td>Auditor</td>
-          <td>Architecture review, standards enforcement, convention compliance</td>
-          <td><strong>/arch-review</strong></td>
-          <td>iOS · Flutter · Web</td>
+          <td>Implementation</td>
+          <td>Writing code and boilerplate</td>
+          <td><strong>Architecture. What to build and how it scales and holds up.</strong></td>
         </tr>
         <tr>
-          <td>Tracker</td>
-          <td>Issue management, backlog, branch coordination</td>
-          <td><strong>/issue-worker</strong></td>
-          <td>iOS · Flutter · Web</td>
+          <td>Testing</td>
+          <td>Writing test cases and running manual checks</td>
+          <td><strong>What "quality" means. What failure looks like. What's acceptable.</strong></td>
         </tr>
         <tr>
-          <td>Installer</td>
-          <td>Project setup, platform wiring, onboarding</td>
-          <td><strong>/setup-worker</strong></td>
-          <td>iOS · Flutter · Web</td>
-        </tr>
-        <tr style="border-top: 1px dashed var(--accent-bd);">
-          <td style="color: var(--accent);">+ Your persona</td>
-          <td style="color: var(--muted); font-style: italic;">Identify a recurring workflow → PR the agents + trigger skill to the shared submodule</td>
-          <td style="color: var(--muted); font-style: italic;">/your-skill</td>
-          <td style="color: var(--accent);">All platforms</td>
+          <td>Delivery</td>
+          <td>Configuring pipelines and infrastructure</td>
+          <td><strong>How reliably and safely the product reaches users.</strong></td>
         </tr>
       </tbody>
     </table>
     <div class="caption">
-      Every persona has a trigger skill — the enforced entry gate.
-      <strong>A persona without a trigger skill is incomplete.</strong> Any engineer can propose and contribute a new persona.
+      AI executes the bottleneck in every process. What remains is the judgment —
+      the decisions only your team can make.
     </div>
   </section>
 
   <!-- ═══════════════════════════════════════════
-       SLIDE 16 — IN ACTION: LEAVE REQUEST
+       SLIDE 4 — THE GOAL
   ════════════════════════════════════════════ -->
-  <section class="slide" id="s16">
-    <div class="label">In Action — Leave Request (Flutter)</div>
-    <h2 class="headline" style="margin-bottom: 18px;">One command in. <em>Complete feature out.</em></h2>
-    <div class="tree" style="font-size: 12px; line-height: 1.68;">
-<span class="ac">/feature-orchestrator</span> <span class="dm">"Build the leave request feature — submit, approve, reject, notify."</span>
-<span class="dm">↓  skill: no existing run → spawn fresh</span>
-
-<span class="rl">feature-orchestrator</span>
-<span class="dm">│</span>
-<span class="dm">├──</span> <span class="rl">feature-planner</span>
-<span class="dm">│       ├──</span> <span class="ac">domain-planner</span>  ·  <span class="ac">data-planner</span>  ·  <span class="ac">pres-planner</span>  <span class="dm">← parallel exploration</span>
-<span class="dm">│       [plan.md written → user approves]</span>
-<span class="dm">│</span>
-<span class="dm">└──</span> <span class="rl">feature-worker</span>  <span class="dm">← reads plan; calls skills in CLEAN layer order</span>
-    <span class="dm">├── domain →</span>  <span class="ac">LeaveRequest</span>  ·  <span class="ac">LeaveRequestRepository</span>
-    <span class="dm">│             </span><span class="ac">SubmitLeaveRequestUseCase</span>  ·  <span class="ac">ApproveLeaveRequestUseCase</span>  ·  <span class="ac">RejectLeaveRequestUseCase</span>
-    <span class="dm">├── data   →</span>  <span class="ac">LeaveRequestResponse</span> <span class="dm">(@JsonSerializable)</span>  ·  <span class="ac">LeaveRequestMapper</span>
-    <span class="dm">│             </span><span class="ac">LeaveRequestRemoteDataSource</span> <span class="dm">(dio)</span>  ·  <span class="ac">LeaveRequestRepositoryImpl</span>
-    <span class="dm">├── pres   →</span>  <span class="ac">LeaveRequestBloc</span>  ·  <span class="ac">LeaveRequestEvent</span>  ·  <span class="ac">LeaveRequestState</span>
-    <span class="dm">└── ui     →</span>  <span class="ac">LeaveRequestScreen</span>  ·  <span class="ac">LeaveRequestWidget</span> <span class="dm">(observes BLoC)</span>
-    </div>
-    <div class="caption">
-      <strong>Total engineer time: one sentence and a code review.</strong>
-      Every file follows architecture standards. Every layer only knows what it's supposed to know.
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════
-       SLIDE 17 — RESULTS
-  ════════════════════════════════════════════ -->
-  <section class="slide" id="s17">
-    <div class="label">Results — April 2026 · talenta-iOS · mobile-talenta · talenta-mobile-android</div>
-    <h2 class="headline">Measured across three products, <em>four days of tuning.</em></h2>
-    <div class="cards">
-      <div class="card">
-        <div class="card-label">Speed</div>
-        <div class="card-metric">1 session</div>
-        <div class="card-desc">
-          34-file, 5-layer feature — domain, database, API, state, UI — all wired together.
-          Previously: 2–3 days for a senior engineer.
-        </div>
+  <section class="slide" id="s4">
+    <div class="label">The Goal</div>
+    <h2 class="headline">Specialized agents for every process. <em>So your team owns the system, not the execution.</em></h2>
+    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px;">
+      <div class="card" style="padding: 20px 16px;">
+        <div class="card-label">Requirement</div>
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px;">Agent handles</div>
+        <div style="font-size: 12px; color: var(--muted); line-height: 1.55; margin-bottom: 14px;">Drafting specs, PRDs, user stories, acceptance criteria</div>
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px;">You focus on</div>
+        <div style="font-size: 12px; color: var(--text); line-height: 1.55;">What problem is worth solving. What to leave out.</div>
       </div>
-      <div class="card">
-        <div class="card-label">Cost</div>
-        <div class="card-metric">85% ↓</div>
-        <div class="card-desc">
-          737,000 → 103,000 tokens per feature session.
-          Not from a cheaper model. From building the system correctly.
-        </div>
+      <div class="card" style="padding: 20px 16px;">
+        <div class="card-label">Design</div>
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px;">Agent handles</div>
+        <div style="font-size: 12px; color: var(--muted); line-height: 1.55; margin-bottom: 14px;">Generating mockups, component variants, design tokens</div>
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px;">You focus on</div>
+        <div style="font-size: 12px; color: var(--text); line-height: 1.55;">User flow. Information architecture. Experience decisions.</div>
       </div>
-      <div class="card">
-        <div class="card-label">Quality</div>
-        <div class="card-metric">6.3 → 8.0</div>
-        <div class="card-desc">
-          Session score (1–10) across 7 dimensions:<br><br>
-          D1 Orchestration Quality<br>
-          D2 Worker Invocation<br>
-          D3 Skill Execution<br>
-          D4 Token Efficiency<br>
-          D5 Routing Accuracy<br>
-          D6 Workflow Compliance<br>
-          D7 One-Shot Rate
-        </div>
+      <div class="card" style="padding: 20px 16px; background: var(--accent-bg); border-color: var(--accent-bd);">
+        <div class="card-label">Implementation</div>
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px;">Agent handles</div>
+        <div style="font-size: 12px; color: var(--muted); line-height: 1.55; margin-bottom: 14px;">Writing code, boilerplate, layer wiring, conventions</div>
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px;">You focus on</div>
+        <div style="font-size: 12px; color: var(--text); line-height: 1.55;">Architecture. What to build and how it scales.</div>
+      </div>
+      <div class="card" style="padding: 20px 16px;">
+        <div class="card-label">Testing</div>
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px;">Agent handles</div>
+        <div style="font-size: 12px; color: var(--muted); line-height: 1.55; margin-bottom: 14px;">Writing test cases, running regression, coverage reports</div>
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px;">You focus on</div>
+        <div style="font-size: 12px; color: var(--text); line-height: 1.55;">What quality means. What failure looks like.</div>
+      </div>
+      <div class="card" style="padding: 20px 16px;">
+        <div class="card-label">Delivery</div>
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px;">Agent handles</div>
+        <div style="font-size: 12px; color: var(--muted); line-height: 1.55; margin-bottom: 14px;">Pipeline config, infra setup, deployment scripts</div>
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px;">You focus on</div>
+        <div style="font-size: 12px; color: var(--text); line-height: 1.55;">Reliability. Rollback strategy. How safely it ships.</div>
       </div>
     </div>
     <div class="caption">
-      The system improves itself. Every session produces a performance report.
-      Every report drives a toolkit update. Every update ships to all three products simultaneously.
+      <strong>Specialized beats generic.</strong> A general-purpose AI assistant doesn't know your architecture,
+      your conventions, or your layer contracts. These agents do — purpose-built per discipline,
+      consistent every session, every engineer.
     </div>
   </section>
 
   <!-- ═══════════════════════════════════════════
-       SLIDE 18 — WHERE WE'RE GOING
+       SLIDE 5 — THE VISION (END-TO-END)
   ════════════════════════════════════════════ -->
-  <section class="slide" id="s18">
+  <section class="slide" id="s5">
+    <div class="label">The Vision</div>
+    <h2 class="headline" style="margin-bottom: 20px;">The end goal. <em>One prompt. Requirement to shipped.</em></h2>
+
+    <div style="display: flex; flex-direction: column; gap: 0;">
+
+      <div style="padding-bottom: 6px;">
+        <span style="font-family: var(--mono); font-size: 12px; color: var(--accent); background: var(--accent-bg); border: 1px solid var(--accent-bd); border-radius: 6px; padding: 5px 14px;">you describe what to build</span>
+      </div>
+      <div style="color: var(--muted); font-size: 15px; padding: 2px 0 2px 80px; line-height: 1;">↓</div>
+
+      <div style="display: grid; grid-template-columns: 168px 1fr auto; gap: 14px; align-items: center; padding: 3px 0;">
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 11px 15px;">
+          <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent);">Requirement</div>
+        </div>
+        <div style="font-size: 13px; color: var(--muted);">→&nbsp; Spec · priorities · acceptance criteria</div>
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 4px 10px; white-space: nowrap;">you approve</div>
+      </div>
+      <div style="color: var(--muted); font-size: 15px; padding: 2px 0 2px 80px; line-height: 1;">↓</div>
+
+      <div style="display: grid; grid-template-columns: 168px 1fr auto; gap: 14px; align-items: center; padding: 3px 0;">
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 11px 15px;">
+          <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent);">Design</div>
+        </div>
+        <div style="font-size: 13px; color: var(--muted);">→&nbsp; Flows · components · design decisions</div>
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 4px 10px; white-space: nowrap;">you approve</div>
+      </div>
+      <div style="color: var(--muted); font-size: 15px; padding: 2px 0 2px 80px; line-height: 1;">↓</div>
+
+      <div style="display: grid; grid-template-columns: 168px 1fr auto; gap: 14px; align-items: center; padding: 3px 0;">
+        <div style="background: var(--accent-bg); border: 1px solid var(--accent-bd); border-radius: 8px; padding: 11px 15px;">
+          <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent);">Implementation</div>
+        </div>
+        <div style="font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 10px;">
+          →&nbsp; Code · architecture · all layers, all platforms
+          <span style="font-size: 10px; font-weight: 700; background: var(--accent); color: #000; border-radius: 4px; padding: 2px 8px; white-space: nowrap; flex-shrink: 0;">today</span>
+        </div>
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 4px 10px; white-space: nowrap;">you approve</div>
+      </div>
+      <div style="color: var(--muted); font-size: 15px; padding: 2px 0 2px 80px; line-height: 1;">↓</div>
+
+      <div style="display: grid; grid-template-columns: 168px 1fr auto; gap: 14px; align-items: center; padding: 3px 0;">
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 11px 15px;">
+          <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent);">Testing</div>
+        </div>
+        <div style="font-size: 13px; color: var(--muted);">→&nbsp; Test cases · coverage · regression verified</div>
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 4px 10px; white-space: nowrap;">you approve</div>
+      </div>
+      <div style="color: var(--muted); font-size: 15px; padding: 2px 0 2px 80px; line-height: 1;">↓</div>
+
+      <div style="display: grid; grid-template-columns: 168px 1fr auto; gap: 14px; align-items: center; padding: 3px 0;">
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 11px 15px;">
+          <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent);">Delivery</div>
+        </div>
+        <div style="font-size: 13px; color: var(--muted);">→&nbsp; Pipeline · infra · deployment</div>
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); white-space: nowrap;">shipped ✓</div>
+      </div>
+
+    </div>
+
+    <div class="caption" style="margin-top: 16px;">
+      Not five separate tools. One connected system where each agent's output feeds the next.
+      <strong>The human approves at each gate — the agents handle everything in between.</strong>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════
+       SLIDE 6 — ROADMAP
+  ════════════════════════════════════════════ -->
+  <section class="slide" id="s6">
     <div class="label">Roadmap</div>
-    <h2 class="headline">The foundation is in place. <em>Here's what's next.</em></h2>
+    <h2 class="headline">Four phases. <em>From foundation to every process.</em></h2>
     <div class="roadmap">
       <div class="roadmap-item">
         <div class="roadmap-num">01</div>
         <div class="roadmap-text">
-          <strong>Android</strong>
-          <span>Android is scaffolded — 12 contract skills, 6 reference docs, schema-compliant headings across all layers.
-          Wire into a downstream project with <code style="font-family:var(--mono);font-size:12px;">setup-symlinks.sh --platform=android</code>.
-          No changes to any core agent needed.</span>
+          <strong>Foundation &nbsp;<span style="font-size: 10px; font-weight: 700; background: var(--accent); color: #000; border-radius: 4px; padding: 2px 8px; vertical-align: middle;">in progress</span></strong>
+          <span>Is the anatomy right? Does it hold across AI platforms? Agent and skill structure is validated on Claude Code. Remaining: port and compare across Codex, Gemini CLI, and other runtimes.</span>
         </div>
       </div>
       <div class="roadmap-item">
         <div class="roadmap-num">02</div>
         <div class="roadmap-text">
-          <strong>Broader scope</strong>
-          <span>The same agent model that builds features can be applied to performance analysis,
-          security review, migration automation, and engineer onboarding.</span>
+          <strong>Collaboration</strong>
+          <span>How do multiple teams contribute improvements without breaking each other? Covers: contribution workflow, ownership model, versioning, and review process.</span>
         </div>
       </div>
       <div class="roadmap-item">
         <div class="roadmap-num">03</div>
         <div class="roadmap-text">
-          <strong>Shorter feedback loops</strong>
-          <span>The gap between "a developer describes intent" and "a feature is ready for review"
-          continues to shrink. The system gets better with every session.</span>
+          <strong>Distribution</strong>
+          <span>How does the toolkit reach every project, reliably? Two approaches to evaluate: submodule + symlinks (current, proven for iOS · Flutter · Web) vs. monorepo with all products and the agentic repo as parent.</span>
         </div>
       </div>
+      <div class="roadmap-item">
+        <div class="roadmap-num">04</div>
+        <div class="roadmap-text">
+          <strong>Expansion</strong>
+          <span>How do we extend specialized agents to every process in the SDLC? This closes the loop — from Implementation-only today to Requirement, Design, Testing, and Delivery.</span>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      Phase 4 connects back to the end-to-end vision. Each phase builds on the last —
+      <strong>distribution is meaningless without a solid foundation, and expansion is meaningless without distribution.</strong>
     </div>
   </section>
 
   <!-- ═══════════════════════════════════════════
-       SLIDE 19 — CLOSING
+       SLIDE 7 — FOUNDATION: ANATOMY
   ════════════════════════════════════════════ -->
-  <section class="slide" id="s19">
-    <div class="label">software-dev-agentic</div>
-    <p class="quote">
-      We built a system where an engineer describes what they want to build,
-      and a team of specialized AI agents builds it correctly —
-      <em>across every platform, at a fraction of the cost, every time.</em>
-    </p>
-    <div class="divider"></div>
-    <p class="body-text">Engineering · April 2026</p>
-    <p style="margin-top: 10px; font-size: 13px; color: var(--muted);">
-      Technical details:
-      <code style="font-family: var(--mono); color: var(--accent); background: var(--accent-bg); padding: 2px 8px; border-radius: 4px;">docs/principles/core-design-principles.md</code>
-    </p>
+  <section class="slide" id="s7">
+    <div class="label">Phase 01 — Foundation · Anatomy</div>
+    <h2 class="headline">Three building blocks. <em>Each with one clear responsibility.</em></h2>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 14px;">
+
+      <div class="code-panel">
+        <div class="code-panel-header good">Skill — The Entry &amp; The Hands</div>
+        <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 14px;">
+          <p style="font-size: 13px; color: var(--muted); line-height: 1.65;">All user-facing work starts here. The Type T skill owns routing, context loading, spawning agents, and the convergence loop — the full session lifecycle.</p>
+          <div>
+            <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px;">Three types</div>
+            <div style="font-size: 12.5px; color: var(--muted); line-height: 1.75;">
+              <span style="color: var(--text); font-weight: 600;">T · Trigger</span> — user entry; owns the full session<br>
+              <span style="color: var(--text); font-weight: 600;">A · Regular</span> — called by a worker; one artifact, one platform<br>
+              <span style="color: var(--text); font-weight: 600;">U · Utility</span> — user tool; does its own work, no agents
+            </div>
+          </div>
+          <div class="caption" style="margin-top: 0; font-size: 12px;">A persona without a trigger skill is incomplete. Always start here.</div>
+        </div>
+      </div>
+
+      <div class="code-panel">
+        <div class="code-panel-header" style="color: var(--blue); background: rgba(121,192,255,0.06); border-color: rgba(121,192,255,0.25); border-bottom-color: var(--border);">Agent — The Brain</div>
+        <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 14px;">
+          <p style="font-size: 13px; color: var(--muted); line-height: 1.65;">Brain only. Assesses, reasons, and returns structured decisions. Never writes source files. Never spawns agents directly — that's the skill's job.</p>
+          <div>
+            <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue); margin-bottom: 8px;">Three roles</div>
+            <div style="font-size: 12.5px; color: var(--muted); line-height: 1.75;">
+              <span style="color: var(--text); font-weight: 600;">Orchestrator</span> — decides what runs next; returns Decision blocks<br>
+              <span style="color: var(--text); font-weight: 600;">Planner</span> — explores one layer read-only; returns findings<br>
+              <span style="color: var(--text); font-weight: 600;">Worker</span> — executes the plan; writes source files via skills
+            </div>
+          </div>
+          <div class="caption" style="margin-top: 0; font-size: 12px;">Platform-agnostic by design. Workers call skills — skills know the platform.</div>
+        </div>
+      </div>
+
+      <div class="code-panel">
+        <div class="code-panel-header neutral">Reference — The Knowledge</div>
+        <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 14px;">
+          <p style="font-size: 13px; color: var(--muted); line-height: 1.65;">Agents stay lean. Deep knowledge lives in reference docs, loaded on demand via Grep — never embedded in the agent body. Update one file, every agent that reads it gets the update.</p>
+          <div>
+            <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px;">Three tiers</div>
+            <div style="font-size: 12.5px; color: var(--muted); line-height: 1.75;">
+              <span style="color: var(--text); font-weight: 600;">CLAUDE.md</span> — universal rules, ~1 page, always loaded<br>
+              <span style="color: var(--text); font-weight: 600;">Agent body</span> — decision logic for that agent only<br>
+              <span style="color: var(--text); font-weight: 600;">Reference docs</span> — deep knowledge, one Grep per section
+            </div>
+          </div>
+          <div class="caption" style="margin-top: 0; font-size: 12px;">Core reference defines what. Platform reference defines how in that language.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="tree" style="font-size: 12px; line-height: 1.7; padding: 14px 20px;">
+<span class="dm">User  →</span>  <span class="ac">Skill (T)</span>  <span class="dm">→ routes, loads context, spawns →</span>  <span class="rl">Orchestrator</span>  <span class="dm">→ Decision block →</span>  <span class="ac">Skill (T)</span>  <span class="dm">→ spawns →</span>  <span class="rl">Planners / Worker</span>  <span class="dm">→</span>  <span class="ac">Skills (A)</span>  <span class="dm">+ Reference  →  code</span></div>
   </section>
+
+  <!-- ═══════════════════════════════════════════
+       SLIDE 8 — SKILL TYPES IN DEPTH
+  ════════════════════════════════════════════ -->
+  <section class="slide" id="s8">
+    <div class="label">Phase 01 — Foundation · Skills</div>
+    <h2 class="headline">Three types. <em>Each with a different job, a different caller.</em></h2>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;">
+
+      <div class="code-panel">
+        <div class="code-panel-header good">T · Trigger — user entry, owns the session</div>
+        <pre style="font-size: 11px;"><span class="cm">--- builder-plan-feature ---</span>
+<span class="ac">user-invocable: true</span>
+<span class="ac">allowed-tools: Agent, AskUserQuestion, Read</span>
+
+<span class="cm"># Step 1 — Gather Intent</span>
+Spawn orchestrator <span class="bl">(gather-intent)</span>
+→ returns <span class="ac">Decision: spawn-planners</span>
+
+<span class="cm"># Step 2 — Convergence Loop</span>
+Spawn planners <span class="bl">in parallel</span> per round
+Send findings → orchestrator
+<span class="dm">Loop until converged or blocked</span>
+
+<span class="cm"># Step 3 — Synthesize</span>
+Spawn orchestrator <span class="bl">(synthesize)</span>
+→ writes plan.md + context.md
+
+<span class="cm"># Step 4 — Approve</span>
+<span class="ac">AskUserQuestion</span>
+  Approve  → execute
+  Discuss  → revise → re-approve
+  Discard  → delete run, stop
+
+<span class="cm"># Step 5 — Execute</span>
+Spawn feature-worker
+  plan.md + context.md <span class="bl">inlined</span></pre>
+      </div>
+
+      <div class="code-panel">
+        <div class="code-panel-header neutral">A · Regular — worker calls, one artifact</div>
+        <pre style="font-size: 11px;"><span class="cm">--- builder-domain-create-entity ---</span>
+<span class="bd">user-invocable: false</span>
+<span class="ac">allowed-tools: Read, Grep, Bash</span>
+
+<span class="cm"># Input</span>
+entity_name, target_path, module
+
+<span class="cm"># Step 1 — Load reference (Grep-first)</span>
+Grep <span class="ac">"^## Entity"</span> in domain.md
+Read offset + limit <span class="dm">← section only</span>
+<span class="dm">Never the full file</span>
+
+<span class="cm"># Step 2 — Check preconditions</span>
+Glob target path
+<span class="bd">STOP if file already exists</span>
+
+<span class="cm"># Step 3 — Write</span>
+Create entity from reference pattern
+Platform conventions applied here
+<span class="dm">(Swift struct · Dart class · TS interface)</span>
+
+<span class="cm"># Output</span>
+<span class="ac">Glob + Grep verified path only</span></pre>
+      </div>
+
+      <div class="code-panel">
+        <div class="code-panel-header" style="color: var(--blue); background: rgba(121,192,255,0.06); border-color: rgba(121,192,255,0.25); border-bottom-color: var(--border);">U · Utility — user tool, no agents</div>
+        <pre style="font-size: 11px;"><span class="cm">--- tracker-adjust-ticket ---</span>
+<span class="ac">user-invocable: true</span>
+<span class="ac">allowed-tools: Read, Edit, AskUserQuestion</span>
+<span class="dm">(no Agent tool — does its own work)</span>
+
+<span class="cm"># Arguments</span>
+$ARGUMENTS — path to ticket .md
+
+<span class="cm"># Step 1 — Resolve ticket path</span>
+Use $ARGUMENTS or AskUserQuestion
+
+<span class="cm"># Step 2 — Parse session notes</span>
+Read notes from conversation context
+
+<span class="cm"># Step 3 — Append structured section</span>
+<span class="ac">### Work Items Completed</span>
+<span class="ac">### Decisions Made</span>
+<span class="ac">### Open Questions</span>
+
+<span class="cm"># Rule: original description untouched</span>
+Edit appends only — never overwrites</pre>
+      </div>
+
+    </div>
+    <div class="caption" style="margin-top: 12px;">
+      Start with <strong>Type U</strong> if you don't need an agent. Add <strong>Type T</strong> when you need to spawn one.
+      <strong>Type A</strong> only when a worker needs platform-specific artifact creation — the worker decides which skill to call.
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════
+       SLIDE 9 — AGENT STRUCTURE IN DEPTH
+  ════════════════════════════════════════════ -->
+  <section class="slide" id="s9">
+    <div class="label">Phase 01 — Foundation · Agents</div>
+    <h2 class="headline" style="margin-bottom: 16px;">An agent is only as good as <em>what it loads and how it reasons.</em></h2>
+
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px;">
+
+      <div class="code-panel">
+        <div class="code-panel-header" style="color: var(--blue); background: rgba(121,192,255,0.06); border-color: rgba(121,192,255,0.25); border-bottom-color: var(--border);">Orchestrator — Tech Lead</div>
+        <pre style="font-size: 11px;"><span class="cm"># Personality</span>
+Reasons about the big picture.
+Decides <span class="ac">what</span> runs, not how.
+
+<span class="cm"># Load first</span>
+Intent + accumulated findings
+<span class="dm">(passed inline by trigger skill)</span>
+
+<span class="cm"># How to think</span>
+What does this feature need?
+Which layers are affected?
+Is there enough info to act?
+
+<span class="cm"># Decision output</span>
+<span class="ac">Decision: spawn-planners</span>
+  spawn: [domain, data]
+  reason: …
+
+<span class="ac">Decision: converged</span>
+<span class="ac">Decision: blocked</span>
+  question: …
+
+<span class="bd">Never: spawn agents, write files</span></pre>
+      </div>
+
+      <div class="code-panel">
+        <div class="code-panel-header neutral">Planner — Layer Expert</div>
+        <pre style="font-size: 11px;"><span class="cm"># Personality</span>
+Specialist in one CLEAN layer.
+Read-only. Reports. Never acts.
+
+<span class="cm"># Load first</span>
+Grep scope-matched reference section
+<span class="dm">(domain, data, pres, or app only)</span>
+
+<span class="cm"># How to think</span>
+What already exists in this layer?
+What needs to change or be created?
+What other layers will be affected?
+
+<span class="cm"># Decision output</span>
+<span class="ac">## Findings</span>
+  - existing artifacts
+  - gaps and changes needed
+
+<span class="ac">### Impact Recommendations</span>
+  data: [required] ← affects next round
+  app:  [required]
+
+<span class="bd">Never: write files, leave its layer</span></pre>
+      </div>
+
+      <div class="code-panel">
+        <div class="code-panel-header good">Worker — Craftsman</div>
+        <pre style="font-size: 11px;"><span class="cm"># Personality</span>
+Executes precisely. Verifies output.
+Calls skills — never guesses platform.
+
+<span class="cm"># Load first</span>
+plan.md + context.md
+<span class="dm">(inlined by trigger skill — no cold reads)</span>
+
+<span class="cm"># How to think</span>
+Does this artifact already exist?
+Which skill creates this type?
+What does reference say for this layer?
+
+<span class="cm"># Load reference on demand</span>
+Grep <span class="ac">"^## Entity"</span> in domain.md
+Read offset=<span class="ac">42</span> limit=<span class="ac">15</span>  <span class="dm">← section only</span>
+
+<span class="cm"># Output</span>
+<span class="ac">## Output</span>
+  Glob + Grep verified paths only
+
+<span class="bd">Never: re-read, skip skill, guess layer</span></pre>
+      </div>
+
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+      <div class="code-panel">
+        <div class="code-panel-header neutral">Two kinds of knowledge to load</div>
+        <pre style="font-size: 11px;"><span class="cm">lib/core/reference/</span>         <span class="ac">← load first</span>
+  <span class="dm">What is a UseCase?</span>
+  <span class="dm">What belongs in Domain?</span>
+  <span class="dm">Generic. Definition. Principle.</span>
+
+<span class="cm">lib/platforms/&lt;p&gt;/reference/</span> <span class="ac">← load second</span>
+  <span class="dm">How to write a UseCase in Swift?</span>
+  <span class="dm">Which pattern does Flutter use?</span>
+  <span class="dm">Specific. Implementation. Syntax.</span></pre>
+      </div>
+      <div class="code-panel">
+        <div class="code-panel-header neutral">Search protocol — never load the full file</div>
+        <pre style="font-size: 11px;"><span class="cm"># 1. Find the file</span>
+Glob: <span class="ac">*GetUserUseCase*</span>
+→ Domain/UseCases/GetUserUseCase.swift
+
+<span class="cm"># 2. Find the line</span>
+Grep: <span class="ac">"^## Entity"</span> in domain.md → line <span class="ac">42</span>
+
+<span class="cm"># 3. Read the window only</span>
+Read offset=<span class="ac">42</span> limit=<span class="ac">15</span>
+→ <span class="ac">15 lines</span>. Section only. <span class="dm">Not 200.</span>
+
+<span class="cm"># Read-once rule</span>
+<span class="bd">Never re-read a file seen this session</span></pre>
+      </div>
+    </div>
+
+    <div class="caption" style="margin-top: 10px;">
+      If an agent isn't performing — check what it loaded.
+      <strong>Poor output almost always means missing or wrong context, not a reasoning failure.</strong>
+      Fix the knowledge, fix the agent.
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════
+       SLIDE 10 — REFERENCE ARCHITECTURE
+  ════════════════════════════════════════════ -->
+  <section class="slide" id="s10">
+    <div class="label">Phase 01 — Foundation · Reference</div>
+    <h2 class="headline">Topic. Term. <em>The two levels every reference doc must have.</em></h2>
+
+    <div style="display: grid; grid-template-columns: 1fr 1.1fr; gap: 16px; margin-bottom: 12px;">
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div class="tree" style="font-size: 12px; line-height: 1.8;">
+<span class="dm">Process</span>   <span class="dm">Implementation · Design · Requirement · …</span>
+  <span class="dm">│</span>
+  <span class="ac">Topic</span>     <span class="dm">domain · data · presentation · components · …</span>
+  <span class="dm">│            one reference file per topic per platform</span>
+  <span class="dm">│</span>
+  <span class="rl">Term</span>      <span class="dm">UseCase · Entity · Repository · Button · …</span>
+  <span class="dm">│            one ## heading per term, same name everywhere</span>
+  <span class="dm">│</span>
+  ├── <span class="ac">Core definition</span>    <span class="dm">what it IS · platform-agnostic</span>
+  └── <span class="ac">Platform impl</span>      <span class="dm">how to build it in this language</span></div>
+
+        <div class="cache-box stable" style="font-size: 12.5px;">
+          <div class="cache-label">The Term is the grep key</div>
+          One Term = one canonical name = one <code style="font-family:var(--mono);font-size:11px;color:var(--accent);">##</code> heading, everywhere.<br><br>
+          If iOS uses <code style="font-family:var(--mono);font-size:11px;">## Use Case Protocol</code> instead of <code style="font-family:var(--mono);font-size:11px;color:var(--accent);">## UseCase</code>,
+          the grep misses — agent gets incomplete knowledge.
+          Platform dialect belongs in the body, never the heading.
+        </div>
+      </div>
+
+      <div class="code-panel">
+        <div class="code-panel-header neutral">Core definition vs Platform implementation</div>
+        <pre style="font-size: 11.5px;"><span class="cm">lib/core/reference/builder/domain.md</span>
+<span class="dm">────────────────── answers: WHAT and WHY ──────────────────</span>
+<span class="ac">## UseCase <!-- 28 --></span>
+A use case encapsulates one business operation.
+It depends on nothing outside the domain layer.
+Invariants: no framework imports, single execute()...
+<span class="dm">(28 lines — agent reads exactly this section)</span>
+
+<span class="ac">## Entity <!-- 15 --></span>
+An entity is a pure domain object with identity.
+No serialization logic. No platform dependencies...
+
+
+<span class="cm">lib/platforms/ios/reference/contract/builder/domain.md</span>
+<span class="dm">────────────────── answers: HOW in Swift ──────────────────</span>
+<span class="ac">## UseCase <!-- 31 --></span>  <span class="dm">← same Term, Swift body</span>
+final class GetUserUseCase: UseCase {
+  struct Params { let userId: String }
+  func execute(_ params: Params) async throws
+  <span class="dm">→ Swift protocol, Needle DI, async/await</span>
+
+<span class="ac">## Entity <!-- 22 --></span>  <span class="dm">← same Term, Swift body</span>
+struct UserEntity: Equatable { ... }</pre>
+      </div>
+
+    </div>
+
+    <div class="caption">
+      Core definition answers <strong>what</strong> and <strong>why</strong> — platform-agnostic, shared by every platform.
+      Platform implementation answers <strong>how</strong> in that language.
+      A worker Greps the core file to understand the contract, then Greps the platform file to write the code.
+      One Grep each. Never the full file.
+    </div>
+  </section>
+
+  <!-- future slides go here -->
 
 </div>
 
 <!-- mobile prev/next bar — hidden on desktop via CSS -->
 <div id="mobile-nav" style="display:none">
   <button id="btn-prev" onclick="goTo(current - 1)">← Prev</button>
-  <span id="mobile-counter">1 / 20</span>
+  <span id="mobile-counter">1 / 10</span>
   <button id="btn-next" class="primary" onclick="goTo(current + 1)">Next →</button>
 </div>
 
@@ -1858,35 +1151,6 @@ talenta-ios/.claude/
   }, { passive: true });
 
   goTo(0);
-
-  // Inject <!-- N --> examples via JS so the HTML parser never strips the annotation
-  const grepEx = document.getElementById('grep-example');
-  if (grepEx) {
-    const open = '\x3C!--', close = '--\x3E';
-    grepEx.innerHTML =
-      `<span class="cm"># Reference doc heading carries its own line count:</span>\n` +
-      `<span class="cm"># ## Entity ${open} 15 ${close}   ← maintained manually; enforced by arch-check-conventions</span>\n\n` +
-      `<span class="cm"># Step 1: locate section, read count from heading</span>\n` +
-      `Grep(<span class="ac">"^## Entity"</span>,\n` +
-      `  <span class="ac">"reference/contract/builder/domain.md"</span>)\n` +
-      `<span class="cm"># → "## Entity ${open} 15 ${close}" at line 42</span>\n\n` +
-      `<span class="cm"># Step 2: read exactly that section</span>\n` +
-      `Read(<span class="ac">"reference/contract/builder/domain.md"</span>,\n` +
-      `  offset=<span class="ac">42</span>, limit=<span class="ac">15</span>)\n` +
-      `<span class="cm"># → 15 lines. Dynamic. Always accurate.</span>`;
-  }
-
-  // Inject <!-- N --> annotation example — written via JS so the HTML parser never strips it
-  const ann = document.getElementById('annotation-example');
-  if (ann) {
-    const open = '\x3C!--', close = '--\x3E';
-    ann.innerHTML =
-      `<span class="ac">## Entity ${open} 15 ${close}</span>        <span class="cm">← heading + auto-maintained line count</span>\n` +
-      `An entity is a pure domain object...\n` +
-      `<span class="cm">... 13 more lines ...</span>\n\n` +
-      `<span class="ac">## UseCase ${open} 28 ${close}</span>       <span class="cm">← next section starts here</span>\n` +
-      `A use case encapsulates one business operation...`;
-  }
 </script>
 </body>
 </html>

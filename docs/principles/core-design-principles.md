@@ -286,6 +286,22 @@ The agentic system enforces its own conventions through automated review — the
 
 > Folder structure for reference docs: see [submodule-repo-structure.md](submodule-repo-structure.md).
 
+**Reference vocabulary — Topic and Term:**
+
+Reference docs are organized around two levels:
+
+- **Topic** — the subject area a reference file covers. Platform-agnostic. A Topic is not engineering-specific: `domain.md` covers the domain topic for engineering; a future `components.md` would cover the design components topic; a `user-stories.md` would cover a requirements topic. One reference file per topic per platform.
+- **Term** — the canonical name for one concept within a topic. Each `##` section heading is a Term. Terms are the agent's grep keys — one Term = one name = one `##` heading, everywhere across all platforms. If platform files use different headings for the same concept, the grep misses.
+
+| Level | Example | Rule |
+|---|---|---|
+| Topic | `domain` | One reference file per topic per platform |
+| Term | `UseCase` | Same `##` heading on every platform that implements it |
+| Core definition | what a UseCase IS | `lib/core/reference/builder/<topic>.md` |
+| Platform implementation | how to write a UseCase in Swift | `lib/platforms/<platform>/reference/contract/builder/<topic>.md` |
+
+The core definition answers *what* and *why*. The platform implementation answers *how* in that language and syntax. A worker Greps the core file to understand the contract, then Greps the platform file to write the correct code. One Grep each. Never the full file.
+
 **Placement decision rule — reference vs agent body:**
 
 | Put it in reference if… | Keep it in the agent body if… |
@@ -324,11 +340,11 @@ Every `##` section heading in a reference doc must carry a line-count comment: `
 
 `arch-check-conventions` enforces this — a missing integer is a Warning violation.
 
-**Authoring rule — canonical headings (ubiquitous language):**
+**Authoring rule — canonical Terms (ubiquitous language):**
 
-Every `##` section heading in a cross-platform reference doc is a **grep key** — it is the exact string a generic agent searches for across all platforms. The heading must be identical across all platform files that cover the same concept.
+Every `##` section heading in a cross-platform reference doc is a **Term** — the canonical name for one concept within a topic, and the exact grep key an agent searches for across all platforms. The heading must be identical across all platform files that cover the same concept.
 
-This is *Ubiquitous Language* from Domain-Driven Design applied to agent tooling. One concept = one term = one heading, everywhere. No synonyms at the `##` level. Platform-specific terminology belongs in the body, not the heading.
+This is *Ubiquitous Language* from Domain-Driven Design applied to agent tooling. One concept = one Term = one `##` heading, everywhere. No synonyms at the `##` level. Platform-specific terminology belongs in the body, not the heading.
 
 ```markdown
 ## Repository Interfaces <!-- 31 -->
