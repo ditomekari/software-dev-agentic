@@ -90,47 +90,64 @@ Never write the Screen before the StateHolder contract exists.
 
 ---
 
-## ViewDataState (shared in `[prefix]_core`) <!-- 46 -->
+## ViewDataState (from `qontak_common`) <!-- 34 -->
+
+`ViewDataState<T>` is defined in `qontak_common` (re-exported via `chat_core`). The API surface uses a `.status` field with extension getters — NOT direct bool helpers on `ViewDataState`:
 
 ```dart
-// shared/[prefix]_core/lib/src/presentation/view_data_state.dart
-import 'package:equatable/equatable.dart';
-import '../domain/failure.dart';
+// Usage pattern (actual codebase)
+ViewDataState.initial()         // initial state
+ViewDataState.loading()         // loading
+ViewDataState.loaded(data: x)   // success with data
+ViewDataState.error(message: m, failure: f)  // error
+ViewDataState.noData()          // success but no content (e.g. after reset)
 
-enum ViewState { initial, loading, loaded, error, empty }
+// Checking status — use .status extension methods:
+state.loginState.status.isHasData   // ✅ data available
+state.loginState.status.isError     // ✅ error occurred
+state.loginState.status.isLoading   // ✅ loading in progress
+state.loginState.status.isInitial   // ✅ not yet started
 
-class ViewDataState<T> extends Equatable {
-  const ViewDataState._({
-    required this.status,
-    this.data,
-    this.message,
-    this.failure,
-  });
+// Access data/failure
+state.loginState.data               // T? — present when isHasData
+state.loginState.failure            // Failure? — present when isError
+state.loginState.message            // String? — error message
+```
 
-  final ViewState status;
-  final T? data;
-  final String? message;
-  final Failure? failure;
+**Practical BLoC example from codebase:**
 
-  factory ViewDataState.initial() =>
-      const ViewDataState._(status: ViewState.initial);
-  factory ViewDataState.loading({String? message}) =>
-      ViewDataState._(status: ViewState.loading, message: message);
-  factory ViewDataState.loaded({T? data}) =>
-      ViewDataState._(status: ViewState.loaded, data: data);
-  factory ViewDataState.error({required String message, Failure? failure, T? data}) =>
-      ViewDataState._(status: ViewState.error, message: message, failure: failure, data: data);
-  factory ViewDataState.empty({String? message}) =>
-      ViewDataState._(status: ViewState.empty, message: message);
+```dart
+// lib/presentation/bloc/login/login_bloc.dart
+class LoginBloc extends Bloc<LoginEvent, LoginState> {
+  LoginBloc({required this.getSSOTokenUseCase, required this.prefHelper})
+      : super(LoginState(loginState: ViewDataState.initial())) {
+    on<Login>(_onUserLogin);
+    on<ResetLogin>(_onResetLogin);
+  }
 
-  bool get isInitial => status == ViewState.initial;
-  bool get isLoading => status == ViewState.loading;
-  bool get isLoaded => status == ViewState.loaded;
-  bool get hasError => status == ViewState.error;
-  bool get isEmpty => status == ViewState.empty;
+  Future<void> _onUserLogin(Login event, Emitter<LoginState> emit) async {
+    emit(state.copyWith(loginState: ViewDataState.loading()));
 
-  @override
-  List<Object?> get props => [status, data, message, failure];
+    final result = await getSSOTokenUseCase.call(
+      GetSSOTokenUseCaseParams(ssoCode: event.ssoCode),
+    );
+
+    result.fold(
+      (failure) => emit(state.copyWith(
+        loginState: ViewDataState.error(message: failure.message, failure: failure),
+      )),
+      (success) {
+        prefHelper
+          ..setAccessToken(success.accessToken)
+          ..setRefreshToken(success.refreshToken);
+        emit(state.copyWith(loginState: ViewDataState.loaded(data: success)));
+      },
+    );
+  }
+
+  void _onResetLogin(ResetLogin event, Emitter<LoginState> emit) {
+    emit(LoginState(loginState: ViewDataState.noData()));
+  }
 }
 ```
 
@@ -138,148 +155,140 @@ class ViewDataState<T> extends Equatable {
 
 ## Events <!-- 21 -->
 
-```dart
-// [prefix]_inbox/lib/src/presentation/blocs/inbox_event.dart
-import 'package:freezed_annotation/freezed_annotation.dart';
+Events are `@freezed` classes with named factory constructors. Sealed classes (`sealed class`) are used when the BLoC pattern-matches exhaustively.
 
-part 'inbox_event.freezed.dart';
+```dart
+// lib/presentation/bloc/login/login_event.dart
+part of 'login_bloc.dart';
 
 @freezed
-sealed class InboxEvent with _$InboxEvent {
-  const factory InboxEvent.loadInbox() = LoadInbox;
-  const factory InboxEvent.refreshInbox() = RefreshInbox;
-  const factory InboxEvent.markAsRead({required String conversationId}) = MarkAsRead;
-  const factory InboxEvent.searchInbox({required String query}) = SearchInbox;
+class LoginEvent with _$LoginEvent {
+  const factory LoginEvent.login({required String ssoCode}) = Login;
+  const factory LoginEvent.resetLogin() = ResetLogin;
 }
 ```
 
-**Event naming:** `loadXxx` (initial fetch) · `refreshXxx` (user pull-to-refresh) · `submitXxx` / `updateXxx` / `deleteXxx` (mutations) · `selectXxx` / `searchXxx` (UI-only state).
+**Event naming:** `login` / `resetLogin` (verb + noun) · `getFirstRun` / `setFirstRun` (domain verbs) · internal events use `_PrefixedNames` for orchestrator BLoCs.
 
 ---
 
-## States <!-- 28 -->
+## States <!-- 22 -->
 
 ```dart
-// [prefix]_inbox/lib/src/presentation/blocs/inbox_state.dart
-import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:[prefix]_core/[prefix]_core.dart';
-import '../../domain/entities/conversation.dart';
-
-part 'inbox_state.freezed.dart';
+// lib/presentation/bloc/login/login_state.dart
+part of 'login_bloc.dart';
 
 @freezed
-class InboxState with _$InboxState {
-  const factory InboxState({
-    required ViewDataState<List<Conversation>> inboxState,
-    required ViewDataState<void> markReadState,
-  }) = _InboxState;
-
-  factory InboxState.initial() => InboxState(
-        inboxState: ViewDataState.initial(),
-        markReadState: ViewDataState.initial(),
-      );
+class LoginState with _$LoginState {
+  const factory LoginState({
+    required ViewDataState<Auth> loginState,
+  }) = _LoginState;
 }
 ```
 
-One `ViewDataState<T>` per distinct async operation. No raw `isLoading` booleans.
+One `ViewDataState<T>` per distinct async operation. No raw `isLoading` booleans. Initial state created by passing `ViewDataState.initial()` to the factory constructor.
+
+```dart
+// Multi-field state (product_tour_bloc.dart)
+@freezed
+class ProductTourState with _$ProductTourState {
+  const factory ProductTourState({
+    required ViewDataState<bool> getFirstRunState,
+    required ViewDataState<bool> setFirstRunState,
+    required ViewDataState<bool> getQuestStatusState,
+    required ViewDataState<bool> setQuestStatusState,
+    required ViewDataState<dynamic> getAccountQuestState,
+    required ViewDataState<dynamic> setAccountQuestState,
+  }) = _ProductTourState;
+}
+```
 
 ---
 
-## BLoC <!-- 50 -->
+## BLoC <!-- 42 -->
+
+BLoCs use **named constructor parameters** (not positional). No `@injectable` annotation in the app module — registration is done manually in `MainDependency._registerPresentation()`.
 
 ```dart
-// [prefix]_inbox/lib/src/presentation/blocs/inbox_bloc.dart
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:injectable/injectable.dart';
-import 'package:[prefix]_core/[prefix]_core.dart';
-import '../../domain/usecases/get_inbox.dart';
-import 'inbox_event.dart';
-import 'inbox_state.dart';
-
-@injectable
-class InboxBloc extends Bloc<InboxEvent, InboxState> {
-  InboxBloc(this._getInbox) : super(InboxState.initial()) {
-    on<LoadInbox>(_onLoadInbox);
-    on<RefreshInbox>(_onLoadInbox);
+// lib/presentation/bloc/login/login_bloc.dart
+class LoginBloc extends Bloc<LoginEvent, LoginState> {
+  LoginBloc({
+    required this.getSSOTokenUseCase,
+    required this.prefHelper,
+  }) : super(LoginState(loginState: ViewDataState.initial())) {
+    on<Login>(_onUserLogin);
+    on<ResetLogin>(_onResetLogin);
   }
 
-  final GetInbox _getInbox;
+  final ChatPrefHelper prefHelper;
+  final GetSSOTokenUseCase getSSOTokenUseCase;
 
-  Future<void> _onLoadInbox(
-    InboxEvent event,
-    Emitter<InboxState> emit,
-  ) async {
-    emit(state.copyWith(inboxState: ViewDataState.loading()));
+  Future<void> _onUserLogin(Login event, Emitter<LoginState> emit) async {
+    emit(state.copyWith(loginState: ViewDataState.loading()));
 
-    final result = await _getInbox(const NoParams());
+    final result = await getSSOTokenUseCase.call(
+      GetSSOTokenUseCaseParams(ssoCode: event.ssoCode),
+    );
 
     result.fold(
       (failure) => emit(state.copyWith(
-        inboxState: ViewDataState.error(message: failure.message, failure: failure),
+        loginState: ViewDataState.error(message: failure.message, failure: failure),
       )),
-      (conversations) => emit(state.copyWith(
-        inboxState: conversations.isEmpty
-            ? ViewDataState.empty()
-            : ViewDataState.loaded(data: conversations),
-      )),
+      (success) {
+        prefHelper
+          ..setAccessToken(success.accessToken)
+          ..setRefreshToken(success.refreshToken);
+        emit(state.copyWith(loginState: ViewDataState.loaded(data: success)));
+      },
     );
+  }
+
+  void _onResetLogin(ResetLogin event, Emitter<LoginState> emit) {
+    emit(LoginState(loginState: ViewDataState.noData()));
   }
 }
 ```
 
 **BLoC rules:**
-- `@injectable` — fresh instance per screen
-- Each handler emits loading first, then result
-- Always `result.fold()` — never `result.getOrElse()` alone
+- Named constructor parameters with `required` — no positional args
+- No `@injectable` in the app module — use `registerFactory` in `MainDependency`
+- Each handler emits loading first, then result via `result.fold()`
 - Use `Emitter<State>` — never call `emit()` after `await` on a closed BLoC
 
 ---
 
-## Screen Structure <!-- 54 -->
+## Screen Structure <!-- 38 -->
+
+Screens do NOT own `BlocProvider` — that lives in `route_manager.dart`. The screen just reads state and dispatches events.
 
 ```dart
-// [prefix]_inbox/lib/src/presentation/screens/inbox_screen.dart
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_it/get_it.dart';
-import '../blocs/inbox_bloc.dart';
-import '../blocs/inbox_event.dart';
-import '../blocs/inbox_state.dart';
-
-class InboxScreen extends StatelessWidget {
-  const InboxScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => GetIt.instance<InboxBloc>()
-        ..add(const InboxEvent.loadInbox()),
-      child: const _InboxView(),
-    );
-  }
-}
-
-class _InboxView extends StatelessWidget {
-  const _InboxView();
+// lib/presentation/screens/login/login_screen.dart
+class LoginScreen extends StatelessWidget {
+  const LoginScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Inbox')),
-      body: BlocBuilder<InboxBloc, InboxState>(
-        buildWhen: (prev, curr) => prev.inboxState != curr.inboxState,
+      body: BlocConsumer<LoginBloc, LoginState>(
+        listenWhen: (prev, curr) => prev.loginState != curr.loginState,
+        listener: (context, state) {
+          if (state.loginState.status.isHasData) {
+            Navigator.of(context).pushReplacementNamed(QontakAppRoute.main);
+          } else if (state.loginState.status.isError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.loginState.message ?? 'Login failed')),
+            );
+          }
+        },
+        buildWhen: (prev, curr) => prev.loginState != curr.loginState,
         builder: (context, state) {
-          final s = state.inboxState;
-          if (s.isLoading || s.isInitial) {
+          if (state.loginState.status.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (s.hasError) {
-            return Center(child: Text(s.message ?? 'Error'));
-          }
-          if (s.isEmpty) {
-            return const Center(child: Text('No conversations'));
-          }
-          return ConversationList(conversations: s.data!);
+          return LoginForm(
+            onLogin: (ssoCode) =>
+                context.read<LoginBloc>().add(LoginEvent.login(ssoCode: ssoCode)),
+          );
         },
       ),
     );
@@ -287,23 +296,39 @@ class _InboxView extends StatelessWidget {
 }
 ```
 
+The `BlocProvider` is in `route_manager.dart`:
+```dart
+case QontakAppRoute.login:
+  return BlocProvider(
+    create: (_) => LoginBloc(
+      getSSOTokenUseCase: mainDependency(),
+      prefHelper: coreDependency(),
+    ),
+    child: const LoginScreen(),
+  );
+```
+
 ---
 
 ## BlocListener (Side Effects) <!-- 24 -->
 
 ```dart
-BlocListener<InboxBloc, InboxState>(
-  listenWhen: (prev, curr) => prev.markReadState != curr.markReadState,
+BlocListener<ResolveRoomBloc, ResolveRoomState>(
+  listenWhen: (prev, curr) => prev.resolveState != curr.resolveState,
   listener: (context, state) {
-    if (state.markReadState.hasError) {
+    if (state.resolveState.status.isHasData) {
+      Navigator.of(context).pop();
+    } else if (state.resolveState.status.isError) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(state.markReadState.message ?? 'Failed')),
+        SnackBar(content: Text(state.resolveState.message ?? 'Failed')),
       );
     }
   },
   child: ...,
 )
 ```
+
+**Key:** Use `.status.isHasData` and `.status.isError` (not `.isLoaded` / `.hasError`) — those are extension methods on the `ViewDataStatus` enum from `qontak_common`.
 
 | Use | When |
 |---|---|

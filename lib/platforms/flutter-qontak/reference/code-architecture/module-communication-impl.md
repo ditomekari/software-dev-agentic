@@ -1,9 +1,42 @@
-# Flutter Modular — Module-to-Module Communication
+# Flutter Qontak — Module-to-Module Communication
 
-> Feature modules must NOT directly depend on each other.
-> Use the Module API pattern via `[prefix]_core`.
+> Feature packages must NOT directly depend on each other.
+> The app module uses two patterns: **Module API** (for data sharing) and **Typedef Callback Injection** (for UI/behavior sharing at the DI layer).
 
 ---
+
+## Typedef Callback Injection (Primary Pattern) <!-- 38 -->
+
+In `mobile-qontak-chat`, cross-package UI behavior is shared by passing typed functions (typedefs) during DI registration in `ChatDi`. This is the main pattern for the app module.
+
+The feature package declares a typedef for what it needs, and the app provides the concrete implementation:
+
+```dart
+// In chat_composer package — declares what it needs:
+typedef GetVideoViewerFn = Widget Function({required String videoPath});
+typedef GetDocumentViewerFn = Widget Function({required String filePath});
+
+// In chat_di.dart — the app provides the implementations:
+ComposerDependency.registerComposer(
+  getVideoViewer: _getVideoViewer,          // app wires these
+  getDocumentViewerWidget: _getDocumentViewerWidget,
+  getPreviewBubbleWidget: _getPreviewBubbleWidget,
+  // ...
+);
+
+// The app implements the typedefs using its own packages:
+static Widget _getVideoViewer({required String videoPath}) =>
+    VideoViewer(videoPath: videoPath);  // uses chat_conversation widget
+
+static Widget _getDocumentViewerWidget({required String filePath}) =>
+    DocumentViewer(filePath: filePath);
+```
+
+This allows `chat_composer` to display a video viewer without importing `chat_conversation` directly.
+
+---
+
+## Module API Pattern (for Data Sharing) <!-- 77 -->
 
 ## Module API Pattern <!-- 77 -->
 

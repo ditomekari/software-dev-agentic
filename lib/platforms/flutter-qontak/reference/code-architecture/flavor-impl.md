@@ -1,75 +1,132 @@
-# Flutter Modular — Project Flavors
+# Flutter Qontak — Project Flavors
 
 ---
 
-## Flavor Definitions <!-- 20 -->
+## Flavor Definitions <!-- 14 -->
 
-Three standard flavors:
+Three standard flavors controlled by a `--dart-define` value:
 
-| Flavor | Android applicationId suffix | iOS bundleId suffix |
+| Flavor | `EnvType` | `DartDefine.env` value |
 |---|---|---|
-| `production` | _(none — base ID)_ | _(none — base ID)_ |
-| `staging` | `.dev` | `.dev` |
-| `sandbox` | `.sbx` | `.sbx` (optional) |
-
-Example for base ID `com.mekari.qontak`:
-
-| Flavor | Android | iOS |
-|---|---|---|
-| production | `com.mekari.qontak` | `com.mekari.qontak` |
-| staging | `com.mekari.qontak.dev` | `com.mekari.qontak.dev` |
-| sandbox | `com.mekari.qontak.sbx` | `com.mekari.qontak.sbx` |
+| Production | `EnvType.production` | `'PROD'` |
+| Staging | `EnvType.staging` | `'STAGING'` (default) |
+| Sandbox | `EnvType.sandbox` | `'SANDBOX'` |
 
 ---
 
-## Dart Define — Env Variables <!-- 31 -->
+## Dart Define — Env Selection <!-- 22 -->
 
-Use `Envied` to load environment-specific config from `.env` files safely:
+No `.env` files or `envied` — env selection uses `String.fromEnvironment` at compile time:
 
 ```dart
-// lib/configs/env/app_env.dart
-import 'package:envied/envied.dart';
+// lib/config/constants/dart_define.dart
+abstract class DartDefine {
+  static const env = 'ENV';
+  static const envProd = 'PROD';
+  static const envStg = 'STAGING';
+  static const envSbx = 'SANDBOX';
+}
 
-part 'app_env.g.dart';
+// lib/config/environment/env_type.dart
+enum EnvType {
+  production('prod'),
+  staging('staging'),
+  sandbox('sandbox');
 
-@Envied(path: '.env')
-abstract class AppEnv {
-  @EnviedField(varName: 'API_BASE_URL', obfuscate: true)
-  static final String apiBaseUrl = _AppEnv.apiBaseUrl;
+  const EnvType(this.value);
+  final String value;
+}
 
-  @EnviedField(varName: 'FLAVOR')
-  static final String flavor = _AppEnv.flavor;
+EnvType determineEnvType(String input) {
+  final lowerCaseInput = input.toLowerCase();
+  for (final env in EnvType.values) {
+    if (env.value.toLowerCase() == lowerCaseInput) return env;
+  }
+  return EnvType.staging; // default
+}
+
+// lib/engine.dart — reads at startup
+EnvType getEnvType() {
+  const readEnv = String.fromEnvironment(
+    DartDefine.env,
+    defaultValue: DartDefine.envStg,
+  );
+  return determineEnvType(readEnv);
 }
 ```
 
-`.env` files per flavor:
-```
-.env.production
-.env.staging
-.env.sandbox
-```
+---
 
-Add all `.env` files to `.gitignore`. Provide `.env.example` for each.
+## EnvData — Per-Flavor Config <!-- 22 -->
+
+Environment-specific URLs and API keys are in concrete `EnvData` subclasses. The `Env` class selects the correct data at runtime.
+
+```dart
+// lib/config/environment/data/env_data.dart
+abstract class EnvData {
+  late String apiBaseUrl;
+  late String ssoClientId;
+  late String flagSmithApi;
+  late String moengageWorkspaceId;
+  late String mkrLogAuth;
+  late String mkrLogBaseUrl;
+  late String mkrLogEncryptionKey;
+  late String chatBotBaseUrl;
+  late String mixpanelToken;
+  late String googleMapsApi;
+  late String mqttBaseUrl;
+  late String callApiBaseUrl;
+  late String voiceApiBaseUrl;
+  late String ssoUrl;
+  late String customerBaseUrl;
+  late String launchpadBaseUrl;
+}
+
+// lib/config/environment/env.dart
+class Env {
+  Env({EnvType? envType}) {
+    if (envType != null) setAdaptive(envType: envType);
+  }
+
+  late EnvType type;
+  late EnvData data;
+
+  Future<void> setAdaptive({required EnvType envType}) async {
+    switch (envType) {
+      case EnvType.production: return setProduction();
+      default: return setStaging();
+    }
+  }
+
+  void setProduction() { type = EnvType.production; data = EnvProductionData(); }
+  void setStaging()    { type = EnvType.staging;    data = EnvStagingData(); }
+
+  bool get isProduction => type == EnvType.production;
+  static bool get isDevMode => kDebugMode;
+}
+```
 
 ---
 
-## Running Per Flavor <!-- 16 -->
+## Running Per Flavor <!-- 14 -->
 
 ```bash
-# Staging
-flutter run --dart-define-from-file=.env.staging
+# Staging (default)
+flutter run
+
+# Staging explicit
+flutter run --dart-define=ENV=STAGING
 
 # Production
-flutter run --dart-define-from-file=.env.production
+flutter run --dart-define=ENV=PROD
 
-# Via melos script
-melos run run:staging
-melos run run:production
+# Sandbox
+flutter run --dart-define=ENV=SANDBOX
 ```
 
 ---
 
-## Firebase Per Flavor <!-- 19 -->
+## Firebase Per Flavor <!-- 16 -->
 
 Each flavor maps to a separate Firebase project:
 
@@ -82,9 +139,14 @@ android/app/
     └── staging/google-services.json
 
 ios/
-├── GoogleService-Info-Production.plist
-└── GoogleService-Info-Staging.plist
+├── config/
+│   ├── firebase_options_prod.dart    ← lib/config/firebase/firebase_options_prod.dart
+│   └── firebase_options_staging.dart
 ```
 
-Use a `Makefile` or melos script to copy the correct file before building.
-Never commit `google-services.json` or `GoogleService-Info.plist` with real keys.
+Firebase is initialized in `engine.dart` unconditionally:
+```dart
+if (Firebase.apps.isEmpty) await Firebase.initializeApp();
+```
+
+Use a CI pipeline or `Makefile` to inject the correct `google-services.json` and `GoogleService-Info.plist` per build target. Never commit real keys.

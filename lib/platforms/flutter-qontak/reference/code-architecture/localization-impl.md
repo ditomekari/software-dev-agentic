@@ -60,33 +60,35 @@ Generated output lands in `lib/src/gen/l10n/` — add to `.gitignore` or commit
 
 ---
 
-## Exposing LocalizationsDelegate <!-- 30 -->
+## Registering Delegates in the App <!-- 30 -->
+
+There is no `ModuleRegistrar` — delegates are listed **explicitly** in `app.dart`. Add new package delegates here when onboarding a new feature package:
 
 ```dart
-// features/[prefix]_auth/lib/src/configs/auth_module.dart
-import '../gen/l10n/auth_localizations.dart';
-
-class AuthModule implements BaseModule {
-  @override
-  LocalizationsDelegate<dynamic>? localizationsDelegate() =>
-      AuthLocalizations.delegate;
-  // ...
-}
-```
-
-`ModuleRegistrar` collects all delegates and passes them to `MaterialApp`:
-
-```dart
-MaterialApp.router(
-  localizationsDelegates: [
-    ...ModuleRegistrar.localizationDelegates,
+// lib/app.dart
+MaterialApp(
+  localizationsDelegates: const [
     GlobalMaterialLocalizations.delegate,
     GlobalWidgetsLocalizations.delegate,
     GlobalCupertinoLocalizations.delegate,
+    QontakChatLocalizations.delegate,          // app-level (lib/config/localizations/)
+    ChatConversationLocalizations.delegate,    // chat_conversation package
+    ChatContactLocalizations.delegate,         // chat_contact package
+    ChatCoreLocalizations.delegate,            // chat_core package
+    ChatInboxLocalizations.delegate,           // chat_inbox package
+    ChatMessagingLocalizations.delegate,       // chat_messaging package
+    ChatCallLocalizations.delegate,            // chat_call package
+    ChatComposerLocalizations.delegate,        // chat_composer package
+    QontakComponentLibLocalizations.delegate,
+    QontakCustomFormLocalizations.delegate,
+    CRMContactLocalizations.delegate,
   ],
-  supportedLocales: const [Locale('en'), Locale('id')],
+  supportedLocales: [Localization.enLocale],
+  locale: Localization.enLocale,
 )
 ```
+
+The app currently supports English only (`Localization.enLocale`). Indonesian (`Localization.idLocale`) is commented out pending translation completion.
 
 ---
 

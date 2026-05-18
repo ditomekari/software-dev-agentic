@@ -1,173 +1,177 @@
-# Flutter Modular — Dependency Injection
+# Flutter Qontak — Dependency Injection
 
 > Single-package DI patterns: `../../flutter/reference/code-architecture/di-impl.md`.
-> This file covers per-module DI with Injectable MicroPackages.
+> This file covers app-level DI orchestration and per-module manual `GetIt` registration.
+
+No code generation (`@InjectableInit`, `injectable_generator`) is used in the app module. All DI is manual static methods with `GetIt`.
 
 ---
 
-## Per-Module DI Setup <!-- 56 -->
+## DI Architecture <!-- 18 -->
 
-Each module has its own `@module` class and initializes its own Injectable
-container. The application module aggregates all modules at startup.
+The app module is the DI root. External feature packages each expose a static `register*()` method. The app calls them in dependency order via `ChatDi.initDependency()`.
 
-### Feature Module DI
-
-```dart
-// features/[prefix]_auth/lib/src/configs/auth_di.dart
-import 'package:get_it/get_it.dart';
-import 'package:injectable/injectable.dart';
-
-import 'auth_di.config.dart';  // ← generated
-
-final _authGetIt = GetIt.asNewInstance();
-
-@InjectableInit(
-  initializerName: 'initAuthDependencies',
-  preferRelativeImports: true,
-  asExtension: false,
-)
-Future<void> initAuthDependencies() => _authGetIt.init(initAuthDependencies);
+```
+engine.dart
+  └── ChatDi.initDependency()
+        ├── CoreDependency.registerCore()          ← chat_core (networking, logger, prefs)
+        ├── ContactDependency.registerContact()    ← chat_contact
+        ├── ComposerDependency.registerComposer()  ← chat_composer
+        ├── MessagingDependency.registerMessaging() ← chat_messaging
+        ├── InboxDependency.registerInbox()        ← chat_inbox
+        ├── ConversationDependency.registerConversation() ← chat_conversation
+        ├── CallDependency.registerCall()          ← chat_call
+        ├── MainDependency.registerMain()          ← app-level (depends on all above)
+        └── ChatNotificationDependency.registerChatNotification()
 ```
 
-Annotate all classes in the feature with `@injectable`, `@lazySingleton`, etc.
-They are discovered automatically by `build_runner`.
+---
 
-### Application Module — Aggregate Registration
+## Module DI Accessors <!-- 14 -->
+
+Each feature package exposes a typed accessor function (from `chat_core`/`chat_dependency`). These are the preferred way to resolve dependencies from feature packages:
 
 ```dart
-// lib/configs/di/injection.dart
-import 'package:get_it/get_it.dart';
-import 'package:injectable/injectable.dart';
+// Resolving dependencies from feature packages
+coreDependency<NavigationHelper>()       // chat_core
+inboxDependency<GetRoomByIdUseCase>()    // chat_inbox
+messagingDependency<GetMessageByIdUseCase>() // chat_messaging
+contactDependency<ContactRemoteDataSource>() // chat_contact
+composerDependency<UploadFollowUpMediaUseCase>() // chat_composer
+callDependency<BaseNativeChannel>()      // chat_call
+mainDependency<GetFirstRunUseCase>()     // app-level (GetIt.instance)
+```
 
-import 'package:[prefix]_auth/src/configs/auth_di.dart';
-import 'package:[prefix]_inbox/src/configs/inbox_di.dart';
+---
 
-import 'injection.config.dart';
+## App-Level Registration (`MainDependency`) <!-- 30 -->
 
-final getIt = GetIt.instance;
+App-level dependencies follow a `_registerData → _registerDomain → _registerPresentation` pattern:
 
-@InjectableInit()
-Future<void> configureDependencies() async {
-  // Register module-level dependencies first
-  await initAuthDependencies();
-  await initInboxDependencies();
+```dart
+// lib/config/di/main_dependency.dart
+final mainDependency = GetIt.instance;
 
-  // Then register app-level dependencies
-  await getIt.init();
+class MainDependency {
+  static void registerMain() {
+    _registerData();
+    _registerDomain();
+    _registerPresentation();
+  }
+
+  static void _registerData() {
+    mainDependency.registerLazySingleton<ProductTourLocalDataSource>(
+      () => ProductTourLocalDataSourceImpl(preferences: coreDependency()),
+    );
+  }
+
+  static void _registerDomain() {
+    mainDependency
+      ..registerLazySingleton(() => GetFirstRunUseCase(repository: mainDependency()))
+      ..registerLazySingleton(() => SetFirstRunUseCase(repository: mainDependency()))
+      ..registerLazySingleton<ProductTourRepository>(
+        () => ProductTourRepositoryImpl(localDataSource: mainDependency()),
+      );
+  }
+
+  static void _registerPresentation() {
+    mainDependency
+      ..registerFactory(() => BottomNavigationBloc(
+            getUnreadRoomCount: mainDependency(),
+            subscribeMessageUseCase: mainDependency(),
+            subscribeMarkMessagesAsReadUseCase: mainDependency(),
+          ))
+      ..registerFactory(() => NotificationTrayBloc(
+            getInitialMessageUseCase: mainDependency(),
+            qontakMonitor: mainDependency(),
+          ));
+  }
 }
 ```
-
-Call `configureDependencies()` in `main.dart` before `runApp`.
-
----
-
-## Module API Registration <!-- 16 -->
-
-Module API implementations must be registered in their owning module's DI:
-
-```dart
-// features/[prefix]_employee/lib/src/module_api/employee_module_api_impl.dart
-@LazySingleton(as: EmployeeModuleApi)
-class EmployeeModuleApiImpl implements EmployeeModuleApi { ... }
-```
-
-`@LazySingleton(as: EmployeeModuleApi)` registers the concrete class under
-the abstract type. Consumer features resolve `EmployeeModuleApi` from the
-same `GetIt` instance without knowing the implementation.
-
----
-
-## Registration Order <!-- 25 -->
-
-Within each feature module, register by layer from infrastructure up to presentation. The actual convention in the codebase uses `_registerData → _registerRepository → _registerDomain → _registerPresentation`:
-
-```dart
-// _registerData — DataSources and external clients
-@LazySingleton(as: InboxRemoteDataSource)
-class InboxRemoteDataSourceImpl implements InboxRemoteDataSource { ... }
-
-// _registerRepository — Repositories (depend on DataSource)
-@LazySingleton(as: InboxRepository)
-class InboxRepositoryImpl implements InboxRepository { ... }
-
-// _registerDomain — Use Cases (depend on Repository) + Module API impls
-@lazySingleton class GetInbox { ... }
-@LazySingleton(as: InboxModuleApi) class InboxModuleApiImpl implements InboxModuleApi { ... }
-
-// _registerPresentation — BLoCs (depend on Use Cases) — @injectable, not singleton
-@injectable class InboxBloc extends Bloc<InboxEvent, InboxState> { ... }
-```
-
-Module init order across packages: `[prefix]_core` → feature modules → application module (see Registration Order Rules below).
 
 ---
 
 ## Scope Rules <!-- 13 -->
 
-| Annotation | Scope | Use for |
+| GetIt method | Scope | Use for |
 |---|---|---|
-| `@lazySingleton` | Singleton, created on first access | DataSources, Repositories, Use Cases, Module APIs |
-| `@singleton` | Singleton, created at startup | Core services requiring eager init |
-| `@injectable` | New instance per injection | BLoCs, Cubits — stateful, one per screen |
-| `@LazySingleton(as: IFace)` | Singleton under abstract type | Module API and Repository implementations |
+| `registerLazySingleton` | Singleton, created on first access | DataSources, Repositories, Use Cases, Services |
+| `registerSingleton` | Singleton, created eagerly at registration | Services requiring immediate init |
+| `registerFactory` | New instance per call | BLoCs, Cubits — stateful, one per screen |
+| `registerLazySingleton<IFace>(() => Impl())` | Singleton under abstract type | Repository and DataSource implementations |
 
-**Never register a BLoC as `@lazySingleton`** — BLoC holds mutable state; every `BlocProvider` must get a fresh instance.
+**Never use `registerLazySingleton` for BLoCs** — BLoC holds mutable state; `BlocProvider` must get a fresh instance via `registerFactory`.
 
 ---
 
 ## Registration Order Rules <!-- 9 -->
 
-1. `[prefix]_dependencies` — no DI (just re-exports)
-2. `[prefix]_core` — registers network client, logger, base utilities
-3. Feature modules — register their own layers + Module API impls
-4. Application module — registers app-level config; calls all above
+1. `CoreDependency.registerCore()` — networking, logger, prefs, base services
+2. Feature package `register*()` calls — each in its own step
+3. `MainDependency.registerMain()` — app-level; depends on feature packages being registered
+4. `ChatNotificationDependency` — last, depends on messaging + core
 
 ---
 
-## Scoping Rules <!-- 14 -->
+## Resolving in BlocProvider (Route-Scoped) <!-- 16 -->
 
-| Annotation | When to use |
-|---|---|
-| `@lazySingleton` | Stateless services, repositories, data sources |
-| `@singleton` | Stateful services that must init eagerly |
-| `@injectable` | BLoCs, Cubits (new instance per injection) |
-| `@LazySingleton(as: IFace)` | Module API implementations registered under their interface |
+BLoCs resolved at route time use the appropriate accessor function directly in `route_manager.dart`:
 
-**Rule:** BLoCs are `@injectable` (not singleton). Every `BlocProvider` gets a
-fresh instance so state doesn't leak across screen navigations.
+```dart
+// lib/route_manager.dart
+case QontakAppRoute.login:
+  return BlocProvider(
+    create: (_) => LoginBloc(
+      getSSOTokenUseCase: mainDependency(),    // ← resolved from GetIt.instance
+      prefHelper: coreDependency(),            // ← resolved from chat_core
+    ),
+    child: const LoginScreen(),
+  );
+
+// Multi-provider route
+case QontakAppRoute.contactDetail:
+  return MultiBlocProvider(
+    providers: [
+      BlocProvider(
+        create: (_) => DetailContactBloc(
+          getContactByIdUseCase: contactDependency(),
+          qontakMonitor: coreDependency(),
+          offlineMode: coreDependency(),
+          // ...
+        ),
+      ),
+      BlocProvider(create: (_) => messagingDependency<GetRoomBloc>()),
+    ],
+    child: ContactDetailScreen(arguments: arguments! as ContactDetailArguments, ...),
+  );
+```
 
 ---
 
-## Code Generation <!-- 12 -->
+## Global Provider Wiring <!-- 10 -->
 
-```bash
-# From workspace root (melos)
-melos run build_runner
+App-wide BLoCs (not scoped to a single route) are wired in `provider.dart` (`AppProvider`) — see `app-layer-impl.md`. They are resolved in the same way, using typed accessor functions.
 
-# Or per-package
-cd features/[prefix]_auth && dart run build_runner build --delete-conflicting-outputs
-```
+---
 
-Each module produces its own `*.config.dart` — never edit generated files.
+## Testing with DI <!-- 14 -->
 
-## Testing with DI <!-- 21 -->
-
-Prefer constructor injection in all unit and BLoC tests — pass mock instances directly, no `getIt` manipulation needed:
+Prefer constructor injection — pass mock instances directly, no `getIt` manipulation:
 
 ```dart
 setUp(() {
-  mockGetInbox = MockGetInbox();
-  bloc = InboxBloc(mockGetInbox);  // constructor injection — no getIt
+  mockGetFirstRunUseCase = MockGetFirstRunUseCase();
+  bloc = ProductTourBloc(
+    mockGetFirstRunUseCase,
+    mockSetFirstRunUseCase,
+    mockGetQuestStatusUseCase,
+    mockSetQuestStatusUseCase,
+  );
 });
 ```
 
-When an integration test requires the container, reset and re-register per test:
+When a test must interact with the global `GetIt.instance`, reset it in `tearDown`:
 
 ```dart
-setUp(() {
-  _authGetIt.reset();
-  _authGetIt.registerLazySingleton<InboxRepository>(() => MockInboxRepository());
-});
+tearDown(() => GetIt.instance.reset());
 ```
-
-Each test gets its own container state. Never share module `GetIt` instances across test classes — call the module's `init*` function in `setUp` if needed.

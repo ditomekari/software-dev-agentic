@@ -1,147 +1,144 @@
-# Flutter Modular — Project Structure & Conventions
+# Flutter Qontak — Project Structure & Conventions
 
 ---
 
-## Workspace Layout <!-- 40 -->
+## App Layout <!-- 42 -->
 
-Managed by `melos`. The codebase is split into three module types:
+The application module (`qontak_chat_app`) is a standard Flutter app package. Feature code lives in **external pub packages** (not local path packages or a melos workspace). The app-level `lib/` contains only app-wiring, entry screens, and DI orchestration.
 
 ```
-/ (workspace root = Application module)
+/ (application module root)
 ├── lib/
-│   ├── main.dart
-│   ├── gen/                     ← generated assets (l10n, routing, images)
-│   ├── configs/
-│   │   ├── constants/
-│   │   ├── env/
-│   │   ├── di/                  ← global DI root (registers all modules)
-│   │   └── routing/
-│   ├── data/                    ← app-level data (splash, onboarding only)
-│   ├── domain/                  ← app-level domain (rarely used)
+│   ├── main.dart                    ← delegates to engine.dart
+│   ├── engine.dart                  ← runZonedGuarded, Firebase init, DI init, runApp
+│   ├── app.dart                     ← MaterialApp widget + NotificationBloc listener
+│   ├── route_manager.dart           ← AppRouteManager (centralized MaterialPageRoute switch)
+│   ├── provider.dart                ← AppProvider (global MultiBlocProvider)
+│   ├── config/
+│   │   ├── di/                      ← DI orchestration
+│   │   │   ├── chat_di.dart         ← ChatDi (orchestrates all module DI)
+│   │   │   └── main_dependency.dart ← MainDependency (app-level registrations)
+│   │   ├── constants/               ← DartDefine, enums, semantic IDs, route names
+│   │   ├── environment/             ← Env, EnvType, EnvData (flavor config)
+│   │   ├── firebase/                ← Firebase options per flavor
+│   │   ├── localizations/           ← QontakChatLocalizations delegate
+│   │   └── modules/                 ← Modules helper (stacked child bars)
+│   ├── data/
+│   │   ├── data_sources/            ← app-level data sources (e.g. ProductTourLocalDataSource)
+│   │   ├── mapper/                  ← app-level mappers (e.g. RoomMapper, notification mappers)
+│   │   └── repositories/            ← app-level repository implementations
+│   ├── domain/
+│   │   ├── models/                  ← app-level domain models
+│   │   ├── repositories/            ← app-level repository interfaces
+│   │   └── usecases/                ← app-level use cases
 │   └── presentation/
-│       ├── screens/             ← splash, onboarding, main entry screens
-│       └── widgets/
-├── features/                    ← Feature modules (Flutter packages)
-│   ├── [prefix]_auth/
-│   ├── [prefix]_home/
-│   └── ...
-├── shared/                      ← Shared modules (Flutter packages)
-│   ├── [prefix]_core/           ← cross-cutting: networking, utils, base classes
-│   └── [prefix]_dependencies/   ← single source of truth for all pub dependencies
+│       ├── bloc/                    ← app-level BLoCs (login, product_tour, bottom_nav, etc.)
+│       ├── screens/                 ← entry screens (splash, login, onboarding, main_page, rooms)
+│       └── widgets/                 ← shared widgets (bottom nav, minimized calling, etc.)
 ├── android/
 ├── ios/
-├── melos.yaml
 └── pubspec.yaml
 ```
 
 **Rules:**
-- Application module owns only entry-point screens (splash, onboarding, main nav shell).
-  All feature code lives in feature packages.
-- `features/` and `shared/` directories contain only Flutter packages (own `pubspec.yaml`).
-- `[prefix]` = project name prefix (e.g., `chat_`, `talenta_`). Apply to every package name.
+- `engine.dart` owns initialization order: Firebase → DB → DI → Bricks → runApp.
+- `route_manager.dart` is the single routing authority — all `BlocProvider` wiring for route-scoped BLoCs lives here.
+- `provider.dart` (`AppProvider`) wraps the app with a `MultiBlocProvider` for all global/app-wide BLoCs.
+- App-level `lib/data`, `lib/domain`, and `lib/presentation` contain only app-shell concerns (splash, product tour, bottom nav). Feature code lives in the external packages.
 
 ---
 
 ## Module Types <!-- 11 -->
 
-| Type | What it contains | Depends on |
+| Type | What it contains | Consumed as |
 |---|---|---|
-| **Application module** | `main.dart`, configs, DI root, routing, entry-point screens | All feature modules + core |
-| **Feature module** | Complete feature (data + domain + presentation) | `[prefix]_core`, `[prefix]_dependencies` |
-| **Core module** (`[prefix]_core`) | Networking, logging, base classes, Module API abstractions | `[prefix]_dependencies` |
-| **Dependencies module** (`[prefix]_dependencies`) | All shared pub dependencies re-exported | Nothing (leaf node) |
+| **Application module** | `main.dart`, engine, DI orchestration, routing, entry screens | The Flutter app itself |
+| **Feature packages** | Complete feature (data + domain + presentation) | External pub dependency (e.g. `chat_inbox`, `chat_messaging`) |
+| **Core package** (`chat_core`) | Networking, base classes, shared BLoCs, interceptors | External pub dependency |
+| **Qontak Common** (`qontak_common`) | Cross-app utilities, UseCase base, ViewDataState, Failure | External pub dependency |
 
 ---
 
-## Dependency Graph <!-- 16 -->
+## Dependency Graph <!-- 12 -->
 
 ```
-Application module
-  └─ feature_auth
-  └─ feature_home
-  └─ ...
-       └─ [prefix]_core
-              └─ [prefix]_dependencies
+qontak_chat_app (application)
+  └─ chat_core
+  └─ chat_inbox
+  └─ chat_messaging
+  └─ chat_conversation
+  └─ chat_contact
+  └─ chat_call
+  └─ chat_composer
+  └─ qontak_common (via chat_core re-export)
 ```
 
-**Rule:** Feature modules must NOT depend on other feature modules. Cross-feature
-communication goes through `[prefix]_core` Module API abstractions.
+**Rule:** The application module depends on feature packages. Feature packages must NOT depend on each other — cross-package data sharing uses typedef callbacks injected at the DI layer (see `ChatDi`).
 
 ---
 
-## Feature Module Folder Structure <!-- 39 -->
+## App-Level Folder Structure <!-- 20 -->
 
-Each feature module mirrors the single-package clean architecture layout but inside a Flutter package:
-
-```
-features/[prefix]_auth/
-├── lib/
-│   ├── [prefix]_auth.dart          ← package entry point (barrel/public API)
-│   ├── src/
-│   │   ├── configs/
-│   │   │   ├── auth_module.dart    ← BaseModule implementation
-│   │   │   └── auth_di.dart        ← @module DI class
-│   │   ├── data/
-│   │   │   ├── datasources/
-│   │   │   ├── mappers/
-│   │   │   ├── models/
-│   │   │   └── repositories/
-│   │   ├── domain/
-│   │   │   ├── entities/
-│   │   │   ├── repositories/
-│   │   │   └── usecases/
-│   │   └── presentation/
-│   │       ├── blocs/
-│   │       ├── screens/
-│   │       └── widgets/
-├── assets/
-│   └── l10n/
-│       └── auth_en.arb             ← feature-scoped translations
-├── test/
-└── pubspec.yaml
-```
-
-**Rules:**
-- `lib/[prefix]_auth.dart` is the only public API surface. Export selectively.
-- `src/` contains all private implementation — never import `src/` from outside.
-- Assets and translations are scoped to the feature package.
-
----
-
-## Shared Module — Core Folder Structure <!-- 18 -->
+The app module uses Clean Architecture in its own `lib/` for app-shell features only (product tour, bottom navigation, notification handling):
 
 ```
-shared/[prefix]_core/
-├── lib/
-│   ├── [prefix]_core.dart          ← public API barrel
-│   └── src/
-│       ├── network/                ← HTTP client, interceptors
-│       ├── logging/
-│       ├── utils/
-│       ├── base/                   ← base classes (UseCase, BaseModule, etc.)
-│       └── module_api/             ← Module API abstractions (one per feature)
-│           └── auth_module_api.dart
-└── pubspec.yaml
+lib/data/
+├── data_sources/
+│   └── local/
+│       └── product_tour_local_data_source.dart   ← abstract + impl in one file
+├── mapper/
+│   ├── room_notification_mapper.dart
+│   ├── email_notification_mapper.dart
+│   └── message_notification_mapper.dart
+└── repositories/
+    └── product_tour_repositories.dart
+
+lib/domain/
+├── models/                                       ← freezed domain models
+├── repositories/
+│   └── product_tour_repository.dart              ← abstract interface
+└── usecases/
+    ├── get_first_run_usecase.dart
+    └── set_first_run_usecase.dart
+
+lib/presentation/
+├── bloc/
+│   ├── login/
+│   ├── product_tour/
+│   ├── bottom_navigation/
+│   ├── notification_tray/
+│   ├── nav_bar/
+│   └── app_initialization/
+├── screens/
+│   ├── splash_screen/
+│   ├── login/
+│   ├── onboarding/
+│   ├── room/
+│   ├── main_page.dart
+│   ├── contact_screen.dart
+│   ├── file_share_handler_screen.dart
+│   └── file_share_preview_screen.dart
+└── widgets/
+    ├── chat_bottom_navigation.dart
+    ├── minimized_calling.dart
+    └── multiple_room_selection.dart
 ```
 
 ---
 
-## Package Naming Conventions <!-- 13 -->
+## Package Naming Conventions <!-- 10 -->
 
-| What | Pattern | Example (prefix = `chat`) |
+| What | Pattern | Example |
 |---|---|---|
-| Feature package | `[prefix]_[domain]` | `chat_auth`, `chat_inbox` |
+| Feature package | `[prefix]_[domain]` | `chat_inbox`, `chat_messaging` |
 | Core shared | `[prefix]_core` | `chat_core` |
-| Dependencies | `[prefix]_dependencies` | `chat_dependencies` |
-| Module API abstract class | `[Domain]ModuleApi` | `AuthModuleApi` |
-| Module API impl class | `[Domain]ModuleApiImpl` | `AuthModuleApiImpl` |
-| BaseModule impl | `[Domain]Module` | `AuthModule` |
+| Module dependency accessor | `[prefix]Dependency()` | `coreDependency()`, `inboxDependency()` |
+| App-level DI class | `[Domain]Dependency` | `MainDependency`, `ChatDi` |
+| Route constant class | `[Prefix]AppRoute` | `QontakAppRoute` |
 
 ---
 
 ## Model Naming (Data Layer) <!-- 13 -->
-
-Extends the `flutter` platform conventions with explicit DTO suffixes:
 
 | Type | Suffix | Example |
 |---|---|---|
@@ -149,6 +146,7 @@ Extends the `flutter` platform conventions with explicit DTO suffixes:
 | API request body | `Request` | `LoginRequest` |
 | Database entity (DTO) | `Db` | `UserDb` |
 | Domain entity | _(none)_ | `User` |
+| Notification mapper | `Mapper` | `RoomNotificationMapper` |
 
 ---
 
@@ -157,11 +155,9 @@ Extends the `flutter` platform conventions with explicit DTO suffixes:
 Mapper is a non-instantiable class with static methods named `from{Source}To{Destination}`:
 
 ```dart
-class UserMapper {
-  const UserMapper._();
+class RoomMapper {
+  const RoomMapper._();
 
-  static User fromResponseToEntity(UserResponse response) => ...;
-  static UserDb fromEntityToDb(User entity) => ...;
-  static User fromDbToEntity(UserDb db) => ...;
+  static Room fromNotification({required RoomNotification notification}) => ...;
 }
 ```

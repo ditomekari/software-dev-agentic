@@ -7,6 +7,20 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.6.0] — 2026-05-18
+
+### Added
+- `lib/platforms/flutter-qontak/skills/contract/` — 17 contract skills scaffolded: `auditor-arch-check`, all `builder-domain-*`, `builder-data-*`, `builder-pres-*`, `builder-test-*`, `detective-debug-add-logs`, `detective-debug-remove-logs`, `installer-setup-project`
+- `app-layer-impl.md` — `AppInitializationBloc` orchestrator pattern (sibling BLoC stream subscriptions, internal `_` events, `close()` cleanup)
+- `app-layer-impl.md` — Firebase background message handling pattern (`@pragma('vm:entry-point')`, top-level handler, iOS-only registration, isolate `Firebase.initializeApp()`)
+- `ui-impl.md` — `BlocProvider.value` pattern for route-scoped BLoC reuse (long-lived BLoCs spanning multiple routes)
+
+### Changed
+- `lib/platforms/flutter-qontak/reference/` — 11 reference files synced against `mobile-qontak-chat`: `project.md`, `app-layer-impl.md`, `navigation-impl.md`, `di-impl.md`, `flavor-impl.md`, `presentation-impl.md`, `ui-impl.md`, `error-handling-impl.md`, `localization-impl.md`, `tech-stack-impl.md`, `module-communication-impl.md`
+- `lib/platforms/flutter-qontak/CLAUDE-template.md` — corrected architecture description, removed stale melos/go_router/injectable references, added `ViewDataState` API note
+
+---
+
 ## [7.5.0] — 2026-05-18
 
 ### Added

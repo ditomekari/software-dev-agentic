@@ -1,162 +1,146 @@
-# Flutter Qontak — Navigation (go_router + Modular)
+# Flutter Qontak — Navigation (Navigator 1.0 + Centralized RouteManager)
 
 > Canonical terms: `lib/core/reference/code-architecture/ui-theory.md` — `## Navigator / Coordinator` section.
 
-Navigation is modular: each feature module declares its own routes via `BaseModule.routes()`. The application module aggregates via `ModuleRegistrar`. Cross-module navigation uses the Module API pattern, never direct imports.
+Navigation uses Flutter's `Navigator` 1.0 API with `MaterialPageRoute`. All routes are registered in a single `AppRouteManger` class in `lib/route_manager.dart`. There is no `go_router`.
 
 ---
 
-## Route Constants (per module) <!-- 18 -->
+## Route Constants <!-- 12 -->
+
+All route name constants live in `QontakAppRoute` (in `lib/config/constants/`):
 
 ```dart
-// features/[prefix]_inbox/lib/src/configs/inbox_routes.dart
-abstract class InboxRoutes {
-  InboxRoutes._();
-
-  static const String inbox = '/inbox';
-  static const String conversation = '/inbox/:conversationId';
-
-  static String conversationPath(String id) => '/inbox/$id';
-}
+// Route names are string constants accessed via QontakAppRoute.[name]
+// Examples found in route_manager.dart:
+QontakAppRoute.splash       // → SplashScreen (default)
+QontakAppRoute.login        // → LoginScreen (with LoginBloc)
+QontakAppRoute.main         // → MainPage (with SignOutBloc + NavBarBloc)
+QontakAppRoute.chatRoom     // → ChatRoomPage
+QontakAppRoute.emailRoom    // → EmailRoomScreen
+QontakAppRoute.inbox        // → InboxScreen
+QontakAppRoute.contactDetail
+QontakAppRoute.walkthrough  // → OnBoardingScreen
+// ... all routes declared as static const String
 ```
 
-Export from the feature's barrel file so the app module can use named routes without importing internal paths.
-
 ---
 
-## BaseModule Routes Implementation <!-- 32 -->
+## AppRouteManger (Centralized Router) <!-- 38 -->
+
+A single `AppRouteManger` extends `RouteManager` (from `chat_core`) and handles ALL route resolution. `BlocProvider` wiring for route-scoped BLoCs lives here, not inside screen widgets.
 
 ```dart
-// features/[prefix]_inbox/lib/src/configs/inbox_module.dart
-import 'package:[prefix]_core/[prefix]_core.dart';
-import '../presentation/screens/inbox_screen.dart';
-import '../presentation/screens/conversation_screen.dart';
-import 'inbox_routes.dart';
-
-class InboxModule implements BaseModule {
+// lib/route_manager.dart
+class AppRouteManger extends RouteManager {
   @override
-  List<RouteBase> routes() => [
-        GoRoute(
-          path: InboxRoutes.inbox,
-          name: 'inbox',
-          builder: (context, state) => const InboxScreen(),
-          routes: [
-            GoRoute(
-              path: ':conversationId',
-              name: 'conversation',
-              builder: (context, state) => ConversationScreen(
-                conversationId: state.pathParameters['conversationId']!,
-              ),
-            ),
+  Widget getRoute(String? name, Object? arguments) {
+    switch (name) {
+      case QontakAppRoute.login:
+        return BlocProvider(
+          create: (_) => LoginBloc(
+            getSSOTokenUseCase: mainDependency(),
+            prefHelper: coreDependency(),
+          ),
+          child: const LoginScreen(),
+        );
+
+      case QontakAppRoute.main:
+        return MultiBlocProvider(
+          providers: [
+            BlocProvider(create: (_) => SignOutBloc(
+              qontakMonitor: coreDependency(),
+              userSignOut: coreDependency(),
+            )),
+            BlocProvider(create: (_) => NavBarBloc()),
           ],
-        ),
-      ];
-}
-```
+          child: const MainPage(),
+        );
 
----
+      case QontakAppRoute.chatRoom:
+        return ChatRoomPage(
+          arguments: arguments! as ChatRoomArguments,
+        );
 
-## Cross-Module Navigation API <!-- 49 -->
+      case QontakAppRoute.contactDetail:
+        final args = arguments! as ContactDetailArguments;
+        return MultiBlocProvider(
+          providers: [
+            BlocProvider(create: (_) => DetailContactBloc(
+              getContactByIdUseCase: contactDependency(),
+              getContactByIdLocalUseCase: contactDependency(),
+              editContactLocalUseCase: contactDependency(),
+              qontakMonitor: coreDependency(),
+              offlineMode: coreDependency(),
+            )),
+            BlocProvider(create: (_) => messagingDependency<GetRoomBloc>()),
+          ],
+          child: ContactDetailScreen(arguments: args, profileSection: ...),
+        );
 
-Feature modules must not import each other. For navigation to another feature, define an abstract navigation API in `[prefix]_core` and implement it in the owning feature.
-
-```dart
-// shared/[prefix]_core/lib/src/module_api/inbox_navigation_api.dart
-abstract class InboxNavigationApi {
-  void goToInbox(BuildContext context);
-  void goToConversation(BuildContext context, String conversationId);
-}
-```
-
-```dart
-// features/[prefix]_inbox/lib/src/module_api/inbox_navigation_api_impl.dart
-import 'package:go_router/go_router.dart';
-import 'package:injectable/injectable.dart';
-import 'package:[prefix]_core/[prefix]_core.dart';
-import '../configs/inbox_routes.dart';
-
-@LazySingleton(as: InboxNavigationApi)
-class InboxNavigationApiImpl implements InboxNavigationApi {
-  @override
-  void goToInbox(BuildContext context) =>
-      context.goNamed('inbox');
+      case QontakAppRoute.splash:
+      default:
+        return const SplashScreen();
+    }
+  }
 
   @override
-  void goToConversation(BuildContext context, String conversationId) =>
-      context.goNamed('conversation',
-          pathParameters: {'conversationId': conversationId});
-}
-```
-
-Any feature injects `InboxNavigationApi` — no direct dependency on `[prefix]_inbox`:
-
-```dart
-@injectable
-class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
-  NotificationBloc(this._inboxNav);
-  final InboxNavigationApi _inboxNav;
-
-  // When a notification is tapped
-  void _onNotificationTapped(NotificationTapped event, Emitter emit) {
-    _inboxNav.goToConversation(event.context, event.conversationId);
+  Route? onGenerateRoute(RouteSettings settings) {
+    final child = getRoute(settings.name, settings.arguments);
+    return MaterialPageRoute(builder: (_) => child, settings: settings);
   }
 }
 ```
 
+**Rules:**
+- `BlocProvider` for route-scoped BLoCs goes inside the `case` block, NOT inside the Screen widget.
+- Screens that need arguments receive a typed `*Arguments` object via `arguments! as XArguments`.
+- The `default` case always returns `SplashScreen`.
+
 ---
 
-## Navigating from Widgets <!-- 21 -->
+## Navigating from Widgets/Services <!-- 22 -->
+
+Navigation uses `NavigationHelper` (from `chat_core`) which wraps the global `navigatorKey`:
 
 ```dart
-// Push a new screen
-context.push(InboxRoutes.conversationPath(id));
+// Push a named route with arguments
+navigationHelper.pushNamed(
+  QontakAppRoute.chatRoom,
+  arguments: ChatRoomArguments(room: room, isFromNotification: true),
+);
 
-// Replace current screen (no back)
-context.go(InboxRoutes.inbox);
+// Replace current stack
+navigationHelper.pushReplacementNamed(QontakAppRoute.main);
 
 // Pop
-context.pop();
+Navigator.of(context).pop();
 
-// Pop with result
-context.pop(selectedItem);
-
-// Named navigation
-context.goNamed('conversation', pathParameters: {'conversationId': id});
+// From App widget (notification-driven navigation)
+final NavigationHelper navigationHelper = coreDependency<NavigationHelper>();
+navigationHelper.pushNamed(QontakAppRoute.emailRoom, arguments: EmailRoomArguments(...));
 ```
+
+The global `navigatorKey` (`NavigationHelperImpl.navigatorKey`) is passed to `MaterialApp.navigatorKey` so `NavigationHelper` can navigate without a `BuildContext`.
 
 ---
 
-## Navigating from BLoC (Side Effects) <!-- 38 -->
+## Navigating from BLoC (Side Effects) <!-- 20 -->
 
-BLoC emits a navigation intent via state; the screen listens and calls `context.go/push`:
-
-```dart
-// In BLoC state — add a nav action field
-@freezed
-class InboxState with _$InboxState {
-  const factory InboxState({
-    required ViewDataState<List<Conversation>> inboxState,
-    @Default(null) InboxNavAction? navAction,
-  }) = _InboxState;
-}
-
-sealed class InboxNavAction {
-  const factory InboxNavAction.openConversation(String id) = OpenConversation;
-}
-```
+BLoC state drives navigation via `BlocListener` in the screen. The BLoC never touches `NavigationHelper` directly.
 
 ```dart
-// In Screen — BlocListener handles navigation
-BlocListener<InboxBloc, InboxState>(
-  listenWhen: (prev, curr) => prev.navAction != curr.navAction,
+// In Screen — BlocListener handles navigation side effects
+BlocListener<LoginBloc, LoginState>(
+  listenWhen: (prev, curr) => prev.loginState != curr.loginState,
   listener: (context, state) {
-    final action = state.navAction;
-    if (action == null) return;
-    switch (action) {
-      case OpenConversation(:final id):
-        context.goNamed('conversation', pathParameters: {'conversationId': id});
+    if (state.loginState.status.isHasData) {
+      Navigator.of(context).pushReplacementNamed(QontakAppRoute.main);
+    } else if (state.loginState.status.isError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(state.loginState.message ?? 'Login failed')),
+      );
     }
-    context.read<InboxBloc>().add(const InboxEvent.clearNavAction());
   },
   child: ...,
 )
@@ -164,51 +148,71 @@ BlocListener<InboxBloc, InboxState>(
 
 ---
 
-## Auth Guard <!-- 18 -->
+## Arguments Pattern <!-- 16 -->
 
-Global redirect in `ModuleRegistrar.router`:
+Each route that needs data defines a typed `*Arguments` class (in the feature package):
 
 ```dart
-static String? _globalGuard(BuildContext context, GoRouterState state) {
-  final isAuthenticated = getIt<AuthSessionService>().isAuthenticated;
-  final isPublicRoute = _publicRoutes.contains(state.matchedLocation);
-  if (!isAuthenticated && !isPublicRoute) return '/login';
-  if (isAuthenticated && state.matchedLocation == '/login') return '/inbox';
-  return null;
+// Defined in the feature package (e.g. chat_inbox)
+class ChatRoomArguments {
+  const ChatRoomArguments({
+    required this.room,
+    this.isFromNotification = false,
+  });
+  final Room room;
+  final bool isFromNotification;
 }
 
-static const _publicRoutes = {'/login', '/forgot-password', '/onboarding'};
+// Used in route_manager.dart
+case QontakAppRoute.chatRoom:
+  return ChatRoomPage(
+    arguments: arguments! as ChatRoomArguments,
+  );
 ```
 
 ---
 
-## Deep Links <!-- 16 -->
+## Nested Navigation (Bottom Nav) <!-- 12 -->
 
-```xml
-<!-- android/app/src/main/AndroidManifest.xml -->
-<intent-filter android:autoVerify="true">
-  <action android:name="android.intent.action.VIEW" />
-  <category android:name="android.intent.category.DEFAULT" />
-  <category android:name="android.intent.category.BROWSABLE" />
-  <data android:scheme="https" android:host="chat.qontak.com" />
-</intent-filter>
-```
-
-GoRouter handles deep links automatically when paths match route definitions. No additional Dart config needed.
-
----
-
-## Nested Navigation (Bottom Nav) <!-- 14 -->
+Bottom navigation is managed by `NavBarBloc` (app-level, in `MainPage`). Tab switching does NOT use nested navigators — it uses indexed widget switching driven by BLoC state.
 
 ```dart
-ShellRoute(
-  builder: (context, state, child) => MainScaffold(child: child),
-  routes: [
-    GoRoute(path: '/inbox', builder: (_, __) => const InboxScreen()),
-    GoRoute(path: '/contacts', builder: (_, __) => const ContactsScreen()),
-    GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
-  ],
+// lib/presentation/screens/main_page.dart
+// NavBarBloc.navBarIndex drives which tab widget is shown
+BlocBuilder<NavBarBloc, NavBarState>(
+  builder: (context, state) {
+    final index = state.navBarIndex.data ?? 0;
+    return IndexedStack(
+      index: index,
+      children: [...tabScreens],
+    );
+  },
 )
 ```
 
-`ShellRoute` keeps the `MainScaffold` (bottom nav bar) alive while navigating between tabs.
+---
+
+## Notification-Driven Navigation <!-- 14 -->
+
+The `App` widget's `build` method wraps the `MaterialApp` builder with a `BlocListener<NotificationBloc>` to handle push notification taps at the app level:
+
+```dart
+// lib/app.dart
+builder: (context, child) {
+  return BlocListener<NotificationBloc, NotificationState>(
+    listener: (context, state) {
+      final rn = state.roomOpenedState?.data;
+      if (rn == null) return;
+      final room = RoomMapper.fromNotification(notification: rn);
+      if (rn.channel == ChannelType.email.channelType) {
+        navigationHelper.pushNamed(QontakAppRoute.emailRoom,
+            arguments: EmailRoomArguments(room: room, isFromNotification: true));
+      } else {
+        navigationHelper.pushNamed(QontakAppRoute.chatRoom,
+            arguments: ChatRoomArguments(room: room, isFromNotification: true));
+      }
+    },
+    child: SafeArea(top: false, bottom: Platform.isAndroid, child: child!),
+  );
+},
+```

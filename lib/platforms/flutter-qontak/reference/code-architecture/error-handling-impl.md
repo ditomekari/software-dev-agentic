@@ -40,48 +40,66 @@ HTTP / Storage / Parse error
 
 ---
 
-## Repository Error Handling <!-- 19 -->
+## Repository Error Handling <!-- 22 -->
+
+The app-level repository pattern catches `Exception` (not `AppException`) and maps via `CoreMapperExceptionToFailure` (from `chat_core`):
 
 ```dart
-@override
-Future<Either<Failure, User>> getCurrentUser() async {
-  try {
-    final response = await _remoteDataSource.getCurrentUser();
-    return Right(UserMapper.fromResponseToEntity(response));
-  } on AppException catch (e) {
-    return Left(e.toFailure());
-  } catch (e, stackTrace) {
-    debugPrint('Unexpected error in getCurrentUser: $e\n$stackTrace');
-    return Left(Failure.unknownFailure(message: e.toString()));
+// lib/data/repositories/product_tour_repositories.dart
+class ProductTourRepositoryImpl implements ProductTourRepository {
+  ProductTourRepositoryImpl({required this.localDataSource});
+  final ProductTourLocalDataSource localDataSource;
+
+  @override
+  Future<Either<Failure, bool>> getFirstRun() async {
+    try {
+      return Right(await localDataSource.getFirstRun());
+    } on Exception catch (error) {
+      return Left(
+        CoreMapperExceptionToFailure.mapExceptionToFailure(exception: error),
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> setFirstRun() async {
+    try {
+      return Right(await localDataSource.setFirstRun());
+    } on Exception catch (error) {
+      return Left(
+        CoreMapperExceptionToFailure.mapExceptionToFailure(exception: error),
+      );
+    }
   }
 }
 ```
 
+Use `CoreMapperExceptionToFailure.mapExceptionToFailure(exception: error)` from `chat_core` instead of a custom `AppException.toFailure()` extension.
+
 ---
 
-## BLoC Error Handling <!-- 26 -->
+## BLoC Error Handling <!-- 20 -->
 
 ```dart
-final result = await _login(LoginParams(email: event.email, password: event.password));
+// Actual pattern from LoginBloc
+final result = await getSSOTokenUseCase.call(
+  GetSSOTokenUseCaseParams(ssoCode: event.ssoCode),
+);
 
 result.fold(
-  (failure) {
-    final message = failure.when(
-      serverFailure: (msg, _, __, ___) => msg,
-      validationFailure: (msg, __, ___) => msg,
-      networkFailure: (msg) => msg,
-      unknownFailure: (msg) => msg,
-      localFailure: (msg) => msg,
-    );
-    emit(state.copyWith(
-      loginState: ViewDataState.error(message: message, failure: failure),
-    ));
-  },
-  (user) => emit(state.copyWith(
-    loginState: ViewDataState.loaded(data: user),
+  (failure) => emit(state.copyWith(
+    loginState: ViewDataState.error(
+      message: failure.message,  // Failure exposes .message directly
+      failure: failure,
+    ),
+  )),
+  (success) => emit(state.copyWith(
+    loginState: ViewDataState.loaded(data: success),
   )),
 );
 ```
+
+Use `failure.message` directly — do not call `failure.when(...)` unless you need to branch on failure subtypes for different UI treatment.
 
 ---
 
@@ -183,23 +201,30 @@ BlocListener<InboxBloc, InboxState>(
 
 ## Global Error Boundary <!-- 23 -->
 
+The global error boundary lives in `engine.dart`, wrapping the entire startup sequence:
+
 ```dart
-// main.dart
-void main() {
-  runZonedGuarded(
-    () async {
-      WidgetsFlutterBinding.ensureInitialized();
-      FlutterError.onError = (details) {
-        FirebaseCrashlytics.instance.recordFlutterFatalError(details);
-      };
-      await configureDependencies();
-      runApp(const App());
-    },
-    (error, stack) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    },
-  );
-}
+// lib/engine.dart
+void start({EnvType envType = EnvType.staging}) =>
+    runZonedGuarded<Future<void>>(
+      () async {
+        WidgetsFlutterBinding.ensureInitialized();
+        // ... init (Firebase, DI, etc.)
+
+        FlutterError.onError = (errorDetails) {
+          FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+        };
+        PlatformDispatcher.instance.onError = (error, stack) {
+          FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+          return true;
+        };
+        FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
+
+        runApp(AppProvider(child: App(environment: envType.name)));
+      },
+      (error, stack) => FirebaseCrashlytics.instance.recordError(error, stack),
+    );
+```
 ```
 
 ---

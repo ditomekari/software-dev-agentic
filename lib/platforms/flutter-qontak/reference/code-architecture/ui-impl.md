@@ -13,18 +13,54 @@ Forbidden: use case interfaces, repository interfaces, DTOs, mappers, datasource
 
 ---
 
-## Screen <!-- 15 -->
+## Screen <!-- 20 -->
 
-A **Screen** is a `StatelessWidget` or `StatefulWidget` that observes state via `BlocBuilder`/`BlocListener` and dispatches events — it contains no business logic.
+A **Screen** is a `StatelessWidget` or `StatefulWidget` that observes state via `BlocBuilder`/`BlocListener`/`BlocConsumer` and dispatches events — it contains no business logic.
 
 **Invariants:**
-- `BlocProvider` placed at the app-level route manager (`route_manager.dart`) — not inside the Screen widget itself and not per-module
-- Bound to exactly one `Bloc`/`Cubit` — resolved from GetIt, never `MyBloc()` inline
-- Observes every `State` variant via `BlocBuilder` — no state variant goes unhandled
+- `BlocProvider` placed at the route manager (`route_manager.dart` inside a `case` block) — not inside the Screen widget itself
+- For app-wide BLoCs (e.g. `UserProfileBloc`, `NotificationBloc`): wired in `provider.dart` (`AppProvider`) instead
+- Resolved via typed accessor functions (`mainDependency()`, `coreDependency()`) — never `MyBloc()` inline
+- Observes state via `BlocBuilder`/`BlocConsumer` with `buildWhen` to avoid unnecessary rebuilds
 - Sends events via `context.read<MyBloc>().add(...)` — never mutates state directly
 - Contains no business logic — `if`/`switch` only decides what to render
+- Status checks use `.status.isHasData`, `.status.isError`, `.status.isLoading` (NOT `.isLoaded`, `.hasError`)
 
-**When to create:** One Screen widget per route. Created after the Bloc/Cubit contract exists. `BlocProvider` wiring added in `route_manager.dart`.
+**When to create:** One Screen widget per route. Created after the Bloc contract exists. `BlocProvider` wiring added in the relevant `case` block of `route_manager.dart`.
+
+---
+
+## BlocProvider.value (Route-Scoped BLoC Reuse) <!-- 18 -->
+
+When a route needs to use a BLoC instance that already exists higher in the widget tree (e.g. a calling BLoC created at the initiating screen and passed into a sub-route), use `BlocProvider.value` instead of `BlocProvider`. This passes the existing instance without recreating or closing it.
+
+```dart
+// lib/route_manager.dart
+case QontakAppRoute.calling:
+  final args = settings.arguments as CallingArgs;
+  return MaterialPageRoute(
+    builder: (_) => BlocProvider.value(
+      value: args.callingBloc, // existing instance passed via route args
+      child: const CallingPage(),
+    ),
+  );
+```
+
+```dart
+// Navigating to the route — pass the BLoC in args
+Navigator.of(context).pushNamed(
+  QontakAppRoute.calling,
+  arguments: CallingArgs(callingBloc: context.read<CallingBloc>()),
+);
+```
+
+**Invariants:**
+- Use `BlocProvider.value` when the BLoC lifecycle must outlive the destination route (e.g. an active call BLoC that was already created)
+- Use `BlocProvider` (with `create:`) for all other route entries — new instance scoped to the route
+- `BlocProvider.value` does **not** close the BLoC when the route is popped — the owner (the caller) is responsible for closing it
+- Never pass a `BuildContext` through route arguments — pass typed BLoC instances or plain value objects only
+
+**When to use:** Long-lived BLoCs that span multiple routes (e.g. active call, ongoing upload, multi-step wizard) where the sub-route must share state with the originating screen.
 
 ---
 
@@ -44,29 +80,29 @@ A **Component** is a reusable `StatelessWidget` smaller than a full screen, livi
 
 ## Navigator / Coordinator <!-- 14 -->
 
-A **Navigator** is modular: each feature declares routes in `BaseModule.routes()`, and cross-module navigation uses the Module API pattern defined in `[prefix]_core`.
+Navigation uses `Navigator` 1.0 + `NavigationHelper.pushNamed` (not `go_router`). Routes are centralized in `route_manager.dart`.
 
 **Invariants:**
 - The Screen delegates navigation intent via `BlocListener` — never hard-codes a destination inline
-- The Bloc emits a `NavAction` field in `State` — the Screen's `BlocListener` calls `context.go/goNamed`
-- Route constants defined per-module in `[ModulePrefix]Routes` class — exported from the module barrel
-- Cross-module navigation uses `[Feature]NavigationApi` abstract class in `[prefix]_core` — never a direct import of another module
+- The BLoC transitions state (e.g. `loginState.status.isHasData`) — the `BlocListener` calls `Navigator.of(context).pushReplacementNamed()`
+- Route name constants in `QontakAppRoute` — a single abstract class in `lib/config/constants/`
+- Cross-package navigation (e.g. from notification handler) uses `NavigationHelper.pushNamed()` with the global `navigatorKey`
 
-**When to create:** When a Screen navigates to another screen. Route entry added to `BaseModule.routes()`. See `navigation-impl.md` for the full modular GoRouter pattern.
+**When to create:** When a Screen navigates to another screen. Route entry added to `route_manager.dart`. See `navigation-impl.md` for the full centralized navigation pattern.
 
 ---
 
 ## DI Wiring <!-- 14 -->
 
-**DI wiring** registers the `Bloc`/`Cubit` in the module's injectable setup via `injectable`.
+**DI wiring** registers the `Bloc` in `MainDependency._registerPresentation()` using `registerFactory`.
 
 **Invariants:**
-- Bloc annotated `@injectable` within the feature module — scope matches module lifetime
-- Use cases injected into the Bloc constructor — never instantiated inside the Bloc
-- Module DI setup called from `ModuleRegistrar` — each module self-registers its dependencies
-- Cross-module APIs (`[Feature]NavigationApi` implementations) registered as `@LazySingleton(as: ...)` in the owning module
+- BLoC registered with `registerFactory` (new instance per call) — never `registerLazySingleton`
+- Use cases injected into the BLoC constructor via named parameters — never instantiated inside the BLoC
+- App-level BLoC registration lives in `MainDependency.registerMain()` in `lib/config/di/main_dependency.dart`
+- No `@injectable` annotations in the app module — all DI is manual GetIt calls
 
-**When to create:** After the Screen and Bloc exist. Required before the module route is registered.
+**When to create:** After the Screen and BLoC exist. `registerFactory` call added to `_registerPresentation()` in `MainDependency`, then `BlocProvider` added to the relevant `case` in `route_manager.dart` (or to `AppProvider` for global BLoCs).
 
 ---
 
