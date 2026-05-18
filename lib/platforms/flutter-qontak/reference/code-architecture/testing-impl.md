@@ -298,7 +298,7 @@ final tServerFailure = Failure.serverFailure(
 
 ---
 
-## Testing Module API Implementations <!-- 32 -->
+## Testing Module API Implementations <!-- 33 -->
 
 ```dart
 // Test that AuthModuleApiImpl correctly delegates to domain use cases

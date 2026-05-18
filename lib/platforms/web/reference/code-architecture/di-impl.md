@@ -199,7 +199,7 @@ Does this env var go to the browser?
   └── NO  → API_BASE_URL (container.server.ts)
 ```
 
-## DI Principles <!-- 14 -->
+## DI Principles <!-- 13 -->
 
 | Rule | Reason |
 |------|--------|

@@ -249,7 +249,7 @@ class EmployeeRepositoryImpl implements EmployeeRepository { ... }
 
 ---
 
-## Testing with getIt <!-- 27 -->
+## Testing with getIt <!-- 28 -->
 
 Override registrations in tests by unregistering and re-registering:
 

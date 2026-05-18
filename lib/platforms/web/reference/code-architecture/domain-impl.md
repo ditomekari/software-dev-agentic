@@ -301,7 +301,7 @@ A service computing only dashboard display logic belongs in `dashboard`.
 
 **Naming convention:** `[Feature][Noun]` interface + `[Feature][Noun]Service` class — e.g., `LeaveBalanceCalculator` / `LeaveBalanceCalculatorService`
 
-## Domain Errors <!-- 46 -->
+## Domain Errors <!-- 47 -->
 
 ```typescript
 // domain/errors/DomainError.ts

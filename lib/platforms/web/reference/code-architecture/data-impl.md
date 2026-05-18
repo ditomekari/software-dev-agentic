@@ -277,7 +277,7 @@ export class EmployeeRepositoryImpl implements EmployeeRepository {
 }
 ```
 
-## HTTP Client <!-- 264 -->
+## HTTP Client <!-- 265 -->
 
 Uses **Axios** with **axios-retry**. The `HTTPClient` interface keeps the Data layer decoupled from Axios internals — swap the implementation without touching repositories or data sources.
 

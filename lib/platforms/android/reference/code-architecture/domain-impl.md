@@ -111,7 +111,7 @@ Rules:
 - Injected into use cases via `@Inject constructor`, never into presenters directly
 - Name: `[Domain][Concept]Service`
 
-## Domain Errors <!-- 18 -->
+## Domain Errors <!-- 19 -->
 
 Typed exceptions thrown from the domain boundary. Repository implementations map transport errors to these before returning.
 

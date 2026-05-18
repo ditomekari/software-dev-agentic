@@ -311,7 +311,7 @@ abstract class Failure<T> with _$Failure<T> {
 
 ---
 
-## Domain Enums <!-- 20 -->
+## Domain Enums <!-- 21 -->
 
 Business-level constants. Place in `domain/enums/`.
 

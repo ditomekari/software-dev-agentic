@@ -66,7 +66,7 @@ class TimeOffModule {
 }
 ```
 
-## Activity Binding <!-- 16 -->
+## Activity Binding <!-- 17 -->
 
 ```kotlin
 // di/TimeOffActivityModule.kt

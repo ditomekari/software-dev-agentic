@@ -187,7 +187,7 @@ class TimeOffRequestMapperTest {
 
 Use `@Mock` with `MockitoJUnitRunner` for all collaborators (Api, Mapper, Repository, SchedulerTransformers). Use `.blockingGet()` for synchronous assertion on RxJava Singles.
 
-## Presenter Tests <!-- 82 -->
+## Presenter Tests <!-- 83 -->
 
 ```kotlin
 @RunWith(MockitoJUnitRunner::class)

@@ -1,4 +1,0 @@
-name=ios
-description=iOS platform agents — Xcode test runner and Swift/UIKit PR reviewer
-agents=test-orchestrator pr-review-worker
-skills=

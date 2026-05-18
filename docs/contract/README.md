@@ -7,6 +7,10 @@ Contracts that define the base spec for platform resources. Each file specifies 
 | File | Owned by | Defines |
 |---|---|---|
 | `builder-auditor-schema.md` | Builder + Auditor | Required `##` keyword headings for all 8 platform reference contract files |
+| `builder-skill-contract.md` | Builder | Required contract skills for `feature-worker` and `test-worker` |
+| `detective-skill-contract.md` | Detective | Required contract skills for `debug-log-worker` |
+| `auditor-skill-contract.md` | Auditor | Required contract skills for `arch-review-worker` |
+| `installer-skill-contract.md` | Installer | Required contract skills for `setup-worker` |
 
 ---
 
@@ -24,7 +28,21 @@ Platforms may add platform-specific `##` sections and adapt content to their syn
 
 ---
 
-## How to validate
+## How to validate skills
+
+```bash
+# Check all platforms
+software-dev-agentic/scripts/check-skill-contracts.sh
+
+# Check one platform
+software-dev-agentic/scripts/check-skill-contracts.sh --platform=flutter
+```
+
+Exits non-zero if any Required skill is missing — safe to run in CI. Also runs automatically at the end of `setup-symlinks.sh`.
+
+---
+
+## How to validate reference headings
 
 ```bash
 # Check one file — exits non-zero if any keyword is missing

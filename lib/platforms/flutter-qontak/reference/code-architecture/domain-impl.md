@@ -189,7 +189,7 @@ abstract class Failure<T> with _$Failure<T> {
 
 ---
 
-## Domain Enums <!-- 16 -->
+## Domain Enums <!-- 17 -->
 
 ```dart
 // [prefix]_chat/lib/src/domain/enums/message_status.dart

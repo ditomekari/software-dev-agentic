@@ -117,7 +117,7 @@ protocol LiveAttendanceRepository {
 - ✅ Params are domain Param objects, not raw dictionaries
 - ❌ No implementation details (no Moya, no network code)
 
-## Use Cases <!-- 333 -->
+## Use Cases <!-- 354 -->
 
 ### Legacy UseCase Pattern (Current — In Use)
 
@@ -834,7 +834,7 @@ struct BaseErrorModel: Error {
 
 ---
 
-## Domain Enums <!-- 31 -->
+## Domain Enums <!-- 32 -->
 
 ```swift
 // Domain/enum/CICOType.swift

@@ -13,7 +13,7 @@ Forbidden: use case interfaces, repository interfaces, DTOs, mappers, datasource
 
 ---
 
-## Screen <!-- 15 -->
+## Screen <!-- 16 -->
 
 A **Screen** is a `Widget` (`StatelessWidget` or `StatefulWidget`) bound to a single `Bloc`/`Cubit`. It observes state via `BlocBuilder`/`BlocListener` and dispatches events — it contains no business logic.
 

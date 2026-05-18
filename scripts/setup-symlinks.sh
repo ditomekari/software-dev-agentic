@@ -310,6 +310,12 @@ if [ -f "$PROJECT_ROOT/CLAUDE.md" ] && grep -q '\[AppName\]' "$PROJECT_ROOT/CLAU
   fi
 fi
 
+# ── Contract compliance check ─────────────────────────────────────────────────
+
+echo ""
+echo "Checking skill contract compliance..."
+"$SUBMODULE/scripts/check-skill-contracts.sh" --platform="$PLATFORM" || true
+
 # ── Done ──────────────────────────────────────────────────────────────────────
 
 echo ""

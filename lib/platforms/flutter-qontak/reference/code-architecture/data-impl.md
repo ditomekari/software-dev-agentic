@@ -254,7 +254,7 @@ abstract class AuthEndpoints {
 
 ---
 
-## AppException (shared in `[prefix]_core`) <!-- 45 -->
+## AppException (shared in `[prefix]_core`) <!-- 46 -->
 
 ```dart
 // shared/[prefix]_core/lib/src/data/app_exception.dart

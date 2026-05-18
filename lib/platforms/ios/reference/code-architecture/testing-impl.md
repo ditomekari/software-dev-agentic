@@ -216,7 +216,7 @@ class EmployeeModelMapperTests: XCTestCase {
 
 **Mock creation:** Use the Mock Pattern above — a concrete class implementing the protocol, with `callCount`, `paramsReceived`, and `resultToReturn` properties.
 
-## Repository Tests <!-- 51 -->
+## Repository Tests <!-- 52 -->
 
 Test that RepositoryImpl correctly bridges DataSource results to Domain completions.
 

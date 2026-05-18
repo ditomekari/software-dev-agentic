@@ -32,6 +32,8 @@ The submodule is the single source of truth — downstream projects get agents, 
 
 Naming pattern: `<layer>-<action>-<artifact>` (e.g. `<layer>-create-<artifact>`). Skills cover **new artifact creation only** — workers handle modifications to existing artifacts via direct `Read` + `Edit` with reference docs. Every platform must implement the full create-only set under the same names.
 
+> The canonical list of required contract skills per persona: [`docs/contract/`](../contract/) — one file per persona (`builder-skill-contract.md`, `detective-skill-contract.md`, etc.).
+
 **Platform-specific skills** — called by platform agents only. Implemented only by the platform that owns the calling agent.
 
 > **New platform extensibility:** Adding a 4th platform (e.g., React Native, KMP) requires only `lib/platforms/<platform>/skills/` + `lib/platforms/<platform>/reference/` directories. No changes to any agents in `lib/core/agents/`.

@@ -7,6 +7,29 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.5.0] — 2026-05-18
+
+### Added
+- `docs/contract/builder-skill-contract.md` — canonical required contract skills for the builder persona (feature-worker + test-worker)
+- `docs/contract/detective-skill-contract.md` — canonical required contract skills for the detective persona
+- `docs/contract/auditor-skill-contract.md` — canonical required contract skills for the auditor persona
+- `docs/contract/installer-skill-contract.md` — canonical required contract skills for the installer persona
+- `scripts/check-skill-contracts.sh` — validates platform skill contract compliance against `docs/contract/*-skill-contract.md`; exits non-zero on gaps; safe for CI
+- `.claude/agents/agent-generate-platform-worker.md` — shared internal worker for generate and sync platform workflows
+- `.claude/skills/generate-platform/SKILL.md` — Type W skill: scans a downstream repo and generates platform reference impl files + contract skills for a new platform
+- `.claude/skills/sync-platform/SKILL.md` — Type W skill: diffs existing platform implementation against a real codebase and syncs reference files + contract skills
+
+### Changed
+- `scripts/setup-symlinks.sh` — runs `check-skill-contracts.sh` automatically as a post-setup compliance check
+- `docs/contract/README.md` — registered all four new skill contract files; added skill validation section with script usage
+- `docs/principles/submodule-repo-structure.md` — added pointer to `docs/contract/` for skill contract reference
+- Multiple `*-impl.md` reference files across all platforms — `<!-- N -->` line count annotations corrected
+
+### Removed
+- `lib/platforms/ios/packages/ios.pkg` — obsolete; iOS platform agents no longer rely on a `.pkg` manifest
+
+---
+
 ## [7.4.1] — 2026-05-18
 
 ### Fixed

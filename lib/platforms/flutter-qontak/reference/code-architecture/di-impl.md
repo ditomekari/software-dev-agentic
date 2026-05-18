@@ -77,7 +77,7 @@ same `GetIt` instance without knowing the implementation.
 
 ---
 
-## Registration Order <!-- 32 -->
+## Registration Order <!-- 25 -->
 
 Within each feature module, register by layer from infrastructure up to presentation. The actual convention in the codebase uses `_registerData → _registerRepository → _registerDomain → _registerPresentation`:
 
@@ -138,7 +138,7 @@ fresh instance so state doesn't leak across screen navigations.
 
 ---
 
-## Code Generation <!-- 11 -->
+## Code Generation <!-- 12 -->
 
 ```bash
 # From workspace root (melos)

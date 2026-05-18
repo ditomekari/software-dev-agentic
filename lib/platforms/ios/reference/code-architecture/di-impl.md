@@ -433,7 +433,7 @@ let useCase = PostSubmitCICOUseCase.sharedInstance
 let repository = LiveAttendanceRepositoryImpl()
 ```
 
-## DI Wrapper (Minimal Setup) <!-- 257 -->
+## DI Wrapper (Minimal Setup) <!-- 258 -->
 
 **Advanced Pattern:** Use property wrappers and a registry to minimize boilerplate while keeping type safety.
 
