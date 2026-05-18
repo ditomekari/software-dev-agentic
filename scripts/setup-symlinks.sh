@@ -272,8 +272,12 @@ fi
 # ── CLAUDE.md ─────────────────────────────────────────────────────────────────
 
 TEMPLATE="$PLATFORM_DIR/CLAUDE-template.md"
-BEGIN_MARKER="<!-- BEGIN software-dev-agentic:$PLATFORM -->"
-END_MARKER="<!-- END software-dev-agentic:$PLATFORM -->"
+# Read markers from the template so the script stays in sync even when the
+# template's marker tag differs from the platform directory name.
+BEGIN_MARKER=$(grep -m1 '<!-- BEGIN software-dev-agentic:' "$TEMPLATE" 2>/dev/null | tr -d '\r\n') || true
+END_MARKER=$(grep -m1 '<!-- END software-dev-agentic:' "$TEMPLATE" 2>/dev/null | tr -d '\r\n') || true
+BEGIN_MARKER="${BEGIN_MARKER:-<!-- BEGIN software-dev-agentic:$PLATFORM -->}"
+END_MARKER="${END_MARKER:-<!-- END software-dev-agentic:$PLATFORM -->}"
 
 echo ""
 if [ ! -f "$TEMPLATE" ]; then
@@ -292,7 +296,7 @@ elif grep -qF "$BEGIN_MARKER" "$PROJECT_ROOT/CLAUDE.md"; then
   rm -f "$managed_tmp"
   echo "sync  CLAUDE.md (managed section updated)"
 else
-  BLOCK=$(sed -n "/<!-- BEGIN software-dev-agentic:$PLATFORM -->/,/<!-- END software-dev-agentic:$PLATFORM -->/p" "$TEMPLATE")
+  BLOCK=$(sed -n "/$(printf '%s' "$BEGIN_MARKER" | sed 's/[\/&]/\\&/g')/,/$(printf '%s' "$END_MARKER" | sed 's/[\/&]/\\&/g')/p" "$TEMPLATE")
   printf '\n%s\n' "$BLOCK" >> "$PROJECT_ROOT/CLAUDE.md"
   echo "append CLAUDE.md ($PLATFORM block)"
 fi
