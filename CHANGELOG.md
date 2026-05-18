@@ -7,6 +7,16 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.8.0] — 2026-05-18
+
+### Added
+- `lib/platforms/flutter-qontak-crm/` — new platform onboarded from `mobile-qontak-crm` monorepo
+- `lib/platforms/flutter-qontak-crm/reference/code-architecture/` — 13 impl files: `domain-impl.md`, `data-impl.md`, `presentation-impl.md`, `di-impl.md`, `error-handling-impl.md`, `testing-impl.md`, `syntax-conventions-impl.md`, `utilities-impl.md`, `navigation-impl.md`, `app-layer-impl.md`, `ui-impl.md`, `tech-stack-impl.md`, `modular-structure-impl.md`
+- `lib/platforms/flutter-qontak-crm/reference/project.md` and `index.md`
+- `lib/platforms/flutter-qontak-crm/skills/contract/` — 17 contract skills: `auditor-arch-check`, `builder-domain-create-entity/repository/usecase/service`, `builder-data-create-mapper/datasource/repository-impl`, `builder-pres-create-stateholder/screen`, `builder-test-create-domain/data/presentation/mock`, `detective-debug-add-logs/remove-logs`, `installer-setup-project`
+
+---
+
 ## [7.7.0] — 2026-05-18
 
 ### Changed
