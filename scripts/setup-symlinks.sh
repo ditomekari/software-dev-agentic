@@ -9,6 +9,7 @@
 #   software-dev-agentic/scripts/setup-symlinks.sh --platform=ios
 #   software-dev-agentic/scripts/setup-symlinks.sh --platform=android
 #   software-dev-agentic/scripts/setup-symlinks.sh --platform=flutter
+#   software-dev-agentic/scripts/setup-symlinks.sh --platform=flutter-qontak
 #
 # Priority order: agents.local > platform > core  (first link wins)
 
@@ -31,7 +32,7 @@ done
 
 if [ -z "$PLATFORM" ]; then
   echo "Error: --platform is required."
-  echo "Usage: $0 --platform=web|ios|android|flutter"
+  echo "Usage: $0 --platform=web|ios|android|flutter|flutter-qontak"
   exit 1
 fi
 

@@ -44,7 +44,8 @@ ask_platform() {
   echo "    1) ios"
   echo "    2) web"
   echo "    3) flutter"
-  echo "    4) other"
+  echo "    4) flutter-qontak"
+  echo "    5) other"
   echo ""
   printf "  Choice: "
   read -r choice
@@ -52,7 +53,8 @@ ask_platform() {
     1) PLATFORM="ios" ;;
     2) PLATFORM="web" ;;
     3) PLATFORM="flutter" ;;
-    4)
+    4) PLATFORM="flutter-qontak" ;;
+    5)
       printf "  Platform name: "
       read -r PLATFORM
       ;;
