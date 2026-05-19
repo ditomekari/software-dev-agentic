@@ -121,15 +121,15 @@ Never skip this check. Creating a duplicate of an existing component is a worse 
    - If a match is found: collect the section content as `## Figma Design Reference` — pass it in the skill prompt
    - If no match: proceed without Figma context
 4. **If artifact type is Screen or Component:**
-   Check for a design system config:
+   Check for a design system catalog:
    ```bash
-   grep -c "kind: design_system" "$(git rev-parse --show-toplevel)/.claude/dart-knowledge.yaml" 2>/dev/null
+   find "$(git rev-parse --show-toplevel)/.claude/reference/design-system" -name "*catalog.md" 2>/dev/null | head -1
    ```
-   If the file exists and contains `kind: design_system`:
+   If a catalog file is found:
    - Read `.claude/skills/builder-pres-resolve-design/SKILL.md`
    - Follow its instructions, passing the artifact name and UI description from plan.md
    - Collect the `## Design System Bindings` output — pass it in the skill prompt
-   If not found or command returns nothing: proceed without design bindings.
+   If not found: proceed without design bindings.
 5. Resolve skill path: `.claude/skills/<skill-name>/SKILL.md`
 6. `Read` the skill file
 7. Follow its instructions as the authoritative procedure for `<platform>`

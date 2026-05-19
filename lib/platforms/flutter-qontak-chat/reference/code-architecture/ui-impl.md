@@ -149,12 +149,12 @@ The `### Design System Bindings` block in the skill prompt maps UI element descr
 
 | Common mapping | MekariPixel symbol |
 |---|---|
-| Primary button | `PxButton` |
-| Avatar / profile image | `PxAvatar` |
-| List tile | `PxListTile` |
-| Text field / input | `PxTextField` |
-| Icon | `PxIcon` |
+| Primary button | `MpButton` |
+| Avatar / profile image | `MpAvatar` |
+| List tile | `MpListTileX` |
+| Text field / input | `MpTextField` |
+| Icon | `MpIcon` |
 
-**Collection config:** declare the MekariPixel ChromaDB collection in `.claude/dart-knowledge.yaml` with `kind: design_system` so `builder-pres-resolve-design` can locate it.
+**Catalog:** `builder-pres-resolve-design` resolves symbols from `.claude/reference/design-system/mekari-pixel-flutter-catalog.md` — place the catalog there in downstream projects.
 - `**/lib/src/configs/*_module.dart` — module route registration files
 - `**/lib/src/configs/*_routes.dart` — per-module route constants

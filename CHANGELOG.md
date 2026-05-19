@@ -7,6 +7,18 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.14.1] — 2026-05-20
+
+### Added
+- `lib/core/reference/design-system/mekari-pixel-flutter-catalog.md` — 228 MekariPixel widgets extracted from pub-cache source, grouped by atoms/components/pages/templates with descriptions, key params, variants, and Figma links. Regenerate via `temp-dir/extract_catalog.py` on version bump.
+
+### Changed
+- `builder-pres-resolve-design` — rewritten to use `section-query` on the static catalog instead of ChromaDB/Python. No runtime deps. Soft-fails if catalog not present.
+- `builder-feature-worker` — design system check now looks for `*catalog.md` in `.claude/reference/design-system/` instead of `dart-knowledge.yaml`.
+- Flutter `ui-impl.md` (talenta, jurnal, qontak-chat, qontak-crm) — fixed widget prefix `Px` → `Mp` (correct MekariPixel prefix); updated catalog path reference.
+
+---
+
 ## [7.14.0] — 2026-05-20
 
 ### Added
