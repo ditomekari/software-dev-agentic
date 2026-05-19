@@ -115,11 +115,16 @@ Never skip this check. Creating a duplicate of an existing component is a worse 
 **If `status: create` — call skill:**
 1. Write checkpoint: update `next_artifact` in state.json to this artifact's name before doing any other work
 2. Load the layer-specific impl reference for this artifact type (e.g. `domain-impl.md` for entities/use cases, `data-impl.md` for mappers/datasources, `presentation-impl.md` for stateholders/screens). Grep `^## ` to list headings, read only the section(s) relevant to this artifact type
-3. Resolve skill path: `.claude/skills/<skill-name>/SKILL.md`
-4. `Read` the skill file
-5. Follow its instructions as the authoritative procedure for `<platform>`
-6. Validate (see Validation below)
-7. Update state.json: add artifact to `completed_artifacts`, advance `next_artifact` to the following artifact
+3. **If artifact type is Screen or Component and Figma reference files were passed in the spawn prompt:**
+   - `Glob` for all `figma-*.md` files in the run directory inputs folder
+   - For each file: `section-query` for `## <artifact name>` (use exact artifact name from plan.md)
+   - If a match is found: collect the section content as `## Figma Design Reference` — pass it in the skill prompt
+   - If no match: proceed without Figma context
+4. Resolve skill path: `.claude/skills/<skill-name>/SKILL.md`
+5. `Read` the skill file
+6. Follow its instructions as the authoritative procedure for `<platform>`
+7. Validate (see Validation below)
+8. Update state.json: add artifact to `completed_artifacts`, advance `next_artifact` to the following artifact
 
 **If `status: exists` — direct edit:**
 1. Write checkpoint: update `next_artifact` in state.json to this artifact's name before doing any other work

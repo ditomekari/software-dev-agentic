@@ -744,11 +744,10 @@
         <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 14px;">
           <p style="font-size: 13px; color: var(--muted); line-height: 1.65;">All user-facing work starts here. The Type T skill owns routing, context loading, spawning agents, and the convergence loop — the full session lifecycle.</p>
           <div>
-            <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px;">Three types</div>
+            <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px;">Two types</div>
             <div style="font-size: 12.5px; color: var(--muted); line-height: 1.75;">
-              <span style="color: var(--text); font-weight: 600;">T · Trigger</span> — user entry; owns the full session<br>
-              <span style="color: var(--text); font-weight: 600;">A · Regular</span> — called by a worker; one artifact, one platform<br>
-              <span style="color: var(--text); font-weight: 600;">U · Utility</span> — user tool; does its own work, no agents
+              <span style="color: var(--text); font-weight: 600;">W · Workflow</span> — user entry; owns the full session or does its own work<br>
+              <span style="color: var(--text); font-weight: 600;">P · Procedure</span> — called by a worker; one artifact, one platform
             </div>
           </div>
           <div class="caption" style="margin-top: 0; font-size: 12px;">A persona without a trigger skill is incomplete. Always start here.</div>
@@ -810,7 +809,7 @@
     </div>
 
     <div class="tree" style="font-size: 12px; line-height: 1.7; padding: 14px 20px;">
-<span class="dm">User  →</span>  <span class="ac">Skill (T)</span>  <span class="dm">→ routes, loads context, spawns →</span>  <span class="rl">Orchestrator</span>  <span class="dm">→ Decision block →</span>  <span class="ac">Skill (T)</span>  <span class="dm">→ spawns →</span>  <span class="rl">Planners / Worker</span>  <span class="dm">→</span>  <span class="ac">Skills (A)</span>  <span class="dm">+ Reference  →  code  ·</span>  <span style="color:#D2A8FF;">MCP</span>  <span class="dm">→ external systems</span></div>
+<span class="dm">User  →</span>  <span class="ac">Skill (W)</span>  <span class="dm">→ routes, loads context, spawns →</span>  <span class="rl">Orchestrator</span>  <span class="dm">→ Decision block →</span>  <span class="ac">Skill (W)</span>  <span class="dm">→ spawns →</span>  <span class="rl">Planners / Worker</span>  <span class="dm">→</span>  <span class="ac">Skills (P)</span>  <span class="dm">+ Reference  →  code  ·</span>  <span style="color:#D2A8FF;">MCP</span>  <span class="dm">→ external systems</span></div>
   </section>
 
   <!-- ═══════════════════════════════════════════
@@ -818,11 +817,11 @@
   ════════════════════════════════════════════ -->
   <section class="slide" id="s8">
     <div class="label">Phase 01 — Foundation · Skills</div>
-    <h2 class="headline">Three types. <em>Each with a different job, a different caller.</em></h2>
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;">
+    <h2 class="headline">Two types. <em>Each with a different job, a different caller.</em></h2>
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;">
 
       <div class="code-panel">
-        <div class="code-panel-header good">T · Trigger — user entry, owns the session</div>
+        <div class="code-panel-header good">W · Workflow — user entry, owns the session</div>
         <pre style="font-size: 11px;"><span class="cm">--- builder-plan-feature ---</span>
 <span class="ac">user-invocable: true</span>
 <span class="ac">allowed-tools: Agent, AskUserQuestion, Read</span>
@@ -848,11 +847,14 @@ Spawn orchestrator <span class="bl">(synthesize)</span>
 
 <span class="cm"># Step 5 — Execute</span>
 Spawn feature-worker
-  plan.md + context.md <span class="bl">inlined</span></pre>
+  plan.md + context.md <span class="bl">inlined</span>
+
+<span class="cm"># Simple W skills do their own work</span>
+<span class="dm">(no Agent tool needed — Read, Edit, Ask)</span></pre>
       </div>
 
       <div class="code-panel">
-        <div class="code-panel-header neutral">A · Regular — worker calls, one artifact</div>
+        <div class="code-panel-header neutral">P · Procedure — worker calls, one artifact</div>
         <pre style="font-size: 11px;"><span class="cm">--- builder-domain-create-entity ---</span>
 <span class="bd">user-invocable: false</span>
 <span class="ac">allowed-tools: Read, Grep, Bash</span>
@@ -878,35 +880,10 @@ Platform conventions applied here
 <span class="ac">Glob + Grep verified path only</span></pre>
       </div>
 
-      <div class="code-panel">
-        <div class="code-panel-header" style="color: var(--blue); background: rgba(121,192,255,0.06); border-color: rgba(121,192,255,0.25); border-bottom-color: var(--border);">U · Utility — user tool, no agents</div>
-        <pre style="font-size: 11px;"><span class="cm">--- tracker-adjust-ticket ---</span>
-<span class="ac">user-invocable: true</span>
-<span class="ac">allowed-tools: Read, Edit, AskUserQuestion</span>
-<span class="dm">(no Agent tool — does its own work)</span>
-
-<span class="cm"># Arguments</span>
-$ARGUMENTS — path to ticket .md
-
-<span class="cm"># Step 1 — Resolve ticket path</span>
-Use $ARGUMENTS or AskUserQuestion
-
-<span class="cm"># Step 2 — Parse session notes</span>
-Read notes from conversation context
-
-<span class="cm"># Step 3 — Append structured section</span>
-<span class="ac">### Work Items Completed</span>
-<span class="ac">### Decisions Made</span>
-<span class="ac">### Open Questions</span>
-
-<span class="cm"># Rule: original description untouched</span>
-Edit appends only — never overwrites</pre>
-      </div>
-
     </div>
     <div class="caption" style="margin-top: 12px;">
-      Start with <strong>Type U</strong> if you don't need an agent. Add <strong>Type T</strong> when you need to spawn one.
-      <strong>Type A</strong> only when a worker needs platform-specific artifact creation — the worker decides which skill to call.
+      Start with <strong>Type W</strong> for any user-facing entry — simple ones do their own work, complex ones delegate to agents.
+      <strong>Type P</strong> only when a worker needs platform-specific artifact creation — the worker decides which skill to call.
     </div>
   </section>
 

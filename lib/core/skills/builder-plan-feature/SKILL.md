@@ -12,14 +12,23 @@ Parse all arguments passed to this skill. Classify each by pattern:
 | Pattern | Type | Fetch via |
 |---|---|---|
 | URL containing `jira` or `atlassian`, or bare ticket ID (e.g. `PROJ-123`) | Jira ticket | Atlassian MCP tool (attempt; failure = not configured) |
-| URL containing `figma.com` | Figma design | Figma MCP tool (attempt; failure = not configured) |
+| URL containing `figma.com` | Figma design | Spawn `builder-figma-worker` (isolated context; failure = not configured or fetch error) |
 | Any other URL | PRD / doc | `WebFetch` |
 | Path ending in `.md` | Local file | `Read` |
 
 If no arguments are provided, skip this step — proceed to Step 1 with `resolved_inputs = []`.
 
-Attempt all fetches in parallel. Collect:
-- `resolved_inputs` — successfully fetched items, each as `{ type, source, content }`
+Resolve the run directory path before fetching:
+```bash
+echo "$(git rev-parse --show-toplevel)/.claude/agentic-state/runs/<feature>"
+```
+
+For Figma inputs, spawn one `builder-figma-worker` per URL — pass `figma_url`, `feature`, and `run_dir`. Spawn all Figma workers in parallel if multiple. For all other input types, fetch inline.
+
+Attempt all fetches (inline + spawned workers) in parallel. Collect:
+- `resolved_inputs` — successfully fetched items:
+  - Non-Figma: `{ type, source, content }`
+  - Figma: `{ type, source, summary, file }` — `summary` is the worker's `## Figma Worker Output` block; `file` is the written `.md` path
 - `failed_inputs` — items that could not be fetched, each as `{ type, source, reason }`
 
 If `failed_inputs` is non-empty, call `AskUserQuestion`:
@@ -48,7 +57,8 @@ Spawn `builder-feature-orchestrator` with mode `gather-intent`:
 >
 > <if resolved_inputs is non-empty, include the following block — otherwise omit>
 > **Resolved Inputs:**
-> <for each item in resolved_inputs: "### <type> — <source>\n<content>">
+> <for each non-Figma item: "### <type> — <source>\n<content>">
+> <for each Figma item: paste the `## Figma Worker Output` summary block — do NOT inline file contents>
 >
 > Ask the user for feature intent. Return a `Decision: spawn-planners` block when done.
 
@@ -73,6 +83,10 @@ From the current `Decision: spawn-planners` block, read the `spawn:` list. Spawn
 - `builder-app-planner` — if `app` is in the spawn list
 
 Pass to each planner: feature name, platform, module-path (from orchestrator's gather-intent output).
+
+For `builder-pres-planner` specifically — if Figma inputs were resolved in Step 0, also pass:
+- Each Figma summary (`## Figma Worker Output` block)
+- Each Figma reference file path (`file` from resolved Figma inputs)
 
 Wait for all planners in this round to complete.
 
@@ -149,6 +163,10 @@ Read `plan.md` and `context.md` from the run directory written in Step 3. Then s
 >
 > **context.md**
 > <content>
+>
+> <if Figma inputs were resolved in Step 0, include — otherwise omit>
+> **Figma Reference Files:**
+> <list each file path from resolved Figma inputs>
 >
 > Proceed directly to the first pending artifact.
 

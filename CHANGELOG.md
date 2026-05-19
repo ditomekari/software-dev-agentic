@@ -7,6 +7,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.13.2] — 2026-05-19
+
+### Added
+- `builder-figma-worker` — new builder worker that fetches a Figma file or node via Figma MCP in an isolated context window, extracts per-screen design details into a structured section-queryable `figma-<slug>.md`, and returns a compact summary. Raw Figma data never enters the main session.
+
+### Changed
+- `builder-plan-feature` — Step 0 now spawns `builder-figma-worker` per Figma URL (parallel if multiple) instead of attempting inline MCP call; Figma results tracked as `{ summary, file }`. Step 2a passes Figma summaries and file paths to `builder-pres-planner`. Step 5 injects Figma file paths into the feature worker spawn prompt.
+- `builder-feature-worker` — Screen and Component artifacts now `section-query` Figma reference files before calling the skill; matched section passed as `## Figma Design Reference` in the skill prompt. No match proceeds silently.
+
+---
+
 ## [7.13.1] — 2026-05-19
 
 ### Changed
