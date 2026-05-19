@@ -91,22 +91,40 @@ Derive the skill from each artifact's type in plan.md:
 | Component | `pres-create-component` |
 
 
-## Component Reuse Check — UI Layer
+## UI Resolution Priority — Screen and Component Artifacts
 
-Before executing any Screen or Component artifact, check whether an existing one already covers the need.
+Before executing any Screen or Component artifact, resolve UI elements in this order. Never skip a level — each check gates the next.
 
-**Step 1 — Find the platform's shared component paths:**
-Grep `.claude/reference/code-architecture/presentation-impl.md` for the section heading `Shared Component Paths`. This section lists the exact directories and file patterns to search for this platform.
+**Level 1 — Design system catalog (highest authority)**
 
-**Step 2 — Search those paths:**
-For each path listed, run a Grep for keywords matching the component need (e.g. the component type, a key prop name, or a UI concept like "card", "list", "avatar"). Use the file pattern from the section (e.g. `*View.swift`, `*.tsx`, `*.dart`).
+Check for a catalog and resolve all UI elements:
+```bash
+find "$(git rev-parse --show-toplevel)/.claude/reference/design-system" -name "*catalog.md" 2>/dev/null | head -1
+```
+If a catalog is found:
+- Read `.claude/skills/builder-pres-resolve-design/SKILL.md`
+- Follow its instructions — pass `artifact_name` and `ui_description` (Figma section content when available, otherwise plan.md description)
+- Collect both output sections:
+  - `## Design System Bindings` — elements with catalog matches → **these are hard constraints for the creation skill**
+  - `## Custom Widgets` — elements with no match → must be created as custom widgets following platform conventions
 
-**Step 3 — Decide:**
-- If a match exists and covers ≥80% of the needed behavior → **reuse it**. Document which component was selected and why.
-- If a partial match exists → **extend it** directly via `Read` + `Edit` rather than creating a parallel component.
-- If no match exists → proceed to create a new one.
+If no catalog: skip Level 1 and proceed to Level 2.
 
-Never skip this check. Creating a duplicate of an existing component is a worse outcome than a slightly imperfect reuse.
+**Level 2 — Project shared components**
+
+For each element in `## Custom Widgets` (or all elements if no catalog): check whether an existing shared component in the project already covers the need.
+
+- Grep `.claude/reference/code-architecture/presentation-impl.md` for the section heading `Shared Component Paths` to find directories and file patterns for this platform
+- For each path: Grep for keywords matching the element (e.g. "card", "list", "avatar") using the platform file pattern
+- If a match covers ≥80% of the needed behavior → **reuse it**, remove it from Custom Widgets
+- If a partial match → **extend it** via `Read` + `Edit`, remove it from Custom Widgets
+- If no match → leave it in Custom Widgets (will be created new)
+
+**Level 3 — Create new (last resort)**
+
+Elements remaining in `## Custom Widgets` after Level 2 are created fresh using framework primitives following platform conventions.
+
+Never create a duplicate of a catalog component or an existing project component. Creating a duplicate is a worse outcome than a slightly imperfect reuse.
 
 ## Per-Artifact Workflow
 
@@ -115,26 +133,15 @@ Never skip this check. Creating a duplicate of an existing component is a worse 
 **If `status: create` — call skill:**
 1. Write checkpoint: update `next_artifact` in state.json to this artifact's name before doing any other work
 2. Load the layer-specific impl reference for this artifact type (e.g. `domain-impl.md` for entities/use cases, `data-impl.md` for mappers/datasources, `presentation-impl.md` for stateholders/screens). Grep `^## ` to list headings, read only the section(s) relevant to this artifact type
-3. **If artifact type is Screen or Component and Figma reference files were passed in the spawn prompt:**
-   - `Glob` for all `figma-*.md` files in the run directory inputs folder
-   - For each file: `section-query` for `## <artifact name>` (use exact artifact name from plan.md)
-   - If a match is found: collect the section content as `## Figma Design Reference` — pass it in the skill prompt
-   - If no match: proceed without Figma context
-4. **If artifact type is Screen or Component:**
-   Check for a design system catalog:
-   ```bash
-   find "$(git rev-parse --show-toplevel)/.claude/reference/design-system" -name "*catalog.md" 2>/dev/null | head -1
-   ```
-   If a catalog file is found:
-   - Read `.claude/skills/builder-pres-resolve-design/SKILL.md`
-   - Follow its instructions, passing the artifact name and UI description from plan.md
-   - Collect the `## Design System Bindings` output — pass it in the skill prompt
-   If not found: proceed without design bindings.
-5. Resolve skill path: `.claude/skills/<skill-name>/SKILL.md`
-6. `Read` the skill file
-7. Follow its instructions as the authoritative procedure for `<platform>`
-8. Validate (see Validation below)
-9. Update state.json: add artifact to `completed_artifacts`, advance `next_artifact` to the following artifact
+3. **If artifact type is Screen or Component:** run the full UI Resolution Priority (see section above). Collect:
+   - `## Design System Bindings` — pass to creation skill as a **hard constraint**: "Use exactly these symbols. Do not substitute framework primitives for any element in this table."
+   - `## Custom Widgets` — pass to creation skill as the list of elements to implement as new widgets
+   - `## Figma Design Reference` — if Figma files were passed in the spawn prompt: `Glob` for `figma-*.md` in the run directory inputs folder, `section-query` for `## <artifact name>`, collect the section if found. Pass to creation skill alongside bindings.
+4. Resolve skill path: `.claude/skills/<skill-name>/SKILL.md`
+5. `Read` the skill file
+6. Follow its instructions as the authoritative procedure for `<platform>`
+7. Validate (see Validation below)
+8. Update state.json: add artifact to `completed_artifacts`, advance `next_artifact` to the following artifact
 
 **If `status: exists` — direct edit:**
 1. Write checkpoint: update `next_artifact` in state.json to this artifact's name before doing any other work

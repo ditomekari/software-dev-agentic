@@ -7,6 +7,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.15.0] — 2026-05-20
+
+### Changed
+- `builder-pres-resolve-design` — expanded output to include `## Custom Widgets` table (unmatched elements), Variants column in bindings table, and on-demand source fallback via pub-cache for deep constructor detail. `ui_description` input now explicitly accepts Figma section content as primary source over plan.md description.
+- `builder-feature-worker` — replaced separate Component Reuse Check and design system steps with a unified **UI Resolution Priority** section: Level 1 = design system catalog (hard constraint), Level 2 = project shared components, Level 3 = create new. Figma reference is now collected alongside bindings and passed together to creation skills. Bindings are enforced as hard constraints ("do not substitute framework primitives for any element in this table").
+
+---
+
 ## [7.14.2] — 2026-05-20
 
 ### Added
