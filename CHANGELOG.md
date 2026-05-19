@@ -7,6 +7,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.11.0] — 2026-05-19
+
+### Added
+- `qa` persona — new QA engineer persona with two workflows: test case generation and UI automation script generation.
+  - `qa-testcase-worker` — generates and maintains mobile UI test cases (create + regenerate modes); outputs `.csv` to `/test-cases/`; posts Jira comments.
+  - `qa-automation-worker` — translates test case CSVs into Maestro YAML scripts; writes to `/test-automation/maestro/`; one file per feature area.
+  - `qa-generate-testcase` skill — W-skill entry point for test case workflow; resume routing detects existing CSVs.
+  - `qa-generate-automation` skill — W-skill entry point for automation script workflow; passes CSV path (not contents) to worker.
+
+---
+
 ## [7.10.0] — 2026-05-19
 
 ### Added
