@@ -7,6 +7,16 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.9.1] — 2026-05-19
+
+### Changed
+- `builder-test-worker` — slimmed to a thin layer router; delegates all test creation to `builder-test-procedure` via layer routing table. Removed inline test strategy, coverage targets, and skill-selection logic.
+
+### Added
+- `builder-plan-feature` Step 6 — after feature execution, prompts user to run unit tests for created domain/data/presentation artifacts via `builder-test-worker`; surfaces artifact paths on skip.
+
+---
+
 ## [7.9.0] — 2026-05-19
 
 ### Added

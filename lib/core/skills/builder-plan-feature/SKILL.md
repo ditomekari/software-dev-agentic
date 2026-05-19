@@ -112,3 +112,28 @@ Read `plan.md` and `context.md` from the run directory written in Step 3. Then s
 > <content>
 >
 > Proceed directly to the first pending artifact.
+
+## Step 6 — Unit Tests
+
+Read `state.json` from the run directory. Extract all paths under `domain`, `data`, and `presentation` keys — these are the unit-testable artifacts. Skip `ui` and `app`.
+
+Call `AskUserQuestion` immediately — do NOT describe choices in prose:
+
+```
+question    : "Run unit tests for created artifacts?"
+header      : "Unit Tests"
+multiSelect : false
+options     :
+  - label: "Yes",  description: "Generate unit tests for all created artifacts via builder-test-worker"
+  - label: "Skip", description: "I'll run tests manually later"
+```
+
+**Yes** → spawn `builder-test-worker`:
+
+> target: <comma-separated artifact paths from state.json>
+> platform: <platform from plan.md frontmatter>
+
+**Skip** → surface the paths as a reminder:
+
+> Tests not generated. Run when ready:
+> `/builder-test-worker` — targets: <paths>
