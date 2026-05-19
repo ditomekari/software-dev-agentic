@@ -1,0 +1,27 @@
+# Generated artifacts
+chroma_db/
+dataset/
+
+# Python virtual environment
+venv/
+.venv/
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Log files
+*.log
+run_output.log
+pkg_output.log
+
+# Environment files
+.env
+.env.local
+.repoknowledge.toml
+
+# OS files
+.DS_Store
+Thumbs.db

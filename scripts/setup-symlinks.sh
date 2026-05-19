@@ -5,11 +5,9 @@
 # Also used by sync.sh to re-link after a submodule update.
 #
 # Usage:
-#   software-dev-agentic/scripts/setup-symlinks.sh --platform=web
-#   software-dev-agentic/scripts/setup-symlinks.sh --platform=ios-talenta
-#   software-dev-agentic/scripts/setup-symlinks.sh --platform=android-talenta
-#   software-dev-agentic/scripts/setup-symlinks.sh --platform=flutter-mobile-talenta
-#   software-dev-agentic/scripts/setup-symlinks.sh --platform=flutter-qontak-chat
+#   software-dev-agentic/scripts/setup-symlinks.sh --platform=<platform>
+#
+# Available platforms: see software-dev-agentic/lib/platforms/
 #
 # Priority order: agents.local > platform > core  (first link wins)
 
@@ -314,6 +312,33 @@ if [ -f "$PROJECT_ROOT/CLAUDE.md" ] && grep -q '\[AppName\]' "$PROJECT_ROOT/CLAU
   fi
 fi
 
+# ── Dart Knowledge Config (flutter platforms only) ───────────────────────────
+
+echo ""
+DART_CONFIG="$CLAUDE_DIR/dart-knowledge.yaml"
+case "$PLATFORM" in
+  flutter-*)
+    if [ -f "$DART_CONFIG" ]; then
+      echo "skip  dart-knowledge.yaml (already exists)"
+    else
+      cat > "$DART_CONFIG" << 'YAML'
+# dart-knowledge.yaml
+# Lists the ChromaDB collections available in this project.
+# Used by dart-knowledge-query to route questions to the right collection.
+# Run /dart-repo-knowledge to generate a collection first.
+collections:
+  - name: ""        # e.g. my_library_v1_0_0
+    description: "" # describe what this collection covers
+# default_collection: ""
+YAML
+      echo "create .claude/dart-knowledge.yaml (fill in your collections)"
+    fi
+    ;;
+  *)
+    echo "skip  dart-knowledge.yaml (not a flutter platform)"
+    ;;
+esac
+
 # ── Contract compliance check ─────────────────────────────────────────────────
 
 echo ""
@@ -327,4 +352,12 @@ echo "Done. software-dev-agentic ($PLATFORM) is wired."
 echo ""
 echo "Next steps:"
 echo "  1. Fill in CLAUDE.md placeholders"
-echo "  2. git add .claude/ && git commit -m 'chore: wire software-dev-agentic ($PLATFORM)'"
+case "$PLATFORM" in
+  flutter-*)
+    echo "  2. Fill in .claude/dart-knowledge.yaml (collection names + descriptions)"
+    echo "  3. git add .claude/ && git commit -m 'chore: wire software-dev-agentic ($PLATFORM)'"
+    ;;
+  *)
+    echo "  2. git add .claude/ && git commit -m 'chore: wire software-dev-agentic ($PLATFORM)'"
+    ;;
+esac

@@ -1,0 +1,6 @@
+chromadb==1.5.5
+tqdm==4.67.1
+fastmcp==3.1.1
+python-dotenv==1.2.2
+tomli==2.0.1
+sentence-transformers==3.0.1

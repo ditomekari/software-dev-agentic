@@ -40,31 +40,32 @@ ask_ai() {
 }
 
 ask_platform() {
+  local platforms=()
+  while IFS= read -r dir; do
+    platforms+=("$(basename "$dir")")
+  done < <(find "$SCRIPTS/../lib/platforms" -mindepth 1 -maxdepth 1 -type d | sort)
+
   echo "  Platform:"
-  echo "    1) ios-talenta"
-  echo "    2) android-talenta"
-  echo "    3) web"
-  echo "    4) flutter-mobile-talenta"
-  echo "    5) flutter-qontak-chat"
-  echo "    6) flutter-qontak-crm"
-  echo "    7) other"
+  local i=1
+  for p in "${platforms[@]}"; do
+    printf "    %d) %s\n" "$i" "$p"
+    i=$((i + 1))
+  done
+  printf "    %d) other\n" "$i"
   echo ""
   printf "  Choice: "
   read -r choice
-  case "$choice" in
-    1) PLATFORM="ios-talenta" ;;
-    2) PLATFORM="android-talenta" ;;
-    3) PLATFORM="web" ;;
-    4) PLATFORM="flutter-mobile-talenta" ;;
-    5) PLATFORM="flutter-qontak-chat" ;;
-    6) PLATFORM="flutter-qontak-crm" ;;
-    7)
-      printf "  Platform name: "
-      read -r PLATFORM
-      ;;
-    *) PLATFORM="$choice" ;;
-  esac
   echo ""
+
+  if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -lt "$i" ]; then
+    PLATFORM="${platforms[$((choice - 1))]}"
+  elif [ "$choice" = "$i" ]; then
+    printf "  Platform name: "
+    read -r PLATFORM
+    echo ""
+  else
+    PLATFORM="$choice"
+  fi
 }
 
 # ── Parse command + passthrough args ─────────────────────────────────────────

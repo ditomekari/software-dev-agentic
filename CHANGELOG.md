@@ -7,6 +7,21 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.12.0] — 2026-05-19
+
+### Added
+- `dart-repo-knowledge` skill (`lib/core/skills/dart-repo-knowledge/`) — RAG pipeline for any Dart codebase; extracts dartdoc, embeds into ChromaDB, supports versioned snapshots, cross-version diffing, Jira/PR extraction.
+- `dart-knowledge-builder` agent — guides generation and comparison tasks; delegates queries to `dart-knowledge-query`.
+- `dart-knowledge-query` agent — read-only semantic lookup against ChromaDB collections; resolves collection from `.claude/dart-knowledge.yaml` (project-local config) rather than a hardcoded routing table.
+- `flutter-mobile-jurnal` CLAUDE-template.md — new platform template scaffolded.
+
+### Changed
+- `setup-symlinks.sh` — auto-creates `.claude/dart-knowledge.yaml` stub on flutter platforms; usage comment now points to `lib/platforms/` directory instead of a hardcoded list.
+- `sda.sh` — `ask_platform` now reads platform list dynamically from `lib/platforms/` directory; no manual updates needed when new platforms are added.
+- All platform CLAUDE-template.md files — added `## Dart Knowledge` section instructing Claude to query `dart-knowledge-query` when `.claude/dart-knowledge.yaml` exists and the task requires Dart API context.
+
+---
+
 ## [7.11.0] — 2026-05-19
 
 ### Added
