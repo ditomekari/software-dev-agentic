@@ -1,15 +1,54 @@
 ---
 name: builder-plan-feature
-description: Plan then build a feature — gathers intent via builder-feature-orchestrator, runs the convergence planning loop (spawning only the needed layer planners per round), shows an interactive approval prompt, then executes with builder-feature-worker on approval.
+description: Plan then build a feature — optionally resolves external inputs (Jira, PRD, Figma, local .md), gathers intent via builder-feature-orchestrator, runs the convergence planning loop (spawning only the needed layer planners per round), shows an interactive approval prompt, then executes with builder-feature-worker on approval.
 user-invocable: true
-allowed-tools: Agent, AskUserQuestion, Bash, Read
+allowed-tools: Agent, AskUserQuestion, Bash, Read, WebFetch
 ---
+
+## Step 0 — Resolve Inputs
+
+Parse all arguments passed to this skill. Classify each by pattern:
+
+| Pattern | Type | Fetch via |
+|---|---|---|
+| URL containing `jira` or `atlassian`, or bare ticket ID (e.g. `PROJ-123`) | Jira ticket | Atlassian MCP tool (attempt; failure = not configured) |
+| URL containing `figma.com` | Figma design | Figma MCP tool (attempt; failure = not configured) |
+| Any other URL | PRD / doc | `WebFetch` |
+| Path ending in `.md` | Local file | `Read` |
+
+If no arguments are provided, skip this step — proceed to Step 1 with `resolved_inputs = []`.
+
+Attempt all fetches in parallel. Collect:
+- `resolved_inputs` — successfully fetched items, each as `{ type, source, content }`
+- `failed_inputs` — items that could not be fetched, each as `{ type, source, reason }`
+
+If `failed_inputs` is non-empty, call `AskUserQuestion`:
+
+```
+question    : "Some inputs couldn't be fetched: <list each with reason>. What would you like to do?"
+header      : "Input Fetch"
+multiSelect : false
+options     :
+  - label: "Continue",         description: "Proceed with the inputs that were successfully resolved"
+  - label: "Provide manually", description: "Paste or describe the missing content before continuing"
+  - label: "Cancel",           description: "Stop and retry after fixing the inputs"
+```
+
+**Continue** → proceed with `resolved_inputs` as-is.
+
+**Provide manually** → for each item in `failed_inputs`, ask the user to paste or describe the content. Append each to `resolved_inputs`. Then proceed.
+
+**Cancel** → stop.
 
 ## Step 1 — Gather Intent
 
 Spawn `builder-feature-orchestrator` with mode `gather-intent`:
 
 > **Mode: gather-intent**
+>
+> <if resolved_inputs is non-empty, include the following block — otherwise omit>
+> **Resolved Inputs:**
+> <for each item in resolved_inputs: "### <type> — <source>\n<content>">
 >
 > Ask the user for feature intent. Return a `Decision: spawn-planners` block when done.
 

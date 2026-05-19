@@ -7,6 +7,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.13.1] — 2026-05-19
+
+### Changed
+- `builder-plan-feature` — added Step 0 (Resolve Inputs): parses skill arguments, classifies each as Jira ticket (Atlassian MCP), Figma design (Figma MCP), PRD/doc URL (`WebFetch`), or local `.md` file (`Read`). All fetches attempted in parallel; failures batched into a single `AskUserQuestion` (Continue / Provide manually / Cancel). Resolved inputs passed as `## Resolved Inputs` block into the gather-intent orchestrator call. Added `WebFetch` to `allowed-tools`.
+
+---
+
 ## [7.13.0] — 2026-05-19
 
 ### Added
