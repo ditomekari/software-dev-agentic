@@ -28,14 +28,12 @@ Required — return `MISSING INPUT: <param>` immediately if any are absent:
 
 ## Search Protocol — Never Violate
 
-Before any Read call, ask: "Do I need the full file, or just a specific symbol/section?"
-
-| What you need | Tool |
+| What you need | Use |
 |---|---|
-| Exact line number for a class, function, or symbol | `Grep` for the name |
-| A section of a reference doc | `Grep` for `^## SectionName` → use returned line as offset → `Read(file, offset=line, limit=N)` |
+| Section of a reference doc | `section-query` |
+| Class, function, or type in source | `symbol-query` |
 | Whether a file exists | `Glob` |
-| Full file structure (only when writing a new matching file) | `Read` — justified |
+| Full file structure (style-match only) | `Read` — justified |
 
 **Read-once rule:** Once you have read a file, do not read it again. Re-reading the same file is a token waste signal.
 

@@ -329,6 +329,17 @@ Read a full file only when: (a) you need its complete structure to write a new m
 
 > Read:Grep ratio should stay below 3. A ratio above 6 is a P6 violation.
 
+**`knowledge-query` — canonical two-step lookup:**
+
+The Grep → Read(offset, limit) sequence is the named pattern for all targeted lookups. Two flavors:
+
+| Flavor | Target | Mechanic |
+|---|---|---|
+| `section-query` | A `##` section in a reference doc | `Grep ^## <Term>` → `Read(offset=line, limit=N)` — N comes from the `<!-- N -->` annotation on the heading |
+| `symbol-query` | A class, function, or type in source | `Grep <SymbolName>` → `Read(offset=line-5, limit=60)` — expand only if the body exceeds the window |
+
+Agent files reference these flavors by name. The mechanics above are the authoritative definition — do not re-specify them in individual agent bodies.
+
 **Authoring rule — section line counts:**
 
 Every `##` section heading in a reference doc must carry a line-count comment: `## Section Name <!-- N -->` where N is the number of lines from this heading to the line before the next `##` heading (or EOF for the last section). This is not cosmetic — agents extract N as the `limit` in `Read(file, offset=heading_line, limit=N)` to read exactly one section without loading the whole file. A missing or non-integer `<!-- N -->` forces a full-file Read.

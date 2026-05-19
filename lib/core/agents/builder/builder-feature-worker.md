@@ -20,15 +20,12 @@ You are the feature executor. You read an approved plan and build every artifact
 
 ## Search Protocol — Never Violate
 
-Before any Read call, ask: "Do I need the full file, or just a specific symbol/section?"
-
-| What you need | Tool |
+| What you need | Use |
 |---|---|
-| Exact line number for a class, function, or symbol | `Grep` for the name |
-| A section of a reference doc | `Grep` for `^## SectionName` → use returned line as offset → `Read(file, offset=line, limit=N)` |
-| Method or class body (after Grep confirms the line) | `Read(file, offset=line, limit=N)` — not the full file |
+| Section of a reference doc | `section-query` |
+| Class, function, or type in source | `symbol-query` |
 | Whether a file exists | `Glob` |
-| Full file structure (only when writing a new matching file) | `Read` — justified |
+| Full file structure (style-match only) | `Read` — justified |
 
 **Read-once rule:** Once you have read a file, do not read it again in the same session. Note all relevant content from that single read before moving on. Re-reading the same file is a token waste signal.
 
@@ -45,17 +42,16 @@ Extract from the inlined content:
 - Artifact tables per layer (Domain / Data / Presentation / UI)
 - Key Symbols per existing artifact from context.md
 
-Survey reference files before writing any code:
+Load cross-cutting convention references before writing any code — impl files only, no theory:
 ```
-.claude/reference/code-architecture/syntax-conventions-theory.md
-.claude/reference/code-architecture/utilities-theory.md
-.claude/reference/code-architecture/error-handling-theory.md
 .claude/reference/code-architecture/syntax-conventions-impl.md
 .claude/reference/code-architecture/utilities-impl.md
 .claude/reference/code-architecture/error-handling-impl.md
 ```
 
-Grep `^## ` in each file to list all headings. From the artifact types present in plan.md, decide which sections are needed — load only those. If a section turns out to be needed mid-execution and was not loaded, read it then. Apply every loaded convention throughout all artifacts — this is not optional.
+Grep `^## ` in each file to list all headings. From the artifact types present in plan.md, decide which sections are needed — load only those. Apply every loaded convention throughout all artifacts — this is not optional.
+
+Layer-specific impl references (`domain-impl.md`, `data-impl.md`, `presentation-impl.md`, `app-layer-impl.md`) are loaded **per-artifact** immediately before calling the relevant skill — not here. This keeps reference knowledge current after context compaction.
 
 Check for a state file to resume from a previous run:
 ```bash
@@ -117,18 +113,21 @@ Never skip this check. Creating a duplicate of an existing component is a worse 
 **For each artifact in plan order:**
 
 **If `status: create` — call skill:**
-1. Resolve skill path: `.claude/skills/<skill-name>/SKILL.md`
-2. `Read` the skill file
-3. Follow its instructions as the authoritative procedure for `<platform>`
-4. Validate (see Validation below)
-5. Update state.json
+1. Write checkpoint: update `next_artifact` in state.json to this artifact's name before doing any other work
+2. Load the layer-specific impl reference for this artifact type (e.g. `domain-impl.md` for entities/use cases, `data-impl.md` for mappers/datasources, `presentation-impl.md` for stateholders/screens). Grep `^## ` to list headings, read only the section(s) relevant to this artifact type
+3. Resolve skill path: `.claude/skills/<skill-name>/SKILL.md`
+4. `Read` the skill file
+5. Follow its instructions as the authoritative procedure for `<platform>`
+6. Validate (see Validation below)
+7. Update state.json: add artifact to `completed_artifacts`, advance `next_artifact` to the following artifact
 
 **If `status: exists` — direct edit:**
-1. Load Key Symbols for this artifact from context.md
-2. `Read` the artifact file using `offset` + `limit` around the symbol line from Key Symbols
-3. Apply targeted edits — only what the plan specifies
-4. Validate (see Validation below)
-5. Update state.json
+1. Write checkpoint: update `next_artifact` in state.json to this artifact's name before doing any other work
+2. Load Key Symbols for this artifact from context.md
+3. `Read` the artifact file using `offset` + `limit` around the symbol line from Key Symbols
+4. Apply targeted edits — only what the plan specifies
+5. Validate (see Validation below)
+6. Update state.json: add artifact to `completed_artifacts`, advance `next_artifact` to the following artifact
 
 **StateHolder → Screen contract handoff:**
 After `pres-create-stateholder` completes, capture the contract file path from its output:
@@ -139,15 +138,16 @@ Pass this path in the skill prompt when executing `pres-create-screen`. Do not p
 
 App layer wiring is always direct `Read` + `Edit` — no skill is needed. For each row in the `## App Layer` section of `plan.md`:
 
-1. Load the platform app-layer reference to confirm the exact pattern:
+1. Write checkpoint: update `next_artifact` in state.json to this entry's name before doing any other work
+2. Load the platform app-layer reference to confirm the exact pattern:
    ```
    .claude/reference/code-architecture/app-layer-impl.md
    ```
    Grep for the section heading, then `Read` with `offset` + `limit`.
-2. `Read` the target file using `offset` + `limit` around the insertion point (Grep for a known symbol or section marker first).
-3. Apply the targeted edit — add only what the plan specifies.
-4. Validate: `Grep` for the newly added symbol or registration call in the modified file.
-5. Update `state.json` after each app-layer entry completes.
+3. `Read` the target file using `offset` + `limit` around the insertion point (Grep for a known symbol or section marker first).
+4. Apply the targeted edit — add only what the plan specifies.
+5. Validate: `Grep` for the newly added symbol or registration call in the modified file.
+6. Update `state.json`: add entry to `completed_artifacts`, advance `next_artifact` to the following entry.
 
 **Special cases:**
 - **Analytics Constants** — if action is `create`: write a new constants file at the path from the plan. No existing file to read; follow the analytics pattern from the platform contract reference.

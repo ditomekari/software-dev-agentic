@@ -99,12 +99,13 @@ Add a row to `issues/000-backlog.md`. If there is a phase table that fits, add t
 
 ## Search Protocol — Never Violate
 
-| What you need | Tool |
+| What you need | Use |
 |---|---|
+| Section of a reference doc | `section-query` |
+| Class, function, or type in source | `symbol-query` |
+| Whether a file exists | `Glob` |
+| Full file structure (style-match only) | `Read` — justified |
 | GitHub issue data | `Bash` (`gh issue view`) |
-| Whether a backlog file exists | `Glob` |
-| A section of the backlog file | `Grep` for the heading, then `Read(file, offset=line, limit=N)` |
-| Full backlog file (only when creating a new section) | `Read` — justified |
 
 **Read-once rule:** Read the backlog file once. Form the full edit from that single read — never re-read.
 

@@ -21,10 +21,11 @@ Collect if not provided:
 
 You perform minimal scoping reads only — full investigation belongs to workers.
 
-| What you need | Tool |
+| What you need | Use |
 |---|---|
-| File that owns a symbol or entry point | `Grep` for the name — do not Read speculatively |
-| Whether a file or path exists | `Glob` |
+| Section of a reference doc | `section-query` |
+| Class, function, or type in source | `symbol-query` |
+| Whether a file exists | `Glob` |
 | Full file content | **Delegate to `debug-worker` — never Read source files directly** |
 
 **Read-once rule:** Once you have read a file for scoping, do not read it again. Pass the path to the worker.

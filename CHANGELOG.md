@@ -7,6 +7,23 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.13.0] — 2026-05-19
+
+### Added
+- `knowledge-query` term defined in `core-design-principles.md` — canonical name for the Grep → Read(offset, limit) lookup pattern, with two flavors: `section-query` (reference doc sections) and `symbol-query` (class/function bodies in source).
+- `docs/initiatives/worktree-isolation-initiative.md` — initiative doc for running feature builds in isolated git worktrees; covers lifecycle design, branch naming, state-file co-location, resume behavior, and open questions.
+
+### Changed
+- `builder-feature-worker` — removed theory refs from pre-flight survey; cross-cutting convention load is now impl-only (`syntax-conventions-impl`, `utilities-impl`, `error-handling-impl`). Layer-specific impl refs (`domain-impl`, `data-impl`, `presentation-impl`, `app-layer-impl`) are now loaded per-artifact immediately before the skill call, keeping reference knowledge current after context compaction.
+- `builder-feature-worker` — checkpoint discipline: `next_artifact` in `state.json` is now written at the **start** of each artifact (before any file work), not only on completion. Prevents ambiguous resume state after compaction or session interruption.
+- `agentic-deck.html` — search protocol code panel updated to show `section-query` and `symbol-query` flavors by name.
+- All 13 standard agents (workers + planners) — Search Protocol tables updated to reference `section-query` / `symbol-query` by name instead of repeating the full Grep → Read mechanic inline.
+
+### Fixed
+- `builder-test-worker` — added `Write, Edit` to tools frontmatter; previously could not write test files.
+
+---
+
 ## [7.12.1] — 2026-05-19
 
 ### Fixed

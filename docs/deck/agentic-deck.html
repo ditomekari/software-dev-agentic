@@ -1015,17 +1015,16 @@ Read offset=<span class="ac">42</span> limit=<span class="ac">15</span>  <span c
   <span class="dm">Specific. Implementation. Syntax.</span></pre>
       </div>
       <div class="code-panel">
-        <div class="code-panel-header neutral">Search protocol — never load the full file</div>
-        <pre style="font-size: 11px;"><span class="cm"># 1. Find the file</span>
-Glob: <span class="ac">*GetUserUseCase*</span>
-→ Domain/UseCases/GetUserUseCase.swift
-
-<span class="cm"># 2. Find the line</span>
-Grep: <span class="ac">"^## Entity"</span> in domain.md → line <span class="ac">42</span>
-
-<span class="cm"># 3. Read the window only</span>
-Read offset=<span class="ac">42</span> limit=<span class="ac">15</span>
+        <div class="code-panel-header neutral">knowledge-query — never load the full file</div>
+        <pre style="font-size: 11px;"><span class="cm"># section-query  (reference doc section)</span>
+Grep: <span class="ac">"^## Entity"</span> in domain-impl.md → line <span class="ac">42</span>
+Read offset=<span class="ac">42</span> limit=<span class="ac">15</span>   <span class="dm">← N from <!-- 15 --> annotation</span>
 → <span class="ac">15 lines</span>. Section only. <span class="dm">Not 200.</span>
+
+<span class="cm"># symbol-query  (class / function body)</span>
+Grep: <span class="ac">"class GetUserUseCase"</span> → line <span class="ac">18</span>
+Read offset=<span class="ac">13</span> limit=<span class="ac">60</span>   <span class="dm">← window around symbol</span>
+→ body only. <span class="dm">Expand only if class exceeds window.</span>
 
 <span class="cm"># Read-once rule</span>
 <span class="bd">Never re-read a file seen this session</span></pre>

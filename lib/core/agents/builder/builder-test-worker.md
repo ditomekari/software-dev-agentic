@@ -3,7 +3,7 @@ name: builder-test-worker
 description: Route test creation requests to builder-test-procedure — identifies the CLEAN layer from the target file path and invokes the procedure skill. Entry point for unit test generation across all platforms.
 model: sonnet
 user-invocable: true
-tools: Read, Glob, Grep
+tools: Read, Write, Edit, Glob, Grep
 related_skills:
   - builder-test-procedure
 ---
@@ -25,12 +25,12 @@ Unit tests only. No UI/integration tests. No modifications to production source 
 
 ## Search Protocol — Never Violate
 
-Before any Read call, ask: "Do I need the full file, or just a specific symbol/section?"
-
-| What you need | Tool |
+| What you need | Use |
 |---|---|
-| A specific class, function, or type | `Grep` for the name |
+| Section of a reference doc | `section-query` |
+| Class, function, or type in source | `symbol-query` |
 | Whether a file exists | `Glob` |
+| Full file structure (style-match only) | `Read` — justified |
 
 ## Layer Routing
 

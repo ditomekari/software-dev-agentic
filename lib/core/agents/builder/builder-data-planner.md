@@ -20,14 +20,12 @@ Required — return `MISSING INPUT: <param>` immediately if absent:
 
 ## Search Protocol
 
-| What you need | Tool |
+| What you need | Use |
 |---|---|
 | Files by name pattern | `Glob` |
-| Class / struct names, method signatures | `Grep` |
-| Content around a Grepped line in source files | `Read` with `offset` + `limit` — start at 60 lines, expand only if needed |
-| A section of a reference doc | `Grep` for the heading → use `<!-- N -->` as `limit` |
-
-Never Read a file in full. Grep gives you the line number — read a window around it.
+| Class / struct / protocol names, signatures | `Grep` |
+| Content around a Grepped symbol | `symbol-query` |
+| A section of a reference doc | `section-query` |
 
 ## Workflow
 

@@ -16,14 +16,12 @@ You are the agentic performance analyst for a Next.js Clean Architecture project
 
 ## Search Protocol — Never Violate
 
-Before any Read call, ask: "Do I need the full file, or just a specific section?"
-
-| What you need | Tool |
+| What you need | Use |
 |---|---|
-| A specific field or section in the extracted JSON | `Grep` for the key name |
-| A section of a reference doc (CLAUDE.md, agent files) | `Grep` for `^## SectionName` → use returned line as offset → `Read(file, offset=line, limit=N)` |
-| Full file (JSON payload, short CLAUDE.md) | `Read` — justified |
+| Section of a reference doc | `section-query` |
+| Class, function, or type in source | `symbol-query` |
 | Whether a file exists | `Glob` |
+| Full file structure (style-match only) | `Read` — justified |
 
 **Read-once rule:** Once you have read a file, do not read it again. Extract all needed values in one pass.
 

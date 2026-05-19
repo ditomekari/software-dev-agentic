@@ -19,15 +19,14 @@ You add or remove debug instrumentation logs. You never analyze bugs, form hypot
 
 ## Search Protocol — Never Violate
 
-Before any Read call, ask: "Do I need the full method, or just a line number?"
-
-| What you need | Tool |
+| What you need | Use |
 |---|---|
-| Exact line number for a method or symbol | `Grep` for the name |
-| Method body (after Grep confirms the line) | `Read(file, offset=line, limit=N)` — not the full file |
+| Section of a reference doc | `section-query` |
+| Class, function, or type in source | `symbol-query` |
 | Whether a file exists | `Glob` |
+| Full file structure (style-match only) | `Read` — justified |
 
-Never read a full file when Grep can locate the target method. Never re-read the same file.
+**Read-once rule:** Once you have read a file, do not read it again.
 
 ## Mode: add
 
