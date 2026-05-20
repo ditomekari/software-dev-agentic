@@ -29,35 +29,35 @@ Required — return `MISSING INPUT: <param>` immediately if absent:
 **Step 1 — Fetch**
 
 Call the Figma MCP tool with `figma_url`. From the response extract:
-- All top-level frames / screens — name and node ID
-- For each frame: child component names, visible text annotations, interaction notes (e.g. bottom sheet, pull-to-refresh, navigation), named states (loading / content / empty / error / custom)
-- Any shared components or design tokens referenced across multiple screens
+- The fetched node's name and its **parent frame or component set name** — this is the logical screen this node belongs to
+- Child component names, visible text annotations, interaction notes (e.g. bottom sheet, pull-to-refresh, navigation)
+- The named state this node represents (loading / content / empty / error / custom) — infer from node name or variant property if not explicit
+- Any shared components or design tokens referenced
 
 **Step 2 — Structure and write**
 
-Derive `<slug>` from the Figma URL (use the file key or last meaningful path segment).
+Derive `<slug>` from the **fetched node's name** (not the URL). Sanitize to lowercase-kebab (e.g. `expense-index-empty-data`).
 
 Write `<run_dir>/inputs/figma-<slug>.md`:
 
 ```markdown
 ---
 source: <figma_url>
+parent_frame: <parent frame or component set name from Figma hierarchy>
+state: <state name this node represents>
 ---
 
-## <FrameName>
-**Components:** <comma-separated component names used in this screen>
-**States:** <named states — e.g. loading, content, empty, error>
+## <NodeName>
+**Components:** <comma-separated component names used in this frame>
+**State:** <state this frame represents — e.g. empty, loading, content, error>
 **Interactions:** <key interactions — e.g. pull-to-refresh, FAB opens bottom sheet>
 **Annotations:** <designer notes visible in the frame, if any>
-
-## <AnotherFrame>
-...
 ```
 
-Rules for section headings:
-- One `##` per top-level frame — use the exact Figma frame name
-- If a frame has no components, states, or interactions of note, write `**Components:** none` and omit the rest
-- Do not nest sub-frames as additional `##` sections — describe them in the parent frame's body
+Rules:
+- One `##` per fetched node — use the exact Figma node name
+- If the node has no components, interactions, or annotations of note, write `**Components:** none` and omit the rest
+- Do not recursively expand sub-frames — describe them in the body
 
 **Step 3 — Verify**
 
@@ -71,9 +71,10 @@ Return exactly this block — no prose outside it:
 ## Figma Worker Output
 source: <figma_url>
 file: <run_dir>/inputs/figma-<slug>.md
-screens: <comma-separated list of frame names, in Figma order>
-components: <comma-separated list of notable shared component names>
-notes: <1–2 sentences on design-level observations relevant to implementation — e.g. empty states defined, approval has 3-step stepper, currency field uses native bridge>
+parent_frame: <parent frame or component set name — the logical screen this node belongs to>
+state: <state name this node represents>
+components: <comma-separated list of notable component names>
+notes: <1–2 sentences on design-level observations relevant to implementation>
 ```
 
 ## Extension Point

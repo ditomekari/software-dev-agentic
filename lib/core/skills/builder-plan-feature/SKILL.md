@@ -5,6 +5,62 @@ user-invocable: true
 allowed-tools: Agent, AskUserQuestion, Bash, Read, WebFetch
 ---
 
+## Preflight — Check Existing Runs
+
+Before resolving any inputs, check for existing runs:
+
+```bash
+find "$(git rev-parse --show-toplevel)/.claude/agentic-state/runs" -maxdepth 2 -name "plan.md" 2>/dev/null
+```
+
+If none found → proceed to Step 0.
+
+If found → call `AskUserQuestion`:
+
+```
+question    : "Existing plans found in runs/. What would you like to do?"
+header      : "Resume or Start"
+multiSelect : false
+options     :
+  - label: "Continue existing", description: "Pick an existing plan to review and resume"
+  - label: "Start fresh",       description: "Plan and build a new feature from scratch"
+```
+
+**Start fresh** → proceed to Step 0.
+
+**Continue existing** → read the `feature` name and `status` from the frontmatter of each found `plan.md`. Also read `state.json` alongside each plan to get `completed_artifacts` count. Call `AskUserQuestion` with one option per run (up to 4):
+
+```
+question    : "Which plan would you like to resume?"
+header      : "Existing Plans"
+multiSelect : false
+options     : one per found plan — label: <feature>, description: "<completed count> artifacts done · status: <status>"
+```
+
+After the user selects a run:
+
+1. Read `plan.md`, `context.md`, and `state.json` from the selected run directory.
+2. Proceed to **Step R — Review and Adjust**, then continue to Step 4.
+
+## Step R — Review and Adjust (Resume path only)
+
+Spawn `builder-feature-orchestrator` with mode `review-resume`:
+
+> **Mode: review-resume**
+>
+> **plan.md**
+> \<content\>
+>
+> **context.md**
+> \<content\>
+>
+> **Completed artifacts:** \<comma-separated list from state.json completed_artifacts, or "none"\>
+
+Wait for the orchestrator's decision block:
+
+- **`Decision: resume-as-is`** → proceed to Step 4 using the existing plan.md and context.md.
+- **`Decision: resume-updated`** → write the updated plan.md and context.md content returned by the orchestrator to the run directory. Then proceed to Step 4.
+
 ## Step 0 — Resolve Inputs
 
 Parse all arguments passed to this skill. Classify each by pattern:
@@ -49,6 +105,43 @@ options     :
 
 **Cancel** → stop.
 
+### Step 0b — Verify Figma Grouping (skip if no Figma inputs were resolved)
+
+From the collected Figma worker outputs, group by `parent_frame`:
+
+```
+<parent_frame A> → [{ state, file }, { state, file }, ...]
+<parent_frame B> → [{ state, file }, ...]
+```
+
+Call `AskUserQuestion`:
+
+```
+question    : "Figma frames detected. We grouped them into screens based on their parent frame in Figma.
+               Does this look correct?
+
+               <for each group:>
+               • <parent_frame> — states: <comma-separated state names>
+               "
+header      : "Figma Screens"
+multiSelect : false
+options     :
+  - label: "Correct",  description: "Grouping looks right — proceed to planning"
+  - label: "Adjust",   description: "The grouping needs changes before we continue"
+```
+
+**Correct** → store as `figma_groups` and proceed.
+
+**Adjust** → ask the user to describe corrections (which frames belong to which screen, any renames). Apply to `figma_groups`. Then proceed.
+
+`figma_groups` structure carried forward:
+```
+[
+  { screen: "<parent_frame>", states: ["<state>", ...], files: ["<abs-path>", ...] },
+  ...
+]
+```
+
 ## Step 1 — Gather Intent
 
 Spawn `builder-feature-orchestrator` with mode `gather-intent`:
@@ -84,9 +177,8 @@ From the current `Decision: spawn-planners` block, read the `spawn:` list. Spawn
 
 Pass to each planner: feature name, platform, module-path (from orchestrator's gather-intent output).
 
-For `builder-pres-planner` specifically — if Figma inputs were resolved in Step 0, also pass:
-- Each Figma summary (`## Figma Worker Output` block)
-- Each Figma reference file path (`file` from resolved Figma inputs)
+For `builder-pres-planner` specifically — if `figma_groups` was established in Step 0b, also pass:
+- The full `figma_groups` structure (screen → states + file paths) — do NOT inline file contents
 
 Wait for all planners in this round to complete.
 

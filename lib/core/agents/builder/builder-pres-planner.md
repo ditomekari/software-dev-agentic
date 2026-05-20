@@ -17,6 +17,7 @@ Required — return `MISSING INPUT: <param>` immediately if absent:
 | `platform` | `web`, `ios`, or `flutter` |
 | `module-path` | Root path of the feature's module in the project |
 | `scope` | *(optional)* Comma-separated artifact types to search: `stateholder`, `screen`, `component`, `navigator`. Omit to search all. |
+| `figma_groups` | *(optional)* Verified screen groupings from the entry skill — `[{ screen, states: [...], files: [...] }]`. Already confirmed by the user. |
 
 ## Search Protocol
 
@@ -53,6 +54,30 @@ Grep `^## ` in each file. For each heading that matches the scope and its prereq
 | `navigator` | all sections of `navigation.md` | — |
 
 Always include `Dependency Rule`, `Creation Order`, and `Layer Invariants`. If scope is absent, read all sections.
+
+**Step 0a — Consume Figma groups (skip if `figma_groups` not provided)**
+
+`figma_groups` is pre-verified by the user — do not re-question the grouping.
+
+For each group `{ screen, states, files }`:
+1. For each file in `files`: `Grep` for `^## ` to confirm available sections — do not read the whole file.
+2. For each state file: `Read` with `offset` + `limit` targeting that section only. Extract:
+   - `Components` — UI elements present in this state
+   - `State` — the named state this frame represents
+   - `Interactions` — user-initiated actions (tap, pull-to-refresh, swipe, FAB, etc.)
+   - `Annotations` — designer notes relevant to implementation
+3. Aggregate per screen: full state list, all unique components across states, all interactions.
+
+Build `figma_context`:
+```
+{ "<screen>" → { states: [...], components: [...], interactions: [...], per_state: { "<state>" → { components, interactions, annotations } } } }
+```
+
+Use `figma_context` in Steps 1–3:
+- **Step 1**: each screen in `figma_context` with no matching source file → status `create`; matching existing file → status `exists`.
+- **Step 3**: for new StateHolders — derive `state_fields` to cover all named states; derive `event_cases` from all interactions across states. For new Screens/Components — note per-state component differences as implementation hints.
+
+Do not carry raw Figma content into the findings output — only the alignment table and derived hints below.
 
 **Step 1 — Locate and classify artifacts**
 
@@ -116,6 +141,13 @@ Return exactly this structure — no prose:
 - state_fields: <field>: <Type>, ...
 - event_cases: <Case1>, <Case2>, ...
 - mark_sections: <MARK: Section1>, <MARK: Section2>, ...
+
+### Figma Alignment
+(omit section entirely if no Figma inputs were provided)
+
+| Screen (parent_frame) | Artifact | States | Key Interactions |
+|---|---|---|---|
+| <screen name from figma_groups> | <ArtifactClassName> | empty, loading, content, error | pull-to-refresh, FAB opens bottom sheet |
 
 ### Impact Recommendations
 | Layer | Reason | Urgency |

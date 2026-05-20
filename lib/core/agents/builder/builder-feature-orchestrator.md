@@ -189,24 +189,24 @@ separate-ui-layer: true | false
 # Feature Plan: <name>
 
 ## Domain Layer
-| Artifact | Type | Status | Notes |
-|---|---|---|---|
+| Artifact | Type | Status | Progress | Notes |
+|---|---|---|---|---|
 
 ## Data Layer
-| Artifact | Type | Status | Notes |
-|---|---|---|---|
+| Artifact | Type | Status | Progress | Notes |
+|---|---|---|---|---|
 
 ## Presentation Layer
-| Artifact | Type | Status | Notes |
-|---|---|---|---|
+| Artifact | Type | Status | Progress | Notes |
+|---|---|---|---|---|
 
 ## UI Layer
-| Artifact | Type | Status | Notes |
-|---|---|---|---|
+| Artifact | Type | Status | Progress | Notes |
+|---|---|---|---|---|
 
 ## App Layer
-| Concern | File | Action | Notes |
-|---|---|---|---|
+| Concern | File | Action | Progress | Notes |
+|---|---|---|---|---|
 
 ## Skipped Layers
 <list any layers skipped and why>
@@ -254,6 +254,12 @@ module-path: <detected module path>
 - ViewModel/BLoC suffix: `<suffix>`
 - File location pattern: `<ModuleName>/<Layer>/<Type>/`
 
+## Figma Alignment
+(omit entirely if no Figma inputs were resolved)
+
+| Frame | Artifact | States | Key Interactions |
+|---|---|---|---|
+
 ## Key Symbols
 (omit entirely for new-only features)
 
@@ -262,7 +268,53 @@ module-path: <detected module path>
 - execute_signature / primary_method_signature: ...
 ```
 
-**Step 6 — Return plan summary** as a flat numbered list (one line per artifact, layer + status). Do not return file contents — the entry skill handles the approval interaction.
+**Step 6 — Populate Figma Alignment in context.md** (only if `### Figma Alignment` is present in any planner findings block): copy the full alignment table into the `## Figma Alignment` section of context.md. This is the authoritative frame→artifact mapping used by the worker during execution.
+
+**Step 7 — Return plan summary** as a flat numbered list (one line per artifact, layer + status). Do not return file contents — the entry skill handles the approval interaction.
+
+## Mode: review-resume
+
+Called when the user selects an existing run to resume. Receives current `plan.md`, `context.md`, and `completed_artifacts` list inline.
+
+**Step 1 — Summarize current state:**
+
+Parse all artifact rows from plan.md (all layer tables). Cross-reference each against `completed_artifacts` — mark each as done or pending. Produce a one-line summary:
+
+> `<X> of <Y> artifacts done — pending: <comma-separated names>`
+
+**Step 2 — Ask the user:**
+
+Call `AskUserQuestion`:
+
+```
+question    : "<summary line>. How would you like to proceed?"
+header      : "Resume Plan"
+multiSelect : false
+options     :
+  - label: "Resume as-is",  description: "Continue from where it left off — no changes to the plan"
+  - label: "Adjust scope",  description: "Add, remove, or change artifacts before resuming"
+  - label: "Add context",   description: "Provide updated requirements or new inputs before resuming"
+```
+
+**Resume as-is** → return:
+
+```
+## Decision: resume-as-is
+```
+
+**Adjust scope** → ask the user what to add, remove, or change. Update the relevant artifact rows in plan.md and any affected sections of context.md. Return:
+
+```
+## Decision: resume-updated
+
+### plan.md
+<full updated plan.md content>
+
+### context.md
+<full updated context.md content>
+```
+
+**Add context** → ask the user for updated requirements or new inputs. Incorporate into context.md (append under `## Discovered Artifacts` or `## Naming Conventions` as appropriate). If new artifacts are implied, add them to plan.md with `Progress: pending`. Return `Decision: resume-updated` with updated content.
 
 ## Write Path Rule
 

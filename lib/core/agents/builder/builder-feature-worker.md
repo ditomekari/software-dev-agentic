@@ -131,25 +131,30 @@ Never create a duplicate of a catalog component or an existing project component
 **For each artifact in plan order:**
 
 **If `status: create` — call skill:**
-1. Write checkpoint: update `next_artifact` in state.json to this artifact's name before doing any other work
+1. Write checkpoint: update `next_artifact` in state.json to this artifact's name before doing any other work. Update this artifact's `Progress` cell in plan.md to `in-progress`.
 2. Load the layer-specific impl reference for this artifact type (e.g. `domain-impl.md` for entities/use cases, `data-impl.md` for mappers/datasources, `presentation-impl.md` for stateholders/screens). Grep `^## ` to list headings, read only the section(s) relevant to this artifact type
-3. **If artifact type is Screen or Component:** run the full UI Resolution Priority (see section above). Collect:
-   - `## Design System Bindings` — pass to creation skill as a **hard constraint**: "Use exactly these symbols. Do not substitute framework primitives for any element in this table."
-   - `## Custom Widgets` — pass to creation skill as the list of elements to implement as new widgets
-   - `## Figma Design Reference` — if Figma files were passed in the spawn prompt: `Glob` for `figma-*.md` in the run directory inputs folder, `section-query` for `## <artifact name>`, collect the section if found. Pass to creation skill alongside bindings.
+3. **If artifact type is StateHolder, Screen, or Component:** resolve Figma reference for this artifact (if `## Figma Alignment` is present in context.md):
+   - Look up this artifact's name in the `Figma Alignment` table to get the corresponding `Frame` name and its `States` + `Key Interactions`.
+   - `Glob` for `figma-*.md` in `runs/<feature>/inputs/`. `Grep` for `^## <Frame name>` to get the line offset. `Read` with `offset` + `limit` to extract that section only — do not read the full file.
+   - Collect as `## Figma Design Reference` block: frame name, components, states, interactions, annotations.
+   - **StateHolder**: pass `States` and `Key Interactions` as implementation constraints — state fields must cover all named states; event cases must cover all interactions.
+   - **Screen / Component**: also run the full UI Resolution Priority (see section above). Pass all three to the creation skill:
+     - `## Design System Bindings` — hard constraint: use exactly these symbols, no framework primitive substitutions
+     - `## Custom Widgets` — elements to implement as new widgets
+     - `## Figma Design Reference` — states, interactions, and annotations from the aligned frame
 4. Resolve skill path: `.claude/skills/<skill-name>/SKILL.md`
 5. `Read` the skill file
 6. Follow its instructions as the authoritative procedure for `<platform>`
 7. Validate (see Validation below)
-8. Update state.json: add artifact to `completed_artifacts`, advance `next_artifact` to the following artifact
+8. Update state.json: add artifact to `completed_artifacts`, advance `next_artifact` to the following artifact. Update this artifact's `Progress` cell in plan.md to `done`.
 
 **If `status: exists` — direct edit:**
-1. Write checkpoint: update `next_artifact` in state.json to this artifact's name before doing any other work
+1. Write checkpoint: update `next_artifact` in state.json to this artifact's name before doing any other work. Update this artifact's `Progress` cell in plan.md to `in-progress`.
 2. Load Key Symbols for this artifact from context.md
 3. `Read` the artifact file using `offset` + `limit` around the symbol line from Key Symbols
 4. Apply targeted edits — only what the plan specifies
 5. Validate (see Validation below)
-6. Update state.json: add artifact to `completed_artifacts`, advance `next_artifact` to the following artifact
+6. Update state.json: add artifact to `completed_artifacts`, advance `next_artifact` to the following artifact. Update this artifact's `Progress` cell in plan.md to `done`.
 
 **StateHolder → Screen contract handoff:**
 After `pres-create-stateholder` completes, capture the contract file path from its output:
@@ -160,7 +165,7 @@ Pass this path in the skill prompt when executing `pres-create-screen`. Do not p
 
 App layer wiring is always direct `Read` + `Edit` — no skill is needed. For each row in the `## App Layer` section of `plan.md`:
 
-1. Write checkpoint: update `next_artifact` in state.json to this entry's name before doing any other work
+1. Write checkpoint: update `next_artifact` in state.json to this entry's name before doing any other work. Update this entry's `Progress` cell in plan.md to `in-progress`.
 2. Load the platform app-layer reference to confirm the exact pattern:
    ```
    .claude/reference/code-architecture/app-layer-impl.md
@@ -169,7 +174,7 @@ App layer wiring is always direct `Read` + `Edit` — no skill is needed. For ea
 3. `Read` the target file using `offset` + `limit` around the insertion point (Grep for a known symbol or section marker first).
 4. Apply the targeted edit — add only what the plan specifies.
 5. Validate: `Grep` for the newly added symbol or registration call in the modified file.
-6. Update `state.json`: add entry to `completed_artifacts`, advance `next_artifact` to the following entry.
+6. Update `state.json`: add entry to `completed_artifacts`, advance `next_artifact` to the following entry. Update this entry's `Progress` cell in plan.md to `done`.
 
 **Special cases:**
 - **Analytics Constants** — if action is `create`: write a new constants file at the path from the plan. No existing file to read; follow the analytics pattern from the platform contract reference.
