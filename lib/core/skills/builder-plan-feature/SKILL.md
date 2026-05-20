@@ -48,19 +48,32 @@ options     :
 
 **Start fresh** → proceed to Step 0.
 
-**Continue existing** → read the `feature` name and `status` from the frontmatter of each found `plan.md`. Also read `state.json` alongside each plan to get `completed_artifacts` count. Immediately call `AskUserQuestion` — no other work between reading and asking:
+**Continue existing** → run this bash command to extract run metadata without using the `Read` tool:
+
+```bash
+ROOT="$(git rev-parse --show-toplevel)/.claude/agentic-state/runs"
+find "$ROOT" -maxdepth 2 -name "plan.md" | while read f; do
+  dir="$(dirname "$f")"
+  feature="$(grep "^feature:" "$f" | head -1 | sed 's/^feature: *//')"
+  status="$(grep "^status:" "$f" | head -1 | sed 's/^status: *//')"
+  count="$(python3 -c "import json,sys; d=json.load(open('$dir/state.json')); print(len(d.get('completed_artifacts',[])))" 2>/dev/null || echo '?')"
+  echo "$feature|$status|$count|$dir"
+done
+```
+
+Call `AskUserQuestion` immediately with the bash output — one option per line:
 
 ```
 question    : "Which plan would you like to resume?"
 header      : "Existing Plans"
 multiSelect : false
-options     : one per found plan — label: <feature>, description: "<completed count> artifacts done · status: <status>"
+options     : one per output line — label: <feature>, description: "<count> artifacts done · status: <status>"
 ```
 
-After the user selects a run, the next action is **Step R** — nothing else:
+After the user selects a run:
 
-1. Derive `run_dir` from the path of the selected `plan.md` — take its parent directory.
-2. Proceed directly to **Step R**. Do not read any other files. Do not analyse the state. The orchestrator owns all intent gathering and codebase exploration.
+1. Set `run_dir` to the `<dir>` value from the selected line.
+2. Proceed directly to **Step R**. The orchestrator owns all intent gathering and codebase exploration.
 
 ## Step R — Review and Adjust (Resume path only)
 

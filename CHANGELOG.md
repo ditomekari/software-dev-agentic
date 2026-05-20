@@ -7,6 +7,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.22.6] — 2026-05-21
+
+### Fixed
+- `builder-plan-feature` — Preflight "Continue existing" path no longer calls `Read` to get plan metadata. Replaced with a single bash one-liner that extracts `feature`, `status`, and `completed count` from `plan.md` + `state.json` via grep/python3. Skill never touches the `Read` tool before the orchestrator, removing the foothold that caused segues into ticket and code file reads.
+
+---
+
 ## [7.22.5] — 2026-05-21
 
 ### Fixed
