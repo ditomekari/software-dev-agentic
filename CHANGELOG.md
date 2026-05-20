@@ -7,6 +7,16 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.18.0] — 2026-05-20
+
+### Added
+- `builder-figma-worker` — section node detection: when `get_design_context` returns sparse metadata (section containing multiple child frames), the worker extracts all child frame IDs, fetches each in parallel via `get_design_context` + `get_screenshot`, and writes three artifacts per child frame. Returns one `## Figma Worker Output` block per child, separated by blank lines.
+
+### Changed
+- `builder-plan-feature` (Step 1.5) — `figma_resolved` collection now handles multiple output blocks from a single worker invocation (section node case).
+
+---
+
 ## [7.17.1] — 2026-05-20
 
 ### Fixed
