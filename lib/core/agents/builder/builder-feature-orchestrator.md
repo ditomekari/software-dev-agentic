@@ -74,7 +74,7 @@ options:
 
 Called first for any new interactive feature. Ask only what is needed:
 
-1. **Feature name** — used as the run directory key
+1. **Feature name** — used as the run directory key. If Figma URLs are listed as "pending fetch" in the inputs, note them — they will be fetched after this step using the feature name.
 2. **Platform** — `web`, `ios`, or `flutter`
 3. **New or update?** — new feature or modifying an existing one?
    - Update → which layers need changes (default: assume all)

@@ -71,31 +71,23 @@ Wait for the orchestrator's decision block:
 
   Then write the updated `plan.md` and `context.md` from the orchestrator's response. The worker always reads `plan.md` as the active plan; prior versions are preserved as `plan-v1.md`, `plan-v2.md`, etc. Proceed to Step 4.
 
-## Step 0 — Resolve Inputs
+## Step 0 — Classify Inputs
 
 Parse all arguments passed to this skill. Classify each by pattern:
 
-| Pattern | Type | Fetch via |
+| Pattern | Type | Action |
 |---|---|---|
-| URL containing `jira` or `atlassian`, or bare ticket ID (e.g. `PROJ-123`) | Jira ticket | Atlassian MCP tool (attempt; failure = not configured) |
-| URL containing `figma.com` | Figma design | Spawn `builder-figma-worker` (isolated context; failure = not configured or fetch error) |
-| Any other URL | PRD / doc | `WebFetch` |
-| Path ending in `.md` | Local file | `Read` |
+| URL containing `jira` or `atlassian`, or bare ticket ID (e.g. `PROJ-123`) | Jira ticket | Fetch inline via Atlassian MCP |
+| URL containing `figma.com` | Figma design | Store in `pending_figma_urls` — fetch in Step 1.5 |
+| Any other URL | PRD / doc | Fetch inline via `WebFetch` |
+| Path ending in `.md` | Local file | Read inline via `Read` |
 
-If no arguments are provided, skip this step — proceed to Step 1 with `resolved_inputs = []`.
+If no arguments are provided, skip this step — proceed to Step 1 with `resolved_inputs = []` and `pending_figma_urls = []`.
 
-Resolve the run directory path before fetching:
-```bash
-echo "$(git rev-parse --show-toplevel)/.claude/agentic-state/runs/<feature>"
-```
-
-For Figma inputs, spawn one `builder-figma-worker` per URL — pass `figma_url`, `feature`, and `run_dir`. Spawn all Figma workers in parallel if multiple. For all other input types, fetch inline.
-
-Attempt all fetches (inline + spawned workers) in parallel. Collect:
-- `resolved_inputs` — successfully fetched items:
-  - Non-Figma: `{ type, source, content }`
-  - Figma: `{ type, source, summary, file }` — `summary` is the worker's `## Figma Worker Output` block; `file` is the written `.md` path
-- `failed_inputs` — items that could not be fetched, each as `{ type, source, reason }`
+Fetch all non-Figma inputs inline now. Collect:
+- `resolved_inputs` — successfully fetched non-Figma items: `{ type, source, content }`
+- `pending_figma_urls` — Figma URLs deferred until feature name is known after Step 1
+- `failed_inputs` — non-Figma items that could not be fetched: `{ type, source, reason }`
 
 If `failed_inputs` is non-empty, call `AskUserQuestion`:
 
@@ -115,19 +107,64 @@ options     :
 
 **Cancel** → stop.
 
-### Step 0b — Verify Figma Grouping (skip if no Figma inputs were resolved)
+## Step 1 — Gather Intent
 
-From the collected Figma worker outputs, group by `parent_frame`:
+Spawn `builder-feature-orchestrator` with mode `gather-intent`:
+
+> **Mode: gather-intent**
+>
+> <if resolved_inputs or pending_figma_urls is non-empty, include the following block — otherwise omit>
+> **Resolved Inputs:**
+> <for each non-Figma item: "### <type> — <source>\n<content>">
+> <if pending_figma_urls is non-empty: "### Figma designs (pending fetch)\n<list each URL — will be fetched after feature name is confirmed>">
+>
+> Ask the user for feature intent. Return a `Decision: spawn-planners` block when done.
+
+Wait for the orchestrator to return. Extract the `Decision: spawn-planners` block. Note the `feature` name from the orchestrator output.
+
+Initialize:
+- `visited` = [] (empty set of explored layers)
+- `all_findings` = [] (accumulated planner findings across all rounds)
+- `round` = 1
+
+## Step 1.5 — Fetch Figma Inputs (skip if `pending_figma_urls` is empty)
+
+Now that `feature` is known, resolve the run directory:
+
+```bash
+echo "$(git rev-parse --show-toplevel)/.claude/agentic-state/runs/<feature>"
+```
+
+Spawn one `builder-figma-worker` per URL in `pending_figma_urls` — pass `figma_url`, `feature`, and `run_dir`. **Spawn all workers in parallel** (single Agent tool call).
+
+Collect results:
+- `figma_resolved` — successful outputs: the worker's `## Figma Worker Output` block per URL
+- `figma_failed` — failed fetches: `{ source, reason }`
+
+If `figma_failed` is non-empty, call `AskUserQuestion`:
 
 ```
-<parent_frame A> → [{ state, file }, { state, file }, ...]
-<parent_frame B> → [{ state, file }, ...]
+question    : "Some Figma frames couldn't be fetched: <list each with reason>. What would you like to do?"
+header      : "Figma Fetch"
+multiSelect : false
+options     :
+  - label: "Continue",  description: "Proceed with the frames that were successfully fetched"
+  - label: "Cancel",    description: "Stop and retry after fixing the Figma inputs"
+```
+
+### Step 1.5b — Verify Figma Grouping (skip if `figma_resolved` is empty)
+
+Group `figma_resolved` outputs by `parent_frame`:
+
+```
+<parent_frame A> → [{ state, file, layout_file, screenshot }, ...]
+<parent_frame B> → [{ state, file, layout_file, screenshot }, ...]
 ```
 
 Call `AskUserQuestion`:
 
 ```
-question    : "Figma frames detected. We grouped them into screens based on their parent frame in Figma.
+question    : "Figma frames fetched. We grouped them into screens based on their parent frame in Figma.
                Does this look correct?
 
                <for each group:>
@@ -157,21 +194,6 @@ options     :
   ...
 ]
 ```
-
-## Step 1 — Gather Intent
-
-Spawn `builder-feature-orchestrator` with mode `gather-intent`:
-
-> **Mode: gather-intent**
->
-> <if resolved_inputs is non-empty, include the following block — otherwise omit>
-> **Resolved Inputs:**
-> <for each non-Figma item: "### <type> — <source>\n<content>">
-> <for each Figma item: paste the `## Figma Worker Output` summary block — do NOT inline file contents>
->
-> Ask the user for feature intent. Return a `Decision: spawn-planners` block when done.
-
-Wait for the orchestrator to return. Extract the `Decision: spawn-planners` block.
 
 Initialize:
 - `visited` = [] (empty set of explored layers)
