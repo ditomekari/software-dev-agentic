@@ -5,22 +5,17 @@ user-invocable: true
 allowed-tools: Agent, AskUserQuestion, Bash, Read, WebFetch
 ---
 
-## Skill Scope — Hard Boundaries
+## Step 0A — Input Gate (always first)
 
-This skill is a **thin coordinator**. It routes, delegates, and orchestrates — it never reads source code or verifies implementation.
+Read the user's message. Classify intent:
 
-**`Read` is permitted only for:**
-- `plan.md` / `state.json` — to populate run-selection UI in Preflight
-- `findings-round-*.json` / `figma-groups.json` — to restore interrupted planning state
-- Non-Figma input files passed explicitly as arguments (PRD, ticket `.md` files, local spec files)
-- `plan.md` / `context.md` — to inline into worker prompts in Step 5
+**Verification / review intent** — triggered when the message contains any of: `verify`, `check`, `review`, `read the code`, `look at the code`, `test`, `confirm`, `validate`, `what was built`, `is it correct`, or similar phrases asking to inspect existing work.
 
-**`Read` is never permitted for:**
-- Source code files (`.dart`, `.swift`, `.kt`, `.ts`, `.tsx`, any implementation file)
-- Any file under the downstream project's feature module directories
+→ **Do not read any source files, run any tests, or do any codebase exploration.**
+→ Run the Preflight bash commands to find existing runs. Derive `run_dir`. Proceed directly to **Step R** — the orchestrator will gather the user's concerns as `open_questions` and route them to planners.
+→ The user's full message is the intent. Pass it verbatim to the orchestrator in Step R1. Do not act on it yourself.
 
-**If the user's message asks to "verify", "check", "review", or "read the code":**
-Do not read any source files. Pass the user's stated concerns to the orchestrator as `open_questions`. The orchestrator and planners own all codebase exploration.
+**New feature / planning intent** — no verification keywords → proceed to Preflight normally.
 
 ## Preflight — Check Existing Runs
 

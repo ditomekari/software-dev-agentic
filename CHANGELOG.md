@@ -7,6 +7,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.22.4] — 2026-05-21
+
+### Fixed
+- `builder-plan-feature` — replaced text-based "Skill Scope" prohibitions with a structural `## Step 0A — Input Gate` that fires before any other work. Verification/review/check/test intent is intercepted immediately: skip directly to Preflight bash + Step R, pass the user's message to the orchestrator as `open_questions`, no inline source reads or test runs. Positive routing instruction instead of prohibition — cannot be overridden by explicit user instructions.
+
+---
+
 ## [7.22.3] — 2026-05-21
 
 ### Fixed
