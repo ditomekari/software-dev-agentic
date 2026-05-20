@@ -134,14 +134,19 @@ Never create a duplicate of a catalog component or an existing project component
 1. Write checkpoint: update `next_artifact` in state.json to this artifact's name before doing any other work. Update this artifact's `Progress` cell in plan.md to `in-progress`.
 2. Load the layer-specific impl reference for this artifact type (e.g. `domain-impl.md` for entities/use cases, `data-impl.md` for mappers/datasources, `presentation-impl.md` for stateholders/screens). Grep `^## ` to list headings, read only the section(s) relevant to this artifact type
 3. **If artifact type is StateHolder, Screen, or Component:** resolve Figma reference for this artifact (if `## Figma Alignment` is present in context.md):
-   - Look up this artifact's name in the `Figma Alignment` table to get the corresponding `Frame` name and its `States` + `Key Interactions`.
-   - `Glob` for `figma-*.md` in `runs/<feature>/inputs/`. `Grep` for `^## <Frame name>` to get the line offset. `Read` with `offset` + `limit` to extract that section only — do not read the full file.
-   - Collect as `## Figma Design Reference` block: frame name, components, states, interactions, annotations.
-   - **StateHolder**: pass `States` and `Key Interactions` as implementation constraints — state fields must cover all named states; event cases must cover all interactions.
-   - **Screen / Component**: also run the full UI Resolution Priority (see section above). Pass all three to the creation skill:
+   - Look up this artifact's name in the `Figma Alignment` table to get the corresponding `Frame` name.
+   - `Glob` for `figma-*.md` files in `runs/<feature>/inputs/` matching the frame name. For each matched file: `Grep` for `^## ` to confirm the section, then `Read` with `offset` + `limit` to extract the section only. Collect `Components`, `State`, `Interactions`, `Tokens`, `Annotations`, and the `screenshot` + `layout_file` paths from frontmatter.
+   - **StateHolder** — read `.md` files only (all states for this screen). Pass as implementation constraints: state fields must cover all named states; event cases must cover all interactions.
+   - **Screen / Component** — read all three artifact types:
+     - `.md` files — semantic layer (components, states, interactions, annotations)
+     - `-layout.jsx` files — exact layout, spacing, and design token values; read with `offset` + `limit` around the relevant component sections, not wholesale
+     - `screenshot` URLs — pass as visual reference so the creation skill can see the design directly
+   - Pass to the creation skill:
      - `## Design System Bindings` — hard constraint: use exactly these symbols, no framework primitive substitutions
      - `## Custom Widgets` — elements to implement as new widgets
-     - `## Figma Design Reference` — states, interactions, and annotations from the aligned frame
+     - `## Figma Design Reference` — semantic summary from `.md`
+     - `## Figma Layout Reference` — relevant JSX sections from `-layout.jsx`
+     - `## Figma Screenshot` — screenshot URL(s) for visual grounding
 4. Resolve skill path: `.claude/skills/<skill-name>/SKILL.md`
 5. `Read` the skill file
 6. Follow its instructions as the authoritative procedure for `<platform>`

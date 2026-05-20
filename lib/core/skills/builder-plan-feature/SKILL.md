@@ -59,7 +59,17 @@ Spawn `builder-feature-orchestrator` with mode `review-resume`:
 Wait for the orchestrator's decision block:
 
 - **`Decision: resume-as-is`** → proceed to Step 4 using the existing plan.md and context.md.
-- **`Decision: resume-updated`** → write the updated plan.md and context.md content returned by the orchestrator to the run directory. Then proceed to Step 4.
+- **`Decision: resume-updated`** → archive the current files before writing the updated content:
+
+  ```bash
+  # Determine next version number
+  N=$(ls "<run_dir>/plan-v"*.md 2>/dev/null | wc -l | tr -d ' ')
+  N=$((N + 1))
+  mv "<run_dir>/plan.md"    "<run_dir>/plan-v${N}.md"
+  mv "<run_dir>/context.md" "<run_dir>/context-v${N}.md"
+  ```
+
+  Then write the updated `plan.md` and `context.md` from the orchestrator's response. The worker always reads `plan.md` as the active plan; prior versions are preserved as `plan-v1.md`, `plan-v2.md`, etc. Proceed to Step 4.
 
 ## Step 0 — Resolve Inputs
 
@@ -137,7 +147,13 @@ options     :
 `figma_groups` structure carried forward:
 ```
 [
-  { screen: "<parent_frame>", states: ["<state>", ...], files: ["<abs-path>", ...] },
+  {
+    screen: "<parent_frame>",
+    states: [
+      { state: "<state>", file: "<abs-path-to-.md>", layout_file: "<abs-path-to--layout.jsx>", screenshot: "<url>" },
+      ...
+    ]
+  },
   ...
 ]
 ```
