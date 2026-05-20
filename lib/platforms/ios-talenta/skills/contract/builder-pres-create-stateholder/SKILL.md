@@ -106,4 +106,67 @@ lazy var [feature]ViewModel: [Feature]ViewModel = {
 
 ## Output
 
-Confirm file path, list all State fields, Event cases, Action cases, and DI factory method.
+Confirm file path, list all State fields, Event cases, Action cases, and DI factory method. Then **write the stateholder contract file**:
+
+```
+.claude/agentic-state/runs/<feature>/stateholder-contract.md
+```
+
+Contract format:
+
+```markdown
+---
+type: viewmodel
+class: [Feature]ViewModel
+file: Talenta/Module/[Module]/Presentation/ViewModel/[Feature]ViewModel.swift
+di_property: [feature]ViewModel
+---
+
+## State Fields
+| Field | Type | Initial |
+|---|---|---|
+| dataState | DataState<[Feature]Model> | .idle |
+
+## Events
+| Case | Parameters | When to send |
+|---|---|---|
+| viewDidLoad | — | in viewDidLoad() |
+| itemSelected | [Feature]Model | on cell tap |
+
+## Actions
+| Case | Parameters | ViewController response |
+|---|---|---|
+| navigateToDetail | [Feature]Model | push detail screen |
+| showToast | String | show toast message |
+
+## Wiring Snippet
+\```swift
+// In ViewController.viewDidLoad()
+viewModel.emitEvent(.viewDidLoad)
+
+// Bind state
+viewModel.statePublisher
+    .receive(on: DispatchQueue.main)
+    .sink { [weak self] state in
+        switch state.dataState {
+        case .idle, .loading: self?.showSkeleton()
+        case .loaded(let model): self?.render(model)
+        case .error(let error): self?.showError(error)
+        }
+    }
+    .store(in: &cancellables)
+
+// Bind actions
+viewModel.actionPublisher
+    .receive(on: DispatchQueue.main)
+    .sink { [weak self] action in
+        switch action {
+        case .navigateToDetail(let model): self?.navigator?.navigate(to: model)
+        case .showToast(let msg): self?.showToast(msg)
+        }
+    }
+    .store(in: &cancellables)
+\```
+```
+
+Fill every placeholder with real values from the ViewModel you just created. The wiring snippet must match actual State/Event/Action cases.

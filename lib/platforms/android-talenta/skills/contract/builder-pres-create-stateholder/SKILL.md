@@ -43,4 +43,53 @@ Rules:
 
 ## Output
 
-Confirm file path and list all View methods and Presenter methods declared.
+Confirm file path and list all View methods and Presenter methods declared. Then **write the stateholder contract file**:
+
+```
+.claude/agentic-state/runs/<feature>/stateholder-contract.md
+```
+
+Contract format:
+
+```markdown
+---
+type: mvp-contract
+contract_class: [Feature]Contract
+file: feature_[module]/src/main/java/co/talenta/feature_[module]/presentation/[feature]/[Feature]Contract.kt
+package: co.talenta.feature_[module].presentation.[feature]
+---
+
+## View Methods (implement in Fragment/Activity)
+| Method | Parameters | When called by Presenter |
+|---|---|---|
+| showFeatureItems | items: List<[Feature]Entity> | on load success |
+| showError | error: Throwable | on failure |
+| showEmptyState | — | on empty result |
+
+## Presenter Methods (call from Fragment/Activity)
+| Method | Parameters | When to call |
+|---|---|---|
+| loadFeatureItems | id: String | in onViewCreated |
+| refreshData | — | on swipe-to-refresh |
+
+## Wiring Snippet
+\```kotlin
+// Fragment/Activity declares the contract
+class [Feature]Fragment : BaseFragment(), [Feature]Contract.View {
+
+    // inject or create presenter
+    private lateinit var presenter: [Feature]Contract.Presenter
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        presenter.loadFeatureItems(id = args.id)
+    }
+
+    override fun showFeatureItems(items: List<[Feature]Entity>) { /* bind to RecyclerView */ }
+    override fun showError(error: Throwable) { /* show error state */ }
+    override fun showEmptyState() { /* show empty view */ }
+}
+\```
+```
+
+Fill every placeholder with real values from the Contract you just created. The wiring snippet must match actual View and Presenter method signatures.

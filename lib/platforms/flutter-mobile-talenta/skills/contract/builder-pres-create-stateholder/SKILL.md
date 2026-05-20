@@ -88,4 +88,60 @@ class [Feature]Bloc extends Bloc<[Feature]Event, [Feature]State> {
 
 ## Output
 
-Confirm all file paths, list State fields, Event cases, and the use cases injected.
+Confirm all file paths created, then **write the stateholder contract file**:
+
+```
+.claude/agentic-state/runs/<feature>/stateholder-contract.md
+```
+
+Contract format:
+
+```markdown
+---
+type: bloc | cubit
+bloc_class: [Feature]Bloc
+state_class: [Feature]State
+event_class: [Feature]Event
+import_bloc: package:talenta/src/features/[feature]/presentation/blocs/[feature]_bloc.dart
+import_state: package:talenta/src/features/[feature]/presentation/blocs/[feature]_state.dart
+import_event: package:talenta/src/features/[feature]/presentation/blocs/[feature]_event.dart
+---
+
+## State Fields
+| Field | Type | Default |
+|---|---|---|
+| [feature]State | ViewDataState<[Feature]Entity> | ViewDataState.initial() |
+
+## Events
+| Class | Factory | Parameters | When to dispatch |
+|---|---|---|---|
+| Load[Feature] | [Feature]Event.load[Feature] | id: String | on screen init |
+| Refresh[Feature] | [Feature]Event.refresh[Feature] | — | pull to refresh |
+
+## ViewDataState Variants
+| Variant | UI action |
+|---|---|
+| ViewDataState.initial() | show skeleton |
+| ViewDataState.loading() | show skeleton |
+| ViewDataState.loaded(data) | render content |
+| ViewDataState.error(message, failure) | show error widget |
+
+## Wiring Snippet
+\```dart
+BlocProvider<[Feature]Bloc>(
+  create: (context) => getIt<[Feature]Bloc>()..add(Load[Feature](id: id)),
+  child: BlocBuilder<[Feature]Bloc, [Feature]State>(
+    builder: (context, state) {
+      return state.[feature]State.when(
+        initial: () => const [Skeleton](),
+        loading: () => const [Skeleton](),
+        loaded: (data) => [ContentWidget](entity: data),
+        error: (message, failure) => [ErrorWidget](message: message),
+      );
+    },
+  ),
+)
+\```
+```
+
+Fill every placeholder with the actual values from the files you just created. The wiring snippet must compile — use real class names, not templates.

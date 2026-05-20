@@ -29,4 +29,41 @@ Create a ViewModel for a feature. First determine which pattern applies:
 
 **Pattern:** `reference/code-architecture/presentation-impl.md` — Grep `## ViewModel Hook` (hook), `## Server-Side ViewModel (Pure Function)` (pure function)
 
-**Return:** created file path and which pattern was used. Suggest next step: `pres-create-screen`.
+**Return:** created file path and which pattern was used. Then **write the stateholder contract file**:
+
+```
+.claude/agentic-state/runs/<feature>/stateholder-contract.md
+```
+
+Contract format:
+
+```markdown
+---
+type: hook | pure-function
+name: use[Feature]ViewModel | build[Feature]ViewModel
+import_path: @/presentation/features/[feature]/use[Feature]ViewModel
+file: src/presentation/features/[feature]/use[Feature]ViewModel.ts
+---
+
+## Return Shape
+| Field | Type | Notes |
+|---|---|---|
+| data | [Feature]ViewModel \| null | null while loading |
+| isLoading | boolean | |
+| error | Error \| null | |
+| mutate | (input: ...) => Promise<void> | omit if read-only |
+
+## Usage Snippet
+\```tsx
+// hook variant — in Client Component
+const { data, isLoading, error } = use[Feature]ViewModel(id)
+if (isLoading) return <[Skeleton] />
+if (error || !data) return <[ErrorComponent] />
+return <[ContentComponent] data={data} />
+
+// pure-function variant — in async Server Component
+const viewModel = await build[Feature]ViewModel(entity)
+\```
+```
+
+Fill every placeholder with real values. The usage snippet must match the actual return shape.

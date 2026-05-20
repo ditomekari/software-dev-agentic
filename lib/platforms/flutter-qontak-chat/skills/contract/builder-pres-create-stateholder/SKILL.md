@@ -102,4 +102,59 @@ class [Feature]State with _$[Feature]State {
 
 ## Output
 
-Confirm all file paths, list State fields with types, Event cases, and use cases injected.
+Confirm all file paths created, then **write the stateholder contract file**:
+
+```
+.claude/agentic-state/runs/<feature>/stateholder-contract.md
+```
+
+Contract format:
+
+```markdown
+---
+type: bloc | cubit
+bloc_class: [Feature]Bloc
+state_class: [Feature]State
+event_class: [Feature]Event
+di: register-factory
+bloc_file: lib/presentation/bloc/[feature]/[feature]_bloc.dart | features/[prefix]_[feature]/lib/src/presentation/blocs/[feature]_bloc.dart
+constructor_params:
+  - get[Concept]UseCase: Get[Concept]UseCase
+---
+
+## State Fields
+| Field | Type | Default |
+|---|---|---|
+| [feature]State | ViewDataState<[Feature]Entity> | ViewDataState.initial() |
+
+## Events
+| Class | Parameters | When to dispatch |
+|---|---|---|
+| Load[Feature] | id: String | on screen init |
+| Reset[Feature] | — | on cleanup / back |
+
+## ViewDataState API (Qontak variant)
+| Check | UI action |
+|---|---|
+| .status.isInitial || .status.isLoading | show skeleton |
+| .status.isHasData → .data | render content |
+| .status.isError → .errorMessage | show error widget |
+| .status.isNoData | show empty state |
+
+## Wiring Snippet
+\```dart
+// Registered via registerFactory in [Domain]Dependency._registerPresentation()
+// Consumed in screen via BlocProvider.value or context.read
+BlocBuilder<[Feature]Bloc, [Feature]State>(
+  builder: (context, state) {
+    final s = state.[feature]State;
+    if (s.status.isLoading || s.status.isInitial) return const [Skeleton]();
+    if (s.status.isNoData) return const [EmptyWidget]();
+    if (s.status.isError) return [ErrorWidget](message: s.errorMessage);
+    return [ContentWidget](data: s.data!);
+  },
+)
+\```
+```
+
+Fill every placeholder with the actual values from the files you just created. The wiring snippet must compile — use real class names, not templates.

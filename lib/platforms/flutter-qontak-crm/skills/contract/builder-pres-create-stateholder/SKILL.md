@@ -95,4 +95,63 @@ class [Feature]State with _$[Feature]State {
 
 ## Output
 
-Confirm all file paths, list State fields with types, Event cases, and use cases injected.
+Confirm all file paths created, then **write the stateholder contract file**:
+
+```
+.claude/agentic-state/runs/<feature>/stateholder-contract.md
+```
+
+Contract format:
+
+```markdown
+---
+type: bloc | cubit
+bloc_class: [Feature]Bloc
+state_class: [Feature]State
+event_class: [Feature]Event
+di: inline
+bloc_file: lib/presentation/bloc/[feature]/[feature]_bloc.dart
+constructor_params:
+  - get[Concept]UseCase: Get[Concept]UseCase
+---
+
+## State Fields
+| Field | Type | Default |
+|---|---|---|
+| [feature]State | ViewDataState<[Feature]Entity> | ViewDataState.initial() |
+
+## Events
+| Class | Parameters | When to dispatch |
+|---|---|---|
+| Load[Feature] | id: String | on screen init |
+| Reset[Feature] | — | on cleanup / back |
+
+## ViewDataState API (CRM variant)
+| Check | UI action |
+|---|---|
+| .status.isInitial || .status.isLoading | show skeleton |
+| .status.isHasData → .data | render content |
+| .status.isError → .errorMessage | show error widget |
+| .status.isNoData | show empty state |
+
+## Wiring Snippet
+\```dart
+// Instantiate inline in route_manager.dart or screen entry point — NOT via getIt
+BlocProvider<[Feature]Bloc>(
+  create: (context) => [Feature]Bloc(
+    get[Concept]UseCase: getIt<Get[Concept]UseCase>(),
+  )..add(const Load[Feature](id: id)),
+  child: BlocBuilder<[Feature]Bloc, [Feature]State>(
+    builder: (context, state) {
+      final s = state.[feature]State;
+      if (s.status.isLoading || s.status.isInitial) return const [Skeleton]();
+      if (s.status.isNoData) return const [EmptyWidget]();
+      if (s.status.isError) return [ErrorWidget](message: s.errorMessage);
+      return [ContentWidget](data: s.data!);
+    },
+  ),
+)
+\```
+```
+
+Fill every placeholder with the actual values from the files you just created. The wiring snippet must compile — use real class names, not templates.

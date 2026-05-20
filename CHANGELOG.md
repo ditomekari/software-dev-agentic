@@ -7,6 +7,22 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.21.0] — 2026-05-20
+
+### Added
+- `builder-ui-worker` — new agent handling the UI layer (Screen, Component, Navigator) exclusively. Starts with a clean context after `builder-feature-worker` emits `## Layers Complete`; loads stateholder contract, presentation-impl UI sections, and Figma references fresh. Context checkpoint fires more aggressively (every Screen/Component + one additional signal).
+- `builder-figma-worker` — `group-frames` mode: reads all downloaded screenshots, clusters frames by visual structure (primary signal), uses `parent_frame` metadata only as a tiebreaker. Designed for Figma files where designer structure does not follow user stories. Returns `## Figma Groups` block with optional `review` entries for ambiguous frames.
+- `builder-pres-create-stateholder` (all 7 platforms) — skill now writes `stateholder-contract.md` to the run directory. Contract includes class/type names, import paths, state fields, event/action cases, ViewDataState variant handling, and a ready-to-compile wiring snippet. Platform-specific: Flutter (`getIt` + `@injectable`, `.when()`), Qontak (inline DI, `.status.isHasData`), iOS (RxSwift publisher binding), Android (MVP fragment wiring), Web (hook vs pure-function usage snippet).
+
+### Changed
+- `builder-plan-feature` — resume path no longer reads `plan.md`, `context.md`, or `state.json` inline; passes only `run_dir` to `builder-feature-orchestrator`. Step P (Figma Input Repair) removed from skill — absorbed into orchestrator `review-resume` mode.
+- `builder-plan-feature` — Step 5 split into Phase 1 (`builder-feature-worker`: Domain/Data/Pres/App) and Phase 2 (`builder-ui-worker`: UI layer). Phase 2 skipped entirely when plan has no pending UI artifacts.
+- `builder-plan-feature` — Step 1.5b now spawns `builder-figma-worker` in `group-frames` mode instead of grouping inline; surfaces `review` flags in the user verification prompt.
+- `builder-feature-orchestrator` — `review-resume` mode rewritten: accepts `run_dir`, reads all files internally (plan.md, context.md, state.json, figma inputs), detects screenshots needing backfill, reconstructs `figma-groups.json` if missing, returns structured `figma_repair` and `figma_groups_json` fields for the skill to execute.
+- `builder-feature-worker` — scope narrowed to Domain, Data, Presentation (StateHolder only), and App layers. UI Resolution Priority section and Screen/Component Figma reads removed. StateHolder Figma read now explicitly limited to `.md` body only — no `layout_file` or `screenshot`. Output signal changed to `## Layers Complete`.
+
+---
+
 ## [7.20.1] — 2026-05-20
 
 ### Fixed

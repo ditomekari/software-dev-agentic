@@ -1,6 +1,6 @@
 ---
 name: builder-plan-feature
-description: Plan then build a feature — optionally resolves external inputs (Jira, PRD, Figma, local .md), gathers intent via builder-feature-orchestrator, runs the convergence planning loop (spawning only the needed layer planners per round), shows an interactive approval prompt, then executes with builder-feature-worker on approval.
+description: Plan then build a feature — optionally resolves external inputs (Jira, PRD, Figma, local .md), gathers intent via builder-feature-orchestrator, runs the convergence planning loop (spawning only the needed layer planners per round), shows an interactive approval prompt, then executes with builder-feature-worker (Domain/Data/Pres/App) followed by builder-ui-worker (UI layer) on approval.
 user-invocable: true
 allowed-tools: Agent, AskUserQuestion, Bash, Read, WebFetch
 ---
@@ -60,79 +60,7 @@ options     : one per found plan — label: <feature>, description: "<completed 
 After the user selects a run:
 
 1. Derive `run_dir` from the path of the selected `plan.md` — take its parent directory. Do not reconstruct from feature name.
-2. Read `plan.md`, `context.md`, and `state.json` from `run_dir`.
-3. Proceed to **Step P — Figma Input Repair**, then **Step R**, then Step 4.
-
-## Step P — Figma Input Repair (Resume path only — runs before Step R)
-
-Check for existing Figma artifacts in the selected run directory:
-
-```bash
-find "<run_dir>/inputs" -name "figma-*.md" 2>/dev/null | sort
-```
-
-**No files found** → no Figma resources available. Proceed to Step R.
-
-**Files found** — Figma resources exist. Work through P1–P3 below.
-
-### P1 — Backfill missing screenshots
-
-For each `figma-*.md` file, read its `screenshot:` frontmatter value. If it starts with `http` (URL, not a local path) and no corresponding `.png` exists on disk:
-
-```bash
-curl -sL "<screenshot_url>" -o "<run_dir>/inputs/figma-<slug>-screenshot.png"
-```
-
-After download, update the `.md` frontmatter in-place:
-- `screenshot:` → local `.png` path
-- `screenshot_url:` → original URL (add if not present)
-
-Report: `Backfilled N / M already local / K failed`.
-
-### P2 — Reconstruct figma-groups.json (skip if already exists)
-
-```bash
-ls "<run_dir>/figma-groups.json" 2>/dev/null
-```
-
-If missing: read every `figma-*.md` frontmatter and group entries by `parent_frame`. Build and write `figma-groups.json`:
-
-```json
-[
-  {
-    "screen": "<parent_frame>",
-    "states": [
-      { "state": "<state>", "file": "<abs-path>", "layout_file": "<abs-path>", "screenshot": "<abs-path-or-null>" }
-    ]
-  }
-]
-```
-
-Store result as `figma_groups` for use in P3.
-
-### P3 — Offer re-run
-
-Read `state.json`. Identify Screen and Component artifacts already in `completed_artifacts`.
-
-Call `AskUserQuestion`:
-
-```
-question    : "Figma resources found in inputs/ (<N> frames, <M> screenshots ready).
-               <X> UI artifacts were built without Figma reference. Re-run them now with full Figma layout + screenshots?"
-header      : "Figma Reference"
-multiSelect : false
-options     :
-  - label: "Re-run UI with Figma", description: "Reset Screen/Component artifacts and rebuild using Figma layout + screenshots"
-  - label: "Skip",                 description: "Proceed to review without re-running UI artifacts"
-```
-
-**Skip** → proceed to Step R.
-
-**Re-run UI with Figma:**
-1. Remove all Screen and Component artifact names from `completed_artifacts` in `state.json`. Reset their `Progress` cells in `plan.md` to `pending`.
-2. Spawn `builder-pres-planner` with `figma_groups` from P2 to produce an updated `### Figma Alignment` table.
-3. Update the `## Figma Alignment` section in `context.md` with the planner's output (replace existing section or append if absent).
-4. Skip Step R — proceed directly to Step 5 (Execute).
+2. Proceed directly to **Step R**.
 
 ## Step R — Review and Adjust (Resume path only)
 
@@ -140,28 +68,39 @@ Spawn `builder-feature-orchestrator` with mode `review-resume`:
 
 > **Mode: review-resume**
 >
-> **plan.md**
-> \<content\>
->
-> **context.md**
-> \<content\>
->
-> **Completed artifacts:** \<comma-separated list from state.json completed_artifacts, or "none"\>
+> **run_dir:** \<run_dir\>
 
 Wait for the orchestrator's decision block:
 
-- **`Decision: resume-as-is`** → proceed to Step 4 using the existing plan.md and context.md.
-- **`Decision: resume-updated`** → archive the current files before writing the updated content:
+- **`Decision: resume-as-is`** — execute repairs if present (Step R1), then proceed to Step 4.
+- **`Decision: resume-updated`** — execute repairs if present (Step R1), then archive + write updated files, then proceed to Step 4:
 
   ```bash
-  # Determine next version number
   N=$(ls "<run_dir>/plan-v"*.md 2>/dev/null | wc -l | tr -d ' ')
   N=$((N + 1))
   mv "<run_dir>/plan.md"    "<run_dir>/plan-v${N}.md"
   mv "<run_dir>/context.md" "<run_dir>/context-v${N}.md"
   ```
 
-  Then write the updated `plan.md` and `context.md` from the orchestrator's response. The worker always reads `plan.md` as the active plan; prior versions are preserved as `plan-v1.md`, `plan-v2.md`, etc. Proceed to Step 4.
+  Write updated `plan.md` and `context.md` from the orchestrator's response. Proceed to Step 4.
+
+- **`Decision: rerun-ui-with-figma`** — execute repairs if present (Step R1), then execute UI rerun (Step R2), then proceed to Step 5.
+
+### Step R1 — Execute Figma Repairs (skip if decision has no `figma_repair` section)
+
+For each entry in `figma_repair`:
+1. `curl -sL "<url>" -o "<output_path>"`
+2. Update the `screenshot:` frontmatter in `<md_file>` to the local path. Add `screenshot_url: <url>` if not already present.
+
+If `figma_groups_json` is present in the decision: write it to `<run_dir>/figma-groups.json`.
+
+### Step R2 — Rerun UI with Figma (only for `Decision: rerun-ui-with-figma`)
+
+1. Read `state.json`. Remove every name listed in `reset_artifacts` from `completed_artifacts`. Reset their `Progress` cells in `plan.md` to `pending`.
+2. Restore `figma_groups` from the `figma_groups_json` value in the decision block.
+3. Spawn `builder-pres-planner` with `figma_groups`.
+4. Update the `## Figma Alignment` section in `context.md` with the planner's output (replace existing section or append if absent).
+5. Proceed to Step 5 (Execute).
 
 ## Step 0 — Classify Inputs
 
@@ -249,22 +188,30 @@ options     :
 
 ### Step 1.5b — Verify Figma Grouping (skip if `figma_resolved` is empty)
 
-Group `figma_resolved` outputs by `parent_frame`:
+Spawn `builder-figma-worker` with mode `group-frames`:
 
+> mode: group-frames
+> run_dir: \<run_dir\>
+
+Wait for the `## Figma Groups` output block. Extract `groups` as `figma_groups` and `review` (may be absent).
+
+Build the grouping summary:
 ```
-<parent_frame A> → [{ state, file, layout_file, screenshot }, ...]
-<parent_frame B> → [{ state, file, layout_file, screenshot }, ...]
+<for each group:>
+• <screen> — states: <comma-separated state names>
+<if review present:>
+
+Needs your eye:
+<for each review entry:>
+• <frame>: <reason>
 ```
 
 Call `AskUserQuestion`:
 
 ```
-question    : "Figma frames fetched. We grouped them into screens based on their parent frame in Figma.
-               Does this look correct?
+question    : "Figma frames grouped into screens. Does this look correct?
 
-               <for each group:>
-               • <parent_frame> — states: <comma-separated state names>
-               "
+               <grouping summary>"
 header      : "Figma Screens"
 multiSelect : false
 options     :
@@ -272,7 +219,7 @@ options     :
   - label: "Adjust",   description: "The grouping needs changes before we continue"
 ```
 
-**Correct** → store as `figma_groups` and proceed.
+**Correct** → store `figma_groups` and proceed.
 
 **Adjust** → ask the user to describe corrections (which frames belong to which screen, any renames). Apply to `figma_groups`. Then proceed.
 
@@ -399,6 +346,8 @@ Stop.
 
 Update `status` in `plan.md` frontmatter from `pending` to `approved`.
 
+### Phase 1 — Domain / Data / Presentation / App
+
 Read `plan.md` and `context.md` from the run directory. Spawn `builder-feature-worker`:
 
 > Approved plan ready. Pre-loaded context below — do not re-read plan.md, context.md, or state.json.
@@ -409,16 +358,9 @@ Read `plan.md` and `context.md` from the run directory. Spawn `builder-feature-w
 > **context.md**
 > \<content\>
 >
-> \<if ## Figma Alignment section is present in context.md, include — otherwise omit\>
-> **Figma Instruction:** For every Screen and Component artifact, before writing any code:
-> 1. Look up the artifact in the `## Figma Alignment` table in context.md above to get its Figma Files list
-> 2. `Read` each `.md` file — extract components, states, interactions, tokens, annotations
-> 3. `Read` each `layout_file` JSX — full file, no truncation
-> 4. `Read` each `screenshot` `.png` — this is mandatory, not optional; the Read tool renders images and visual inspection is required before implementing
->
 > Proceed directly to the first pending artifact.
 
-**Checkpoint loop:** if the worker returns `## Context Checkpoint` instead of `## Feature Complete`, immediately re-spawn a fresh `builder-feature-worker` without user interaction:
+**Checkpoint loop:** if the worker returns `## Context Checkpoint` instead of `## Layers Complete`, immediately re-spawn a fresh `builder-feature-worker` without user interaction:
 
 > Resuming from context checkpoint. Pre-loaded context below — do not re-read plan.md, context.md, or state.json.
 >
@@ -431,12 +373,54 @@ Read `plan.md` and `context.md` from the run directory. Spawn `builder-feature-w
 > **Resume from:** \<next_artifact from checkpoint block\>
 > **State file:** \<state_file from checkpoint block\>
 >
+> Read state.json, skip completed artifacts, proceed directly to next_artifact.
+
+Repeat until the worker returns `## Layers Complete`.
+
+### Phase 2 — UI Layer
+
+Read `state.json` from the run directory. Check `completed_artifacts` against the UI layer rows in plan.md. Count UI artifacts with `status: create` or `status: exists` that are not yet in `completed_artifacts`.
+
+**If zero pending UI artifacts → skip Phase 2 entirely and proceed to Step 6.**
+
+Extract `stateholder_contract` path from state.json. Re-read `plan.md` and `context.md` from disk. Spawn `builder-ui-worker`:
+
+> Pre-loaded context below — do not re-read plan.md, context.md, or state.json.
+>
+> **plan.md**
+> \<content\>
+>
+> **context.md**
+> \<content\>
+>
+> **Stateholder contract path:** \<stateholder_contract from state.json, or "none" if null\>
+>
 > \<if ## Figma Alignment section is present in context.md, include — otherwise omit\>
 > **Figma Instruction:** For every Screen and Component artifact, before writing any code:
 > 1. Look up the artifact in the `## Figma Alignment` table in context.md above to get its Figma Files list
 > 2. `Read` each `.md` file — extract components, states, interactions, tokens, annotations
 > 3. `Read` each `layout_file` JSX — full file, no truncation
 > 4. `Read` each `screenshot` `.png` — mandatory, not optional; visual inspection required before implementing
+>
+> Proceed directly to the first pending UI artifact.
+
+**Checkpoint loop:** if the worker returns `## Context Checkpoint` instead of `## Feature Complete`, immediately re-spawn a fresh `builder-ui-worker` without user interaction:
+
+> Resuming from context checkpoint. Pre-loaded context below — do not re-read plan.md, context.md, or state.json.
+>
+> **plan.md**
+> \<content — re-read from disk\>
+>
+> **context.md**
+> \<content — re-read from disk\>
+>
+> **Stateholder contract path:** \<stateholder_contract from state.json\>
+>
+> **Resume from:** \<next_artifact from checkpoint block\>
+> **State file:** \<state_file from checkpoint block\>
+>
+> \<if ## Figma Alignment section is present in context.md, include — otherwise omit\>
+> **Figma Instruction:** (same as above)
 >
 > Read state.json, skip completed artifacts, proceed directly to next_artifact.
 

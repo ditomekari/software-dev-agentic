@@ -275,15 +275,53 @@ module-path: <detected module path>
 
 ## Mode: review-resume
 
-Called when the user selects an existing run to resume. Receives current `plan.md`, `context.md`, and `completed_artifacts` list inline.
+Called when the user selects an existing run. Receives `run_dir` — reads all files internally.
 
-**Step 1 — Summarize current state:**
+**Step 1 — Load run state:**
 
-Parse all artifact rows from plan.md (all layer tables). Cross-reference each against `completed_artifacts` — mark each as done or pending. Produce a one-line summary:
+```bash
+git rev-parse --show-toplevel  # confirm working directory
+```
+
+Read from `run_dir`:
+- `plan.md` — all layer artifact tables + frontmatter
+- `context.md` — discovered artifacts, Figma Alignment section
+- `state.json` — `completed_artifacts` list
+
+Parse all artifact rows from plan.md. Cross-reference each against `completed_artifacts`. Produce a one-line summary:
 
 > `<X> of <Y> artifacts done — pending: <comma-separated names>`
 
-**Step 2 — Ask the user:**
+**Step 2 — Check Figma inputs:**
+
+```bash
+find "<run_dir>/inputs" -name "figma-*.md" 2>/dev/null | sort
+ls "<run_dir>/figma-groups.json" 2>/dev/null
+```
+
+If figma-*.md files found:
+- Read frontmatter of each (`source:`, `state:`, `parent_frame:`, `screenshot:`, `layout_file:`)
+- Identify screenshots needing backfill: `screenshot:` starts with `http` and no corresponding `.png` exists on disk
+- Check if `figma-groups.json` is missing
+
+Collect:
+- `figma_files_count` — total figma-*.md files
+- `screenshots_needing_backfill` — `[{ url, output_path, md_file }]` for each URL screenshot without a local file; derive `output_path` as `<run_dir>/inputs/figma-<slug>-screenshot.png`
+- `needs_groups_reconstruction` — true if figma-groups.json is missing and figma files exist
+
+If `needs_groups_reconstruction`: group all entries by `parent_frame` from their frontmatter. Build `figma_groups`:
+
+```json
+[{ "screen": "<parent_frame>", "states": [{ "state": "<state>", "file": "<abs-path>", "layout_file": "<abs-path>", "screenshot": "<abs-path-or-null>" }] }]
+```
+
+**Step 3 — Identify completed UI artifacts (for re-run offer):**
+
+From `completed_artifacts` in state.json, find any Screen or Component artifact names. If any exist and figma files are present, offer the "Re-run UI with Figma" option below.
+
+**Step 4 — Ask the user:**
+
+Build summary line. If `screenshots_needing_backfill` or `needs_groups_reconstruction`, append: `(<N> Figma screenshots need downloading)`.
 
 Call `AskUserQuestion`:
 
@@ -292,18 +330,31 @@ question    : "<summary line>. How would you like to proceed?"
 header      : "Resume Plan"
 multiSelect : false
 options     :
-  - label: "Resume as-is",  description: "Continue from where it left off — no changes to the plan"
-  - label: "Adjust scope",  description: "Add, remove, or change artifacts before resuming"
-  - label: "Add context",   description: "Provide updated requirements or new inputs before resuming"
+  - label: "Resume as-is",         description: "Continue from where it left off — no changes to the plan"
+  - label: "Adjust scope",         description: "Add, remove, or change artifacts before resuming"
+  - label: "Add context",          description: "Provide updated requirements or new inputs before resuming"
+  - label: "Re-run UI with Figma", description: "Reset Screen/Component artifacts and rebuild with Figma layout + screenshots" (only if completed UI artifacts exist AND figma files are present)
 ```
 
-**Resume as-is** → return:
+**Step 5 — Return Decision:**
+
+In every Decision block, include `figma_repair` and `figma_groups_json` only if repairs are needed.
+
+**Resume as-is:**
 
 ```
 ## Decision: resume-as-is
+figma_repair:
+  - url: "<original_url>"
+    output_path: "<run_dir>/inputs/figma-<slug>-screenshot.png"
+    md_file: "<abs-path-to-figma-*.md>"
+figma_groups_json: |
+  <reconstructed JSON, only if needs_groups_reconstruction>
 ```
 
-**Adjust scope** → ask the user what to add, remove, or change. Update the relevant artifact rows in plan.md and any affected sections of context.md. Return:
+(omit `figma_repair` key entirely if `screenshots_needing_backfill` is empty; omit `figma_groups_json` key entirely if not reconstructed)
+
+**Adjust scope** → ask the user what to add, remove, or change. Update artifact rows in plan.md and affected sections of context.md. Return:
 
 ```
 ## Decision: resume-updated
@@ -313,9 +364,25 @@ options     :
 
 ### context.md
 <full updated context.md content>
+
+figma_repair: [...]       (omit if not needed)
+figma_groups_json: |      (omit if not needed)
+  <json>
 ```
 
-**Add context** → ask the user for updated requirements or new inputs. Incorporate into context.md (append under `## Discovered Artifacts` or `## Naming Conventions` as appropriate). If new artifacts are implied, add them to plan.md with `Progress: pending`. Return `Decision: resume-updated` with updated content.
+**Add context** → ask the user for updated requirements or new inputs. Incorporate into context.md. If new artifacts are implied, add them to plan.md with `Progress: pending`. Return `Decision: resume-updated` with same optional figma fields.
+
+**Re-run UI with Figma:**
+
+```
+## Decision: rerun-ui-with-figma
+reset_artifacts:
+  - <Screen or Component artifact name>
+  ...
+figma_repair: [...]       (omit if not needed)
+figma_groups_json: |
+  <figma_groups as JSON>
+```
 
 ## Write Path Rule
 

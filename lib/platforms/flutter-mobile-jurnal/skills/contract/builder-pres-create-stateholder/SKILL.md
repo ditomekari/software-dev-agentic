@@ -86,4 +86,60 @@ class <Feature>State with _$<Feature>State {
 
 ## Output
 
-Confirm all file paths, State fields, Event cases, and use cases injected into the BLoC constructor.
+Confirm all file paths created, then **write the stateholder contract file**:
+
+```
+.claude/agentic-state/runs/<feature>/stateholder-contract.md
+```
+
+Contract format:
+
+```markdown
+---
+type: bloc | cubit
+bloc_class: <Feature>Bloc
+state_class: <Feature>State
+event_class: <Feature>Event
+import_bloc: package:jurnal_<module>/src/presentation/blocs/<feature>/<feature>_bloc.dart
+import_state: package:jurnal_<module>/src/presentation/blocs/<feature>/<feature>_state.dart
+import_event: package:jurnal_<module>/src/presentation/blocs/<feature>/<feature>_event.dart
+---
+
+## State Fields
+| Field | Type | Default |
+|---|---|---|
+| <field> | ViewDataState<<Entity>> | ViewDataInitial() |
+
+## Events
+| Class | Factory | Parameters | When to dispatch |
+|---|---|---|---|
+| Get<Feature>s | <Feature>Event.get<Feature>s | searchKey: String? | on screen init / search |
+
+## ViewDataState Variants
+| Variant | UI action |
+|---|---|
+| ViewDataInitial | show skeleton |
+| ViewDataLoading | show skeleton |
+| ViewDataState\<T\> (success) | render content |
+| ViewDataEmpty | show empty state |
+| ViewDataFailure | show error widget |
+
+## Wiring Snippet
+\```dart
+BlocProvider<[BlocClass]>(
+  create: (context) => getIt<[BlocClass]>()..add(const [InitialEvent]()),
+  child: BlocBuilder<[BlocClass], [StateClass]>(
+    builder: (context, state) {
+      final s = state.[stateField];
+      if (s is ViewDataLoading || s is ViewDataInitial) return const [Skeleton]();
+      if (s is ViewDataEmpty) return const [EmptyWidget]();
+      if (s is ViewDataFailure) return [ErrorWidget](failure: s.failure);
+      final data = (s as ViewDataState<[Entity]>).data!;
+      return [ContentWidget](data: data);
+    },
+  ),
+)
+\```
+```
+
+Fill every placeholder with the actual values from the files you just created. The wiring snippet must compile — use real class names, not templates.
