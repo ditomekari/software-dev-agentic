@@ -5,6 +5,23 @@ user-invocable: true
 allowed-tools: Agent, AskUserQuestion, Bash, Read, WebFetch
 ---
 
+## Skill Scope — Hard Boundaries
+
+This skill is a **thin coordinator**. It routes, delegates, and orchestrates — it never reads source code or verifies implementation.
+
+**`Read` is permitted only for:**
+- `plan.md` / `state.json` — to populate run-selection UI in Preflight
+- `findings-round-*.json` / `figma-groups.json` — to restore interrupted planning state
+- Non-Figma input files passed explicitly as arguments (PRD, ticket `.md` files, local spec files)
+- `plan.md` / `context.md` — to inline into worker prompts in Step 5
+
+**`Read` is never permitted for:**
+- Source code files (`.dart`, `.swift`, `.kt`, `.ts`, `.tsx`, any implementation file)
+- Any file under the downstream project's feature module directories
+
+**If the user's message asks to "verify", "check", "review", or "read the code":**
+Do not read any source files. Pass the user's stated concerns to the orchestrator as `open_questions`. The orchestrator and planners own all codebase exploration.
+
 ## Preflight — Check Existing Runs
 
 Before resolving any inputs, check for existing runs — both completed plans and partial-planning runs interrupted before synthesis:
@@ -60,12 +77,12 @@ options     : one per found plan — label: <feature>, description: "<completed 
 After the user selects a run:
 
 1. Derive `run_dir` from the path of the selected `plan.md` — take its parent directory. Do not reconstruct from feature name.
-2. **Do NOT read plan.md, context.md, state.json, ticket files, code files, or any other project files.** All context gathering is the orchestrator's and planners' responsibility.
+2. **Do NOT read any source code or implementation files — even if the user's message asks to verify or review code.** Pass verification concerns to the orchestrator as open questions; planners own all codebase exploration.
 3. Proceed directly to **Step R**.
 
 ## Step R — Review and Adjust (Resume path only)
 
-**Scope boundary:** this skill does not read project files, ticket files, or code artifacts at any point in Step R. Only the shell commands explicitly listed below are permitted. All codebase reading is delegated to the orchestrator and planners.
+**Scope boundary:** this skill does not read source code or implementation files at any point in Step R. Only the shell commands explicitly listed below are permitted. All codebase exploration is delegated to the orchestrator and planners.
 
 ### Step R0 — Figma repair pre-check
 

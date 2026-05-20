@@ -7,6 +7,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.22.3] — 2026-05-21
+
+### Fixed
+- `builder-plan-feature` — added top-level `## Skill Scope — Hard Boundaries` block enumerating exactly which files `Read` is permitted for, and explicitly handling "verify / check / review / read the code" user instruction patterns — these must be passed as `open_questions` to the orchestrator, never read inline by the skill. Tightened run-selection handoff and Step R boundary to target source code files specifically (not ticket files, which are legitimate input context).
+
+---
+
 ## [7.22.2] — 2026-05-20
 
 ### Fixed
