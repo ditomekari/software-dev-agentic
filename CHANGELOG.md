@@ -7,6 +7,23 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.16.0] — 2026-05-20
+
+### Added
+- `builder-plan-feature` — **Preflight** step: detects existing runs and asks to resume or start fresh. **Step R** (resume path): spawns orchestrator in `review-resume` mode to summarize progress and let the user adjust scope or add context before re-approving.
+- `builder-feature-orchestrator` — new `review-resume` mode: cross-references completed artifacts against plan, asks resume-as-is / adjust scope / add context, returns `Decision: resume-as-is` or `Decision: resume-updated` with updated file contents.
+- `builder-plan-feature` — **Step 0b**: after all Figma workers complete, groups fetched frames by `parent_frame` extracted from Figma hierarchy (no naming convention assumed), shows grouped screen→state table to the user for confirmation or correction before planning starts.
+- `builder-pres-planner` — **Step 0a**: consumes pre-verified `figma_groups`, section-queries each state file in isolation, builds `figma_context` per screen (states, components, interactions), uses it to drive artifact classification and StateHolder state field / event case derivation.
+- `builder-feature-orchestrator` (synthesize) — carries `Figma Alignment` table from pres planner findings into `context.md` as the authoritative frame→artifact mapping.
+
+### Changed
+- `builder-figma-worker` — slug now derived from fetched node name (not URL); extracts `parent_frame` from Figma hierarchy; `state` field added to output block. Each worker handles one node/state, grouping is done by the entry skill.
+- `builder-feature-worker` — Figma reference lookup extended to StateHolder artifacts (not just Screen/Component); uses `Figma Alignment` table from `context.md` to resolve the correct frame name before section-querying figma files.
+- `builder-pres-planner` — replaced `figma_summary` + `figma_files` inputs with `figma_groups` (pre-verified structured grouping). Output now includes `### Figma Alignment` table.
+- `builder-feature-orchestrator` / `builder-feature-worker` — all artifact tables in `plan.md` gain a `Progress` column (`pending` → `in-progress` → `done`); worker updates it per artifact at checkpoint and completion.
+
+---
+
 ## [7.15.0] — 2026-05-20
 
 ### Changed
