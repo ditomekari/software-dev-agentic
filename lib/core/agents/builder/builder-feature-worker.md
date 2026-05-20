@@ -225,6 +225,25 @@ Write `.claude/agentic-state/runs/<feature>/state.json` after each artifact comp
 }
 ```
 
+## Context Checkpoint
+
+After completing each artifact, evaluate context pressure using these signals:
+- Heavy artifact just completed: Screen or Component with Figma layout + screenshot data
+- Accumulated load: 3 or more impl reference sections loaded in this session
+- Artifact count: 5 or more artifacts completed in this session
+
+If **two or more** of these signals are true, emit a clean checkpoint and stop — do not start the next artifact:
+
+```
+## Context Checkpoint
+feature: <feature>
+last_completed: <artifact name>
+next_artifact: <name of next pending artifact>
+state_file: <abs path to state.json>
+```
+
+The calling skill will immediately re-spawn a fresh worker. The new worker reads `state.json`, skips all completed artifacts, and continues from `next_artifact`.
+
 ## Validation Protocol
 
 After all artifacts are complete, run the project's type checker **once**:

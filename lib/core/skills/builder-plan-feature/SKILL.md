@@ -287,21 +287,42 @@ Stop.
 
 Update `status` in `plan.md` frontmatter from `pending` to `approved`.
 
-Read `plan.md` and `context.md` from the run directory written in Step 3. Then spawn `builder-feature-worker`:
+Read `plan.md` and `context.md` from the run directory. Spawn `builder-feature-worker`:
 
 > Approved plan ready. Pre-loaded context below — do not re-read plan.md, context.md, or state.json.
 >
 > **plan.md**
-> <content>
+> \<content\>
 >
 > **context.md**
-> <content>
+> \<content\>
 >
-> <if Figma inputs were resolved in Step 0, include — otherwise omit>
+> \<if Figma inputs were resolved, include — otherwise omit\>
 > **Figma Reference Files:**
-> <list each file path from resolved Figma inputs>
+> \<list each file path from resolved Figma inputs\>
 >
 > Proceed directly to the first pending artifact.
+
+**Checkpoint loop:** if the worker returns `## Context Checkpoint` instead of `## Feature Complete`, immediately re-spawn a fresh `builder-feature-worker` without user interaction:
+
+> Resuming from context checkpoint. Pre-loaded context below — do not re-read plan.md, context.md, or state.json.
+>
+> **plan.md**
+> \<content — re-read from disk\>
+>
+> **context.md**
+> \<content — re-read from disk\>
+>
+> **Resume from:** \<next_artifact from checkpoint block\>
+> **State file:** \<state_file from checkpoint block\>
+>
+> \<if Figma inputs were resolved, include — otherwise omit\>
+> **Figma Reference Files:**
+> \<list each file path\>
+>
+> Read state.json, skip completed artifacts, proceed directly to next_artifact.
+
+Repeat until the worker returns `## Feature Complete`.
 
 ## Step 6 — Unit Tests
 
