@@ -7,6 +7,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.18.1] — 2026-05-20
+
+### Fixed
+- `builder-figma-worker` — section nodes no longer fetch children inline; instead returns a `## Figma Section Detected` block with child frame IDs and stops. Prevents context overflow on large sections.
+- `builder-plan-feature` (Step 1.5) — expands `## Figma Section Detected` blocks by spawning one fresh worker per child frame in parallel, each with a clean isolated context. Results merged back into `figma_resolved`.
+
+---
+
 ## [7.18.0] — 2026-05-20
 
 ### Added
