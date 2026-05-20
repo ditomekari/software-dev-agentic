@@ -7,6 +7,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.17.1] — 2026-05-20
+
+### Fixed
+- `builder-plan-feature` — Figma worker spawning deferred to Step 1.5 (after `feature` name is established by gather-intent) so `run_dir` can be correctly resolved. Step 0 now only classifies Figma URLs into `pending_figma_urls` without fetching. Step 1.5 spawns all workers in parallel then runs grouping + verification (Step 1.5b). Fixes unresolvable `<feature>` placeholder bug in run directory path.
+- `builder-feature-orchestrator` (`gather-intent`) — notes pending Figma URLs as context without expecting fetched content.
+
+---
+
 ## [7.17.0] — 2026-05-20
 
 ### Added
