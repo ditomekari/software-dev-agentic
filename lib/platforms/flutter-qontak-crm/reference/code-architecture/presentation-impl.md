@@ -217,11 +217,94 @@ case AppRoute.company:
 
 ---
 
-## BlocListener (Side Effects) <!-- 28 -->
+## BLoC Count Rules <!-- 18 -->
 
+One BLoC owns one screen's state. A second BLoC is only justified when it satisfies at least one of:
+
+| Condition | Example |
+|---|---|
+| Independent async lifecycle (separate loading/error state) | `SearchBloc` runs a debounced query while `CompanyBloc` loads the base list |
+| Reused across two or more unrelated screens | A global `NotificationBloc` provided at app root |
+| Genuinely orthogonal domain operations with separate failure paths | `FormValidationBloc` + `SubmitBloc` |
+
+**Disqualified reasons (do NOT add a BLoC for these):**
+- "It felt complex" — split the event enum instead
+- Grouping form sub-sections — use nested state fields
+- A separate BLoC for a list inside a screen that is not reused elsewhere
+
+---
+
+## BLoC Scope and Reactivity Rules <!-- 20 -->
+
+**Scope rule:** Provide BLoCs at the narrowest widget subtree that needs them. A BLoC provided at route level lives for the duration of that screen. A BLoC provided at app root lives for the entire app session. Never provide a screen-scoped BLoC at app root.
+
+In CRM, BLoCs are instantiated via `MultiBlocProvider` inside `RouteManager`. The provider tree determines scope — add a BLoC inside the route builder for screen-scope, or at the top-level `MultiBlocProvider` in `App` for app-scope.
+
+**Reactivity rule:**
+- `context.watch<XxxBloc>()` — re-renders on every state change. Only use if the widget must always reflect the latest state. Never use for a BLoC that changes frequently when the widget only needs infrequent updates.
+- `context.read<XxxBloc>()` — does not subscribe. Use for one-time reads and dispatching events. Mandatory inside `BlocListener` callbacks and gesture handlers.
+- `BlocSelector` — use to isolate a sub-field so rebuilds only trigger when that field changes.
+- `BlocBuilder` with `buildWhen` — use when you need the BLoC's value in the build method but want to gate rebuilds.
+
+---
+
+## Page Initialisation UseCase Pattern <!-- 52 -->
+
+Apply when a screen needs data from more than one repository before it can render. Without this pattern, screens trigger multiple parallel BLoC events on `initState` and merge unrelated loading states in the widget — creating race conditions and redundant error-handling code.
+
+**Diagnostic question:** Does this screen need data from more than one repository?
+- No → a single `GetXxxUseCase` called from the BLoC `on<ScreenOpened>` handler is sufficient.
+- Yes → introduce a `GetXxxPageDataUseCase` (Page Init UseCase) that returns a `XxxPageData` read model.
+
+**Page Init UseCase:**
 ```dart
-BlocListener<CompanyBloc, CompanyState>(
-  listenWhen: (prev, curr) => prev.companyListState != curr.companyListState,
+// features/crm_company/lib/src/domain/usecases/get_company_detail_page_data_usecase.dart
+class GetCompanyDetailPageDataUseCase
+    extends UseCase<CompanyDetailPageData, GetCompanyDetailPageDataParams> {
+  final GetCompanyDetailUseCase _getCompany;
+  final GetCompanyContactsUseCase _getContacts;
+
+  GetCompanyDetailPageDataUseCase(this._getCompany, this._getContacts);
+
+  @override
+  Future<Either<Failure, CompanyDetailPageData>> call(
+      GetCompanyDetailPageDataParams params) async {
+    final company = await _getCompany(GetCompanyDetailParams(id: params.id));
+    return company.flatMap((c) async {
+      final contacts = await _getContacts(GetCompanyContactsParams(companyId: c.id));
+      return contacts.map((ct) => CompanyDetailPageData(company: c, contacts: ct));
+    });
+  }
+}
+```
+
+**BLoC event handler:**
+```dart
+on<CompanyDetailScreenOpened>((event, emit) async {
+  emit(state.copyWith(pageDataState: ViewDataState.loading()));
+  final result = await _getPageDataUseCase(
+    GetCompanyDetailPageDataParams(id: event.companyId),
+  );
+  result.fold(
+    (failure) => emit(state.copyWith(pageDataState: ViewDataState.error(message: failure.message))),
+    (data) => emit(state.copyWith(pageDataState: ViewDataState.hasData(data: data))),
+  );
+});
+```
+
+**DI (CRM manual GetIt):** Register `GetCompanyDetailPageDataUseCase` in `QontakCompanyDependency`:
+```dart
+getIt.registerLazySingleton<GetCompanyDetailPageDataUseCase>(() =>
+  GetCompanyDetailPageDataUseCase(
+    getIt<GetCompanyDetailUseCase>(),
+    getIt<GetCompanyContactsUseCase>(),
+  ),
+);
+```
+
+---
+
+## BlocListener (Side Effects) <!-- 28 -->
   listener: (context, state) {
     if (state.companyListState.status.isHasData) {
       Navigator.of(context).pop();

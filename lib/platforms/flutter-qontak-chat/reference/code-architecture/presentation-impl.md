@@ -310,11 +310,87 @@ case QontakAppRoute.login:
 
 ---
 
-## BlocListener (Side Effects) <!-- 28 -->
+## BLoC Count Rules <!-- 18 -->
 
+One BLoC owns one screen's state. This is enforced as an invariant — Chat features have historically had one BLoC per screen. A second BLoC is only justified when it satisfies at least one of:
+
+| Condition | Example |
+|---|---|
+| Independent async lifecycle (separate loading/error state) | `SearchBloc` runs a debounced query while `RoomBloc` loads the room |
+| Reused across two or more unrelated screens | A global `UnreadCountCubit` provided at app root |
+| Genuinely orthogonal domain operations with separate failure paths | `AttachmentBloc` + `MessageBloc` |
+
+**Disqualified reasons (do NOT add a BLoC for these):**
+- "It felt complex" — split the event enum instead
+- Grouping UI sub-sections — use nested state fields
+- A separate BLoC for a list that is not reused elsewhere
+
+---
+
+## BLoC Scope and Reactivity Rules <!-- 21 -->
+
+**Scope rule:** Provide BLoCs at the narrowest widget subtree that needs them. A BLoC provided at route level lives for the duration of that screen. A BLoC provided at app root lives for the entire app session. Never provide a screen-scoped BLoC at app root.
+
+In Chat, BLoCs are registered via `@injectable` and provided using `BlocProvider` inside route builders (feature-scoped). App-root BLoCs are provided in `AppWidget` via a top-level `MultiBlocProvider`.
+
+**Reactivity rule:**
+- `context.watch<XxxBloc>()` — re-renders on every state change. Only use if the widget must always reflect the latest state. Never use for a BLoC that changes frequently when the widget only needs infrequent updates.
+- `context.read<XxxBloc>()` — does not subscribe. Use for one-time reads and dispatching events. Mandatory inside `BlocListener` callbacks and gesture handlers.
+- `BlocSelector` — use to isolate a sub-field so rebuilds only trigger when that field changes.
+- `BlocBuilder` with `buildWhen` — use when you need the BLoC's value in the build method but want to gate rebuilds.
+
+---
+
+## Page Initialisation UseCase Pattern <!-- 52 -->
+
+Apply when a screen needs data from more than one repository before it can render. Without this pattern, screens trigger multiple parallel BLoC events on `initState` and merge unrelated loading states in the widget — creating race conditions and redundant error-handling code.
+
+**Diagnostic question:** Does this screen need data from more than one repository?
+- No → a single `GetXxxUseCase` called from the BLoC `on<ScreenOpened>` handler is sufficient.
+- Yes → introduce a `GetXxxPageDataUseCase` (Page Init UseCase) that returns a `XxxPageData` read model.
+
+**Page Init UseCase:**
 ```dart
-BlocListener<ResolveRoomBloc, ResolveRoomState>(
-  listenWhen: (prev, curr) => prev.resolveState != curr.resolveState,
+// features/chat_room/lib/src/domain/usecases/get_room_detail_page_data_usecase.dart
+@lazySingleton
+class GetRoomDetailPageDataUseCase
+    extends UseCase<RoomDetailPageData, GetRoomDetailPageDataParams> {
+  final GetRoomDetailUseCase _getRoom;
+  final GetRoomParticipantsUseCase _getParticipants;
+
+  GetRoomDetailPageDataUseCase(this._getRoom, this._getParticipants);
+
+  @override
+  Future<Either<Failure, RoomDetailPageData>> call(
+      GetRoomDetailPageDataParams params) async {
+    final room = await _getRoom(GetRoomDetailParams(id: params.roomId));
+    return room.flatMap((r) async {
+      final participants = await _getParticipants(GetRoomParticipantsParams(roomId: r.id));
+      return participants.map((p) => RoomDetailPageData(room: r, participants: p));
+    });
+  }
+}
+```
+
+**BLoC event handler:**
+```dart
+on<RoomDetailScreenOpened>((event, emit) async {
+  emit(state.copyWith(pageDataState: ViewDataState.loading()));
+  final result = await _getPageDataUseCase(
+    GetRoomDetailPageDataParams(roomId: event.roomId),
+  );
+  result.fold(
+    (failure) => emit(state.copyWith(pageDataState: ViewDataState.error(message: failure.message))),
+    (data) => emit(state.copyWith(pageDataState: ViewDataState.hasData(data: data))),
+  );
+});
+```
+
+**DI (Chat `@injectable`):** Annotate the UseCase with `@lazySingleton`. The `@injectable` code generator automatically wires the constructor dependencies (`GetRoomDetailUseCase`, `GetRoomParticipantsUseCase`) — no manual registration needed.
+
+---
+
+## BlocListener (Side Effects) <!-- 28 -->
   listener: (context, state) {
     if (state.resolveState.status.isHasData) {
       Navigator.of(context).pop();
