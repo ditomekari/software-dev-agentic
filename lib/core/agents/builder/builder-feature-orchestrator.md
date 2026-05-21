@@ -103,7 +103,11 @@ Entry point for every run — fresh and resume. Called by the entry skill with: 
 
 ### Step G0 — Read raw inputs and extract Figma URLs
 
-If `Raw Paths` is non-empty, read each path now (file or directory listing). Scan all content for `figma.com` URLs — collect as `figma_urls`. Also extract any other context relevant to intent gathering (ticket summaries, PRD sections, design notes).
+If `Raw Paths` is non-empty, read each path now (file or directory listing). From all content:
+- Collect any `figma.com` URLs as `figma_urls`
+- Distill relevant context into a compact internal summary (feature scope, affected layers, key constraints) — do NOT carry raw file content forward into the Decision block or into intent questions
+
+Raw content stays in this step only. Everything passed back to the entry skill must be distilled. This keeps the skill's context small and prevents compaction.
 
 This step runs before anything else so the orchestrator has full context when asking the user for intent.
 

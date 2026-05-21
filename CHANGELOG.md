@@ -7,6 +7,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.23.4] — 2026-05-21
+
+### Fixed
+- `builder-feature-orchestrator` — Step G0 now explicitly distills raw input content into a compact internal summary before proceeding. Raw file content must not be carried into the Decision block or intent questions — only Figma URLs and a distilled context summary are retained. Prevents orchestrator from dumping ticket/PRD content back into the skill's context and causing compaction.
+
+---
+
 ## [7.23.3] — 2026-05-21
 
 ### Changed
