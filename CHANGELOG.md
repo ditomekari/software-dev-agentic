@@ -7,6 +7,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.23.2] — 2026-05-21
+
+### Fixed
+- `builder-plan-feature` — Routing Contract tightened: arguments are only what follows the invocation line; the user's message body is passed verbatim to the orchestrator, not acted on by the skill. Added explicit rule prohibiting extra confirmation questions between steps — skill routes directly on the orchestrator's Decision block.
+- `builder-plan-feature` — Step 0 now scans the content of resolved `.md` files for `figma.com` URLs and appends them to `pending_figma_urls`, so Figma links referenced inside a local file are fetched via `builder-figma-worker` like any directly passed URL.
+- `builder-plan-feature` — Step 1 now includes the full user message verbatim in the `gather-intent` prompt, so the orchestrator receives all context (directory hints, ticket references, instructions) without the skill acting on any of it first.
+
+---
+
 ## [7.23.1] — 2026-05-21
 
 ### Fixed

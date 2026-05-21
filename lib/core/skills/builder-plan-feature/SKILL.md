@@ -9,9 +9,13 @@ allowed-tools: Agent, AskUserQuestion, Bash, Read, WebFetch
 
 This skill is a pure router. Its only permitted direct operations:
 - `Bash` — preflight existence checks and run-dir persistence writes only
-- `Read` — only for explicit `.md` input files passed as arguments
-- `WebFetch` — only for non-Figma URLs passed as arguments
+- `Read` — only for explicit `.md` input files passed as formal arguments to this skill
+- `WebFetch` — only for non-Figma URLs passed as formal arguments to this skill
 - `AskUserQuestion` — approval prompts defined in each step
+
+**Arguments are only what follows `/builder-plan-feature` on the invocation line.** The rest of the user's message (instructions, context, directory hints) is NOT processed by the skill — pass it verbatim to the orchestrator in Step 1. Do not read files, grep, or explore based on anything in the message body.
+
+Never confirm, summarize, or add extra questions between steps. Route directly on the Decision block returned by the orchestrator.
 
 Never read source files, search the codebase, or write code. All exploration, planning, and implementation is exclusively delegated to orchestrator / planner / worker agents.
 
@@ -42,6 +46,8 @@ Fetch all non-Figma inputs inline now. Collect:
 - `pending_figma_urls` — Figma URLs deferred until feature name is known after Step 1
 - `failed_inputs` — non-Figma items that could not be fetched: `{ type, source, reason }`
 
+After reading each `.md` file, scan its content for `figma.com` URLs and append any found to `pending_figma_urls`.
+
 If `failed_inputs` is non-empty, call `AskUserQuestion`:
 
 ```
@@ -65,6 +71,9 @@ options     :
 Spawn `builder-feature-orchestrator` with mode `gather-intent`:
 
 > **Mode: gather-intent**
+>
+> **User message:**
+> \<the full user message verbatim — includes any context, directory hints, or instructions the user provided\>
 >
 > <if found_plans or found_figma is non-empty, include:>
 > **Existing runs:**
