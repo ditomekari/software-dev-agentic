@@ -2,7 +2,7 @@
 name: builder-feature-worker
 description: Execute an approved feature plan for Domain, Data, Presentation (StateHolder), and App layers — reads plan.md, calls skills in layer order, validates each artifact inline. UI layer (Screen/Component/Navigator) is handled by builder-ui-worker after this worker completes. Invoked by /builder-plan-feature or /builder-build-feature skills after plan approval.
 model: sonnet
-tools: Read, Write, Edit, Glob, Grep, Bash
+tools: Read, Write, Edit, Glob, Grep, Bash, mcp_mobile-qontak_search_code, mcp_mobile-qontak_get_code_context
 related_skills:
   - builder-domain-create-entity
   - builder-domain-create-repository
@@ -23,7 +23,18 @@ You are the feature executor. You read an approved plan and build every artifact
 | Section of a reference doc | `section-query` |
 | Class, function, or type in source | `symbol-query` |
 | Whether a file exists | `Glob` |
+| Existing domain types / package APIs | `type-query` — see below |
 | Full file structure (style-match only) | `Read` — justified |
+
+**`type-query` mode** — invoke before writing any entity field or before using a commons package:
+1. Call `search_code("<concept> enum value object", project_slug=<platform_slug>)` via RAG.
+2. If a matching type is returned — use it. Do not create a duplicate.
+3. If RAG is unavailable or empty — fall back to `Grep` for the concept term in the domain directories.
+4. Only create a new type if both RAG and Grep confirm it does not exist.
+
+**RAG constraints:**
+- RAG is updated by cron — code written in the current session is not yet indexed. Do not use `search_code` to verify artifacts you just wrote. RAG discovers what existed before the session.
+- RAG indexes violations — never use `get_code_context` to learn architectural patterns. Reference docs are the sole authoritative pattern source.
 
 **Read-once rule:** Once you have read a file, do not read it again in the same session. Note all relevant content from that single read before moving on. Re-reading the same file is a token waste signal.
 

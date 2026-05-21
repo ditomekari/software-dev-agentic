@@ -10,7 +10,12 @@ Create a Domain Entity following `lib/platforms/flutter-qontak-crm/reference/cod
 
 1. **Grep** `lib/platforms/flutter-qontak-crm/reference/code-architecture/domain-impl.md` for `## Entities`; only **Read** the full file if the section cannot be located
 2. **Locate** the correct package path: `features/[crm_or_qontak]_[feature]/lib/src/domain/entities/`
-3. **Create** `[concept].dart` — named after the business concept, no `Entity` suffix
+3. **Type-query before each field** — before deciding the type of any field:
+   - Call `search_code("<concept> enum value object", project_slug="crm")`
+   - If a matching type is returned, use it; do not create a duplicate
+   - If RAG is unavailable or empty: `Grep` for the concept in `features/*/lib/src/domain/`
+   - Create a new type only if both confirm it does not exist
+4. **Create** `[concept].dart` — named after the business concept, no `Entity` suffix
 
 ## Entity Pattern
 
