@@ -341,9 +341,16 @@ esac
 
 # ── GitHub Copilot (.github/) ─────────────────────────────────────────────────
 #
-# Links .instructions.md and .prompt.md files from copilot/ directories into
-# .github/instructions/ and .github/prompts/ respectively.
-# Priority: platform > core  (same link_if_absent non-destructive rule applies)
+# Links Copilot-specific files from copilot/ directories into .github/:
+#   copilot/instructions/*.instructions.md  → .github/instructions/
+#   copilot/agents/*.agent.md               → .github/agents/
+#
+# NOTE: Agent Skills (SKILL.md files) do NOT need linking here.
+#   VS Code natively scans .claude/skills/ as an Agent Skills source, so all
+#   skills linked by link_skills() above are already discoverable by Copilot.
+#   The .claude/agents/ directory is also natively read by VS Code (Claude format).
+#
+# Priority: platform > core  (link_if_absent is non-destructive)
 
 GITHUB_DIR="$PROJECT_ROOT/.github"
 
@@ -359,27 +366,30 @@ link_copilot_instructions() {
   done
 }
 
-link_copilot_prompts() {
+link_copilot_agents() {
+  # Links .agent.md persona files into .github/agents/ for VS Code Copilot.
+  # These are VS Code-native custom agents (tools[], model, handoffs) that
+  # complement the Claude-format .md agents already in .claude/agents/.
   local src_dir="$1"
   local rel_prefix="$2"
   [ -d "$src_dir" ] || return 0
-  mkdir -p "$GITHUB_DIR/prompts"
-  for f in "$src_dir"/*.prompt.md; do
+  mkdir -p "$GITHUB_DIR/agents"
+  for f in "$src_dir"/*.agent.md; do
     [ -f "$f" ] || continue
     name="$(basename "$f")"
-    link_if_absent "$rel_prefix/$name" "$GITHUB_DIR/prompts/$name"
+    link_if_absent "$rel_prefix/$name" "$GITHUB_DIR/agents/$name"
   done
 }
 
-# Relative paths from .github/instructions/ and .github/prompts/ (2 levels deep)
-# are the same depth as .claude/agents/ — REL_CORE and REL_PLATFORM apply directly.
+# Relative paths from .github/ subdirs are the same depth as .claude/ subdirs —
+# REL_CORE and REL_PLATFORM apply directly.
 
 echo ""
 echo "Linking GitHub Copilot (.github/)..."
 link_copilot_instructions "$PLATFORM_DIR/copilot/instructions" "$REL_PLATFORM/copilot/instructions"
-link_copilot_prompts      "$PLATFORM_DIR/copilot/prompts"      "$REL_PLATFORM/copilot/prompts"
+link_copilot_agents       "$PLATFORM_DIR/copilot/agents"       "$REL_PLATFORM/copilot/agents"
 link_copilot_instructions "$SUBMODULE/lib/core/copilot/instructions" "$REL_CORE/copilot/instructions"
-link_copilot_prompts      "$SUBMODULE/lib/core/copilot/prompts"      "$REL_CORE/copilot/prompts"
+link_copilot_agents       "$SUBMODULE/lib/core/copilot/agents"       "$REL_CORE/copilot/agents"
 
 # ── Contract compliance check ─────────────────────────────────────────────────
 
@@ -398,6 +408,11 @@ case "$PLATFORM" in
   flutter-*)
     echo "  2. Fill in .claude/dart-knowledge.yaml (collection names + descriptions)"
     echo "  3. git add .claude/ .github/ && git commit -m 'chore: wire software-dev-agentic ($PLATFORM)'"
+    echo ""
+    echo "VS Code Copilot agent types:"
+    echo "  Skills  → auto-discovered from .claude/skills/ (no extra setup needed)"
+    echo "  Agents  → .claude/agents/ (Claude format) + .github/agents/ (VS Code format)"
+    echo "  Rules   → .github/instructions/ (auto-applied to matching files)"
     ;;
   *)
     echo "  2. git add .claude/ .github/ && git commit -m 'chore: wire software-dev-agentic ($PLATFORM)'"
