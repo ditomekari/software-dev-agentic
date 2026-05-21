@@ -49,6 +49,71 @@ class User with _$User {
 
 ---
 
+## Entity Semantic Quality Rules <!-- 38 -->
+
+Before writing any entity field, work through these five questions. A field is only correct when all five have satisfactory answers.
+
+**1. Type question**
+Is this the most semantically precise type for this concept? Applies to every type — `String`, `int`, `double`, `List<X>`, `Map<K,V>`, `dynamic`. A date is `DateTime`, a status is a typed enum, a tag list is `List<Tag>` not `List<String>`. If the precise type does not exist yet, create it before writing the field.
+
+**2. Origin question**
+Where does this value come from? If the answer is "the API returns it as-is", that is a mapper failure — the mapper transforms wire types into domain types before they reach the entity.
+
+**3. Ownership question**
+Who sets this value after the entity is constructed? If it is set by user interaction on a screen (a tap, a toggle, a selection), it belongs in BLoC state. If it is set by the sync/network layer, answer question 1 first.
+
+**4. Cardinality question**
+For relationship fields: is this relation fixed-arity (zero-or-one, domain-defined at compile time) or open/backend-configurable (zero-to-many, cardinality controlled by server config)? Fixed-arity → named nullable field. Open/backend-driven → `List<TypedValueObject>`. The wrong choice creates unnecessary complexity or prevents future extensibility.
+
+**5. Vocabulary unification question**
+If this entity unifies two or more data sources, do any fields or enum values represent the same real-world concept under different API names? If yes, pick one canonical domain term — the entity must have no trace of which API coined it. Both mappers translate to the canonical term.
+
+### Domain Type Vocabulary
+
+Before writing any field type, check if a more precise type already exists.
+
+**Step 1 — RAG query (primary):**
+```
+search_code("<concept> enum value object", project_slug="chat")
+```
+Returns existing enums, value objects, and typed IDs from live indexed Dartdoc. If a matching type is returned, use it.
+
+**Step 2 — Grep fallback:**
+If RAG is unavailable or empty: `Grep` for the concept term in the domain directories. Create a new type only if both confirm it does not exist.
+
+---
+
+## Read Models (Page Data Aggregates) <!-- 22 -->
+
+A Read Model is a data class that combines the results of two or more domain entities into a single aggregate needed by one screen. It is the return type of a Page Init UseCase.
+
+**Rules:**
+- Naming: `<Screen>PageData` (e.g. `RoomDetailPageData`, `InboxPageData`)
+- Location: `features/<prefix>_<feature>/lib/src/domain/read_models/<screen>_page_data.dart`
+- Implementation: `@freezed` class — same style as an entity, but contains entity references, not raw fields
+- Imports: domain entities only — no DTOs, no BLoC types
+- Read models are immutable; they are never updated after construction
+- Do NOT create a Read Model for a screen that only needs one entity — use the entity directly
+
+```dart
+// features/chat_room/lib/src/domain/read_models/room_detail_page_data.dart
+import 'package:freezed_annotation/freezed_annotation.dart';
+import '../entities/room.dart';
+import '../entities/participant.dart';
+
+part 'room_detail_page_data.freezed.dart';
+
+@freezed
+class RoomDetailPageData with _$RoomDetailPageData {
+  const factory RoomDetailPageData({
+    required Room room,
+    required List<Participant> participants,
+  }) = _RoomDetailPageData;
+}
+```
+
+---
+
 ## Repository Interfaces <!-- 23 -->
 
 ```dart
