@@ -320,6 +320,8 @@ mkdir -p <root>/.claude/agentic-state/runs/<feature>
 
 **Step 4 — Write plan.md:**
 
+> **Mechanism coverage rule:** Before writing any artifact row, check whether the planner marked its Status as `covered-by-existing`. If so, write the artifact with `Status: skip` and record the covering mechanism in the Notes column. Never write `Status: pending` for a `covered-by-existing` artifact — doing so would cause downstream workers to implement redundant infrastructure.
+
 ```
 <root>/.claude/agentic-state/runs/<feature>/plan.md
 ```

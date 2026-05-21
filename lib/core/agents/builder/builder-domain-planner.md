@@ -87,6 +87,29 @@ After reading primary artifact symbols, extract all referenced type names from c
 
 Do not fetch types that are neither structurally required nor modification targets.
 
+**Step 3b — Mechanism Coverage Check (mandatory for every artifact with Status: create)**
+
+Before finalising any artifact as `create`, confirm that an existing domain mechanism does not already cover the requirement.
+
+1. Identify the domain capability implied by the feature (e.g. "assign a team", "filter by status", "apply a custom field").
+2. Search for generic property arrays, field-type enums, or capability builders that might already handle it:
+   ```
+   Grep(query="FieldType|PropertyType|crmProperties|fieldConfig|propertyBuilder|fieldKey",
+        path="<module-path>/**/*.dart")
+   ```
+3. For each match, read the **full body** of the enum/constant file or builder method — not just the class name. Check whether an existing constant or case already covers the new capability.
+4. Also search for a similar interaction pattern (e.g. existing bottomsheet with sub-navigation) if the feature involves BLoC behaviour:
+   ```
+   Grep(query="OpenDetail|DrillDown|BackTo|SubScreen|BottomSheet",
+        path="<module-path>/**/*.dart")
+   ```
+   Read the event class of any match to document the established navigation event pattern.
+5. Verdict per capability:
+   - **✓ Covered** — an existing mechanism handles it; set artifact Status to `covered-by-existing` and name the mechanism.
+   - **✗ Not covered** — no existing mechanism found; keep Status as `create` and note why.
+
+Record all verdicts in the `### Mechanism Coverage` section of the output.
+
 ## Output
 
 Return exactly this structure — no prose:
@@ -97,7 +120,7 @@ Return exactly this structure — no prose:
 ### Artifacts
 | Name | Type | Path | Status |
 |---|---|---|---|
-| <ClassName> | Entity / UseCase / RepositoryInterface / DomainService | <path> | exists / create |
+| <ClassName> | Entity / UseCase / RepositoryInterface / DomainService | <path> | exists / create / covered-by-existing |
 
 ### Naming Conventions
 - entity_suffix: `<suffix>`
@@ -111,6 +134,13 @@ Return exactly this structure — no prose:
 #### <FileName> (<artifact type>)
 - constructor_params: <param>: <Type>, ...
 - execute_signature: `func execute(<params>) -> <return>`
+
+### Mechanism Coverage
+| PRD Capability | Mechanism Checked | File | Coverage | Notes |
+|---|---|---|---|---|
+| <capability> | <enum / builder / pattern name> | <path> | ✓ Covered / ✗ Not covered | <e.g. FieldType.assigneeWithTeam already exists> |
+
+(Omit this section if no `create` artifacts were proposed.)
 
 ### Impact Recommendations
 | Layer | Reason | Urgency |

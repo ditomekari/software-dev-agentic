@@ -87,6 +87,26 @@ After reading primary artifact symbols, extract all referenced type names from f
   - (b) it is likely to be modified as a consequence of this change (e.g. a new DTO field requires a corresponding mapper update)
 - Skip if the type is only used as a pass-through and its shape is not needed to complete findings
 
+**Step 3b — Generic Mechanism Coverage Check (mandatory for every mapper or datasource with Status: create)**
+
+Before finalising a mapper or datasource as `create`, confirm that an existing generic data mechanism does not already handle the new field through a shared pipeline.
+
+1. Search for generic property builders or field-type mappers that write to a shared array (e.g. `crmProperties`, `extraFields`, `buildProperties`):
+   ```
+   Grep(query="crmProperties|buildProperties|toProperties|extraFields|fieldMapper|propertyMapper",
+        path="<module-path>/**/*.dart")
+   ```
+2. Read the **full body** of any matching builder method. Check:
+   - Does the builder iterate over a field-type enum and write to a shared array?
+   - If a new `FieldType` constant is added (by the domain planner), does this builder automatically handle it — or does it require a new explicit branch?
+3. Also check the DataSource: does the existing API endpoint already return the new field in a generic property array, or does it need a new endpoint/param?
+4. Verdict per capability:
+   - **✓ Covered** — adding a `FieldType` constant is sufficient; no new mapper class or datasource change needed. Set artifact Status to `covered-by-existing`.
+   - **Partial** — the mapper handles the type generically but the datasource needs a new parameter. Set Status to `create` for the datasource only.
+   - **✗ Not covered** — new mapper class and/or datasource required. Keep Status as `create`.
+
+Record all verdicts in the `### Mechanism Coverage` section of the output.
+
 ## Output
 
 Return exactly this structure — no prose:
@@ -97,7 +117,7 @@ Return exactly this structure — no prose:
 ### Artifacts
 | Name | Type | Path | Status |
 |---|---|---|---|
-| <ClassName> | Dto / Mapper / DataSourceInterface / DataSourceImpl / RepositoryImpl | <path> | exists / create |
+| <ClassName> | DTO / Mapper / DataSource / RepositoryImpl | <path> | exists / create / covered-by-existing |
 
 ### Naming Conventions
 - dto_suffix: `<suffix>`
@@ -113,6 +133,13 @@ Return exactly this structure — no prose:
 - field_declarations: <field>: <Type>, ...
 - primary_method_signature: `func map(<params>) -> <return>`
 
+### Mechanism Coverage
+| PRD Capability | Mechanism Checked | File | Coverage | Notes |
+|---|---|---|---|---|
+| <capability> | <builder / mapper method name> | <path> | ✓ Covered / Partial / ✗ Not covered | <e.g. crmProperties builder handles FieldType generically> |
+
+(Omit this section if no `create` artifacts were proposed.)
+
 ### Impact Recommendations
 | Layer | Reason | Urgency |
 |---|---|---|
@@ -121,8 +148,6 @@ Return exactly this structure — no prose:
 
 Omit rows for layers with no impact. Omit the section entirely if no other layer is affected.
 ```
-
-Write `none detected` for any naming convention that cannot be inferred.
 
 ## Extension Point
 
