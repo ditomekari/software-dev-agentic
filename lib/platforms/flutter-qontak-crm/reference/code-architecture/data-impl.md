@@ -185,6 +185,52 @@ class CompanyRemoteDataSourceImpl implements CompanyRemoteDataSource {
 
 ---
 
+## Multi-Source Mapping Pattern <!-- 42 -->
+
+Apply when a single domain entity is assembled from two or more distinct data sources (e.g. CRM API + CDP API, or REST + local DB).
+
+**Rule:** The Repository Implementation is the only layer that sees multiple sources. It merges results and hands the mapper a single, complete data object. Mappers receive one input type; they never fan-out to other sources.
+
+**Structure:**
+1. Declare one `Mapper` per source.
+2. In the Repository, call both sources, then apply a `merge` or composite-map step.
+3. The entity produced is identical whether one source or both are available — absent data fills in domain defaults.
+
+```dart
+// features/crm_contact/lib/src/data/repositories/contact_repository_impl.dart
+class ContactRepositoryImpl implements ContactRepository {
+  final CrmContactRemoteDataSource _crmSource;
+  final CdpContactRemoteDataSource _cdpSource;
+  final CrmContactMapper _crmMapper;
+  final CdpContactMapper _cdpMapper;
+
+  ContactRepositoryImpl(
+    this._crmSource,
+    this._cdpSource,
+    this._crmMapper,
+    this._cdpMapper,
+  );
+
+  @override
+  TaskEither<Failure, Contact> getContact(String id) =>
+      TaskEither.tryCatch(
+        () async {
+          final crmDto = await _crmSource.getContact(id);
+          final cdpDto = await _cdpSource.getContact(id).getOrNull(); // nullable — CDP may not have it
+          // Merge into a single, type-safe record before mapping
+          return _crmMapper.toDomain(crmDto, cdpOverlay: cdpDto != null ? _cdpMapper.toOverlay(cdpDto) : null);
+        },
+        (e, _) => mapException(e),
+      );
+}
+```
+
+**Vocabulary rule:** The merged entity uses one canonical term for each concept. If CRM calls it `person` and CDP calls it `contact`, pick one. Both mappers translate to the canonical term — no API-originated names survive into the domain.
+
+**DI (CRM manual GetIt):** Both `DataSource` instances and both `Mapper` instances are passed through `QontakXxxDependency` and injected into the `RepositoryImpl` constructor.
+
+---
+
 ## Repository Implementation <!-- 41 -->
 
 Two acceptable patterns — `TaskEither.tryCatch` (FP style, used in newer packages) or manual `try/catch`. Be consistent within a feature.

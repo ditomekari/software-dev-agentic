@@ -175,6 +175,52 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
 ---
 
+## Multi-Source Mapping Pattern <!-- 42 -->
+
+Apply when a single domain entity is assembled from two or more distinct data sources (e.g. two REST APIs, or REST + local DB).
+
+**Rule:** The Repository Implementation is the only layer that sees multiple sources. It merges results and hands the mapper a single, complete data object. Mappers receive one input type; they never fan-out to other sources.
+
+**Structure:**
+1. Declare one `Mapper` per source.
+2. In the Repository, call both sources, then apply a `merge` or composite-map step.
+3. The entity produced is identical whether one source or both are available — absent data fills in domain defaults.
+
+```dart
+// [prefix]_chat/lib/src/data/repositories/message_repository_impl.dart
+@LazySingleton(as: MessageRepository)
+class MessageRepositoryImpl implements MessageRepository {
+  final MessageRemoteDataSource _remoteSource;
+  final MessageLocalDataSource _localSource;
+  final MessageRemoteMapper _remoteMapper;
+  final MessageLocalMapper _localMapper;
+
+  MessageRepositoryImpl(
+    this._remoteSource,
+    this._localSource,
+    this._remoteMapper,
+    this._localMapper,
+  );
+
+  @override
+  TaskEither<Failure, Message> getMessage(String id) =>
+      TaskEither.tryCatch(
+        () async {
+          final remoteDto = await _remoteSource.getMessage(id);
+          final localDto = await _localSource.getMessage(id).getOrNull(); // nullable
+          return _remoteMapper.toDomain(remoteDto, localOverlay: localDto != null ? _localMapper.toOverlay(localDto) : null);
+        },
+        (e, _) => mapException(e),
+      );
+}
+```
+
+**Vocabulary rule:** The merged entity uses one canonical term for each concept. Both mappers translate to the canonical term — no API-originated names survive into the domain.
+
+**DI (Chat `@injectable`):** Annotate the `RepositoryImpl` with `@LazySingleton(as: MessageRepository)`. The `@injectable` code generator wires all constructor dependencies automatically.
+
+---
+
 ## Repository Implementation <!-- 63 -->
 
 ```dart
