@@ -105,23 +105,75 @@ Elements remaining in `## Custom Widgets` after Level 2 are created fresh using 
 **For each Screen or Component artifact (status: create):**
 
 1. Write checkpoint: update `next_artifact` in state.json to this artifact's name. Update its `Progress` cell in plan.md to `in-progress`.
+
 2. Run UI Resolution Priority (Level 1 → 2 → 3) for this artifact.
-3. Resolve Figma reference (if `## Figma Alignment` is present in context.md):
-   - Look up this artifact's name in the Figma Alignment table → get `Figma Files` list
-   - Execute these reads as explicit sequential steps — do not write code before all three are done:
-     1. `Read` each `.md` file — extract `Components`, `State`, `Interactions`, `Tokens`, `Annotations` from body
-     2. `Read` each `layout_file` JSX in full — authoritative layout source, do not truncate
-     3. `Read` each `screenshot` `.png` — mandatory, not optional; visual inspection reveals spacing, color weight, and hierarchy that text alone cannot convey
-4. Resolve skill path: `.claude/skills/<skill-name>/SKILL.md`. `Read` the skill file.
-5. Follow the skill's instructions as the authoritative procedure for `<platform>`. Pass:
-   - `## Design System Bindings` — hard constraint
-   - `## Custom Widgets` — elements to implement as new widgets
-   - `## Figma Design Reference` — semantic summary from `.md` body
+
+3. Read Figma files — execute in order, do not proceed to step 4 until all reads are complete:
+   - Look up this artifact's name in the `## Figma Alignment` table in context.md → get the `Figma Files` list
+   - For each `.md` file in the list:
+     a. `Read` the `.md` file → record `layout_file` and `screenshot` paths from frontmatter, extract `Components`, `State`, `Interactions`, `Annotations` from body
+     b. `Read` the `layout_file` JSX at the path from step (a) — read in full, never truncate
+     c. `Read` the `screenshot` PNG at the path from step (a) — visual inspection is mandatory; spacing, color, and hierarchy are not in the text
+
+4. Write a Layout Transcript from what was just read — this is an extraction, not a plan summary. Do not write any code before this transcript exists:
+
+   ```
+   ## Layout Transcript: <ArtifactName>
+
+   ### Sections
+   1. <Section heading from Figma> — <direct child elements in order>
+   2. ...
+
+   ### Field Inventory
+   | # | Label (from Figma) | Widget | Visible when | Notes |
+   |---|---|---|---|---|
+   | 1 | <text node / annotation label> | picker / text-input / checkbox / toggle / date / button | always / state.X == Y | |
+
+   ### Bottom Bar
+   | # | Label | Style |
+   |---|---|---|
+   | 1 | <button label> | primary / outlined / text |
+
+   ### Conditional Groups
+   | Condition | Fields shown |
+   |---|---|
+   | state.X | <comma-separated labels> |
+   ```
+
+   Rules:
+   - Every JSX node that renders visible output must produce a row in Field Inventory — derive the label from the JSX text node or Figma annotation, not from the plan
+   - If the screenshot reveals an element not in the JSX (e.g. spacing, dividers, section headers), add it
+   - Never skip a row because the plan omits it
+
+5. Write a Widget Plan — a one-to-one mapping from each Field Inventory row to a concrete widget call. This is the contract the skill must implement exactly:
+
+   ```
+   ## Widget Plan: <ArtifactName>
+
+   | Field # | Widget call / method | Implementation note |
+   |---|---|---|
+   | 1 | `_pickerField(label: 'Penerima', ...)` | opens BeneficiaryPickerBottomSheet |
+   | 2 | `_dateField(label: 'Tanggal transaksi', ...)` | showDatePicker |
+   | ... | | |
+   ```
+
+   Gate — do not invoke the skill until every row passes:
+   - [ ] Every Field Inventory row has a widget call (no `// TODO`, no `ListTile` placeholders)
+   - [ ] Every Conditional Group has an `if (state.X)` guard on the right fields
+   - [ ] Bottom Bar row count and labels match exactly
+
+6. Resolve skill path: `.claude/skills/<skill-name>/SKILL.md`. `Read` the skill file.
+
+7. Follow the skill's instructions as the authoritative procedure for `<platform>`. Pass as inputs:
+   - `## Design System Bindings` — hard constraint from UI Resolution
+   - `## Layout Transcript` — the transcript from step 4
+   - `## Widget Plan` — the widget plan from step 5; skill must implement every row
    - `## Figma Layout Reference` — full JSX content from `layout_file`
-   - `## Figma Screenshot` — image loaded from `screenshot` path
    - `## StateHolder Contract` — from the contract file read in pre-flight
-6. Validate (see Validation below).
-7. Update state.json: add artifact to `completed_artifacts`, advance `next_artifact`. Update `Progress` to `done`.
+
+8. Validate (see Validation below).
+
+9. Update state.json: add artifact to `completed_artifacts`, advance `next_artifact`. Update `Progress` to `done`.
 
 **For each Screen or Component artifact (status: exists):**
 
@@ -174,11 +226,18 @@ git rev-parse --show-toplevel
 
 ## Validation Protocol
 
-After all UI artifacts are complete, run the project's type checker once:
+After all UI artifacts are complete, run the platform type-checker — derived from the `platform` field extracted during pre-flight:
+
+| platform | command |
+|---|---|
+| flutter | `flutter analyze <package_path>` |
+| web | `npx tsc --noEmit` (run from the package root) |
+| ios | skip — no fast static analyzer available; type errors surface at build time |
+
 - Capture the full output — do not truncate
-- Fix all reported errors in a single pass
-- Run once more to confirm clean
-- Never loop more than twice — surface persistent errors to the user
+- For each error: re-read the referenced source file to find the correct class name, parameter name, or type. **Never fix by guessing** — wrong parameter names (e.g. `initial:` vs `initialDraft:`) must be corrected by reading the actual constructor, not by inference.
+- Fix all reported errors in a single pass, then re-run once to confirm clean
+- Never loop more than twice — surface persistent errors to the user with the exact error output
 
 ## Output
 

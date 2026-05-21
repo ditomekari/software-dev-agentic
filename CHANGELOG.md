@@ -7,6 +7,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.25.0] — 2026-05-21
+
+### Changed
+- `builder-ui-worker` — Figma reads restructured into three explicit sequential sub-steps per `.md` file (read `.md` → extract `layout_file`/`screenshot` paths, read JSX in full, read PNG). Step 4 now requires a **Layout Transcript** (structured extraction of sections, field inventory, bottom bar, conditional groups from JSX + screenshot) before any widget code is written. Step 5 requires a **Widget Plan** (one-to-one mapping of every Field Inventory row to a concrete widget call) with a gate checklist before the skill is invoked. Skill inputs updated: raw `## Figma Design Reference` replaced by `## Layout Transcript` + `## Widget Plan`.
+- `builder-feature-worker` — added **Sibling API Verification** step after skill execution: constructors, event variant names, and model field names must be confirmed via Grep + Read before writing any call site. Assumption is explicitly disallowed.
+- `builder-feature-worker`, `builder-ui-worker` — Validation Protocol updated to run the platform type-checker (`flutter analyze` / `tsc --noEmit` / skip for iOS) and fix errors by reading the actual definition, never by inference.
+
+---
+
 ## [7.24.0] — 2026-05-21
 
 ### Changed

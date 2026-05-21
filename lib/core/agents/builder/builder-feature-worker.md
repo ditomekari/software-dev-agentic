@@ -100,6 +100,18 @@ Derive the skill from each artifact's type in plan.md:
 4. Resolve skill path: `.claude/skills/<skill-name>/SKILL.md`
 5. `Read` the skill file
 6. Follow its instructions as the authoritative procedure for `<platform>`
+
+**Sibling API Verification — mandatory before finalizing any file that calls into another artifact:**
+
+When the code you are about to write calls a constructor, named parameter, event variant, or field on any class — whether created in this run or already existing — you must verify the actual signature before writing the call:
+
+- `Grep` for the class name to locate its file, then `Read` the constructor/factory signature with `offset` + `limit`. Do not assume parameter names match what the plan describes.
+- For Freezed event classes: `Grep` for the event class name and read all variant factory names. A variant named `.load` is not the same as `.loadTerms` — confirm the exact name.
+- For entity/model fields: `Grep` for the field name inside its file before referencing it. A field named `isPayable` is not the same as `expensePayable`.
+- If the artifact was just created in this session, you already have its content — re-verify from what you wrote, not from memory.
+
+Any mismatch found here must be corrected before moving to Validation. Never leave a call site with an assumed name.
+
 7. Validate (see Validation below)
 8. Update state.json: add artifact to `completed_artifacts`, advance `next_artifact` to the following artifact. Update this artifact's `Progress` cell in plan.md to `done`.
 
@@ -195,11 +207,18 @@ The calling skill will immediately re-spawn a fresh worker. The new worker reads
 
 ## Validation Protocol
 
-After all artifacts are complete, run the project's type checker **once**:
+After all artifacts are complete, run the platform type-checker — derived from the `platform` field extracted during pre-flight:
+
+| platform | command |
+|---|---|
+| flutter | `flutter analyze <package_path>` |
+| web | `npx tsc --noEmit` (run from the package root) |
+| ios | skip — no fast static analyzer available; type errors surface at build time |
+
 - Capture the full output — do not truncate
-- Fix all reported errors in a single pass
-- Run the type checker **once more** to confirm clean
-- Never loop more than twice — if errors persist, surface them to the user
+- For each error: re-read the referenced source file to find the correct API name, parameter name, or field name. **Never fix by guessing** — locate the actual definition with Grep, then Read around it.
+- Fix all reported errors in a single pass, then re-run once to confirm clean
+- Never loop more than twice — if errors persist, surface them to the user with the exact error output
 
 ## Auth Interruption Recovery
 
