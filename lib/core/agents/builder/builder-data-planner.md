@@ -93,7 +93,7 @@ Before finalising a mapper or datasource as `create`, confirm that an existing g
 
 1. Search for generic property builders or field-type mappers that write to a shared array (e.g. `crmProperties`, `extraFields`, `buildProperties`):
    ```
-   Grep(query="crmProperties|buildProperties|toProperties|extraFields|fieldMapper|propertyMapper",
+   Grep(query="buildProperties|toProperties|extraFields|fieldMapper|propertyMapper|propertyBuilder",
         path="<module-path>/**/*.dart")
    ```
 2. Read the **full body** of any matching builder method. Check:

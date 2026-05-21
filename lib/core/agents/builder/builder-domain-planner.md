@@ -94,7 +94,7 @@ Before finalising any artifact as `create`, confirm that an existing domain mech
 1. Identify the domain capability implied by the feature (e.g. "assign a team", "filter by status", "apply a custom field").
 2. Search for generic property arrays, field-type enums, or capability builders that might already handle it:
    ```
-   Grep(query="FieldType|PropertyType|crmProperties|fieldConfig|propertyBuilder|fieldKey",
+   Grep(query="FieldType|PropertyType|fieldConfig|propertyBuilder|fieldKey|propertyType",
         path="<module-path>/**/*.dart")
    ```
 3. For each match, read the **full body** of the enum/constant file or builder method — not just the class name. Check whether an existing constant or case already covers the new capability.

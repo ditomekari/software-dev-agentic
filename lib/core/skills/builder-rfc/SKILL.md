@@ -110,7 +110,7 @@ From the Epic description and PRD, identify the domain objects involved (e.g., "
 
 ```
 grep_search(
-  query: "<domain-object> | FieldType | crmProperties | propertyBuilder | <feature-verb>",
+  query: "<domain-object> | FieldType | PropertyType | propertyBuilder | fieldConfig | <feature-verb>",
   includePattern: "features/<module>/lib/**/*.dart"
 )
 ```
