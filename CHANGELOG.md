@@ -7,6 +7,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [7.23.0] — 2026-05-21
+
+### Changed
+- `builder-plan-feature` — added Routing Contract prohibiting the skill from reading source files, grepping, or writing code directly. Preflight now collects `found_plans`/`found_figma` without routing. Step 1 (`gather-intent`) owns all routing decisions; `run_dir` flows from the orchestrator's `Decision: spawn-planners` block. Step 1.5 no longer computes `run_dir` from the feature name. Post-Figma-grouping gate added: explicit "proceed to Step 2 only" enforces delegation to planners and workers.
+- `builder-feature-orchestrator` — `gather-intent` mode expanded to own both fresh and resume flows (Steps G1–G3): classifies existing runs, surfaces partial/complete runs to user, reads existing `plan.md` + `context.md` as context for intent gathering, asks "continue as-is or describe changes", and returns `Decision: resume-as-is` or `Decision: spawn-planners` accordingly. `Decision: spawn-planners` block now includes `run_dir`, `feature`, `platform`, `module_path`, and `update_mode`. `Decision: resume-as-is` and `Decision: discard-partial` added to the Structured Decision Blocks reference.
+- `builder-feature-orchestrator` — `Mode: resume` removed; its responsibilities fully absorbed into `gather-intent`.
+
+---
+
 ## [7.22.7] — 2026-05-21
 
 ### Changed

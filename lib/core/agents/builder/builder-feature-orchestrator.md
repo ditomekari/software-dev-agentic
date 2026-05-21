@@ -27,6 +27,11 @@ Returned when planners need to run (initial or follow-up round):
 ```
 ## Decision: spawn-planners
 round: <N>
+run_dir: <absolute path to run directory>
+feature: <feature name>
+platform: <web | ios | flutter>
+module_path: <module path>
+update_mode: <true | false>
 spawn:
   - domain
   - data
@@ -40,9 +45,29 @@ scope:
   app:    [di, route, module, analytics, feature_flag]
 open_questions:
   - <any unresolved requirement or ambiguity that a planner must answer>
+completed_artifacts: [<list — omit if update_mode is false>]
+figma_groups: <json — omit if not present>
 ```
 
 Only list planners that are needed. Omit planners already explored in previous rounds unless new open questions require re-exploration. For each spawned planner, include only the scope types relevant to the stated intent — planners use this to decide their entry point and suppress unneeded glob steps.
+
+### Decision: resume-as-is
+
+Returned when the user wants to continue execution without any plan changes:
+
+```
+## Decision: resume-as-is
+run_dir: <absolute path to run directory>
+```
+
+### Decision: discard-partial
+
+Returned when the user wants to discard an interrupted planning run:
+
+```
+## Decision: discard-partial
+run_dir: <absolute path to run directory>
+```
 
 ### Decision: converged
 
@@ -72,7 +97,68 @@ options:
 
 ## Mode: gather-intent
 
-Called first for any new interactive feature. Ask only what is needed:
+Entry point for every run — fresh and resume. Called by the entry skill with optional `Existing runs` and `Existing figma groups` context and optional `Resolved Inputs`.
+
+### Step G1 — Existing run check
+
+If `Existing runs` is non-empty:
+
+**Classify each path:**
+- **Partial-planning run** — has `figma-groups.json` but no `plan.md` in the same dir
+- **Complete run** — has `plan.md`
+
+**If any partial-planning run exists**, call `AskUserQuestion`:
+
+```
+question    : "A planning session was interrupted before the plan was written. Resume it or discard?"
+header      : "Resume Planning"
+multiSelect : false
+options     :
+  - label: "Resume",  description: "Restore findings and re-enter the planning loop"
+  - label: "Discard", description: "Delete the partial run and start fresh"
+```
+
+- **Discard** → return `## Decision: discard-partial` with `run_dir`. Entry skill deletes and re-enters Step 1.
+- **Resume** → read `figma-groups.json` and all `findings-round-*.json` files to restore `figma_groups`, `all_findings`, and last `round`. Carry these forward into Step G2 (intent gathering) as context. `run_dir` = existing dir.
+
+**If only complete runs exist**, call `AskUserQuestion`:
+
+```
+question    : "Existing plans found. What would you like to do?"
+header      : "Resume or Start"
+multiSelect : false
+options     :
+  - label: "Continue existing", description: "Pick an existing plan to resume or update"
+  - label: "Start fresh",       description: "Plan and build a new feature from scratch"
+```
+
+- **Start fresh** → clear existing run context, proceed to Step G2 as a new feature.
+- **Continue existing** → read plan metadata via Bash:
+
+```bash
+for plan_path in <each path from found_plans>; do
+  dir="$(dirname "$plan_path")"
+  feature="$(grep "^feature:" "$plan_path" | head -1 | sed 's/^feature: *//')"
+  status="$(grep "^status:" "$plan_path" | head -1 | sed 's/^status: *//')"
+  count="$(python3 -c "import json; d=json.load(open('$dir/state.json')); print(len(d.get('completed_artifacts',[])))" 2>/dev/null || echo '?')"
+  echo "$feature|$status|$count|$dir"
+done
+```
+
+Call `AskUserQuestion` with one option per found plan:
+
+```
+question    : "Which plan would you like to continue?"
+header      : "Existing Plans"
+multiSelect : false
+options     : one per plan — label: <feature>, description: "<count> artifacts done · status: <status>"
+```
+
+Set `run_dir` from the selected plan's dir. Read `plan.md` and `context.md` from `run_dir` — use as context for Step G2 intent gathering.
+
+### Step G2 — Gather intent
+
+**Fresh run:** Ask only what is needed:
 
 1. **Feature name** — used as the run directory key. If Figma URLs are listed as "pending fetch" in the inputs, note them — they will be fetched after this step using the feature name.
 2. **Platform** — `web`, `ios`, or `flutter`
@@ -80,6 +166,46 @@ Called first for any new interactive feature. Ask only what is needed:
    - Update → which layers need changes (default: assume all)
 4. **Operations needed** — GET list / GET single / POST / PUT / DELETE
 5. **Separate UI layer?** — distinct UI layer from StateHolder? (yes for mobile, no for web)
+
+**Resuming an existing run:** Show a one-line summary of the current plan state:
+
+> `<X> of <Y> artifacts done — pending: <comma-separated names>`
+
+Then ask:
+
+```
+question    : "<summary line>. What would you like to do?"
+header      : "Resume Intent"
+multiSelect : false
+options     :
+  - label: "Continue as-is",   description: "No changes — resume execution from the next pending artifact"
+  - label: "Describe changes", description: "Something needs updating — I'll describe what"
+```
+
+- **Continue as-is** → return `## Decision: resume-as-is` with `run_dir`.
+- **Describe changes** → ask the user to describe what needs fixing or adding. Listen fully before responding. Determine which layers are affected (use the table below), then proceed to Step G3.
+
+### Step G3 — Return decision
+
+Resolve `run_dir`:
+- Resume path → already set from Step G1
+- Fresh path → standard path: `<project_root>/.claude/agentic-state/runs/<feature>`
+
+Return a `Decision: spawn-planners` block. Always include `run_dir`. Include `update_mode: true` and `completed_artifacts` / `open_questions` / `figma_groups` only on the resume path.
+
+### Layer selection table (fresh and resume)
+
+| User describes | Spawn |
+|---|---|
+| New feature (all layers) | domain + data + pres + app |
+| Update presentation only | pres + app |
+| Update data + domain | domain + data + app |
+| UI layout / visual / icon / ordering | pres |
+| New or changed fields on existing data | domain + data |
+| New screen or flow | domain + data + pres + app |
+| Navigation or routing change | pres + app |
+| Business rule / logic change | domain |
+| API contract change | data |
 
 Then return a `Decision: spawn-planners` block for round 1. Select planners based on stated intent and the layer contracts below:
 
@@ -277,165 +403,6 @@ module-path: <detected module path>
 ```
 
 **Step 6 — Return plan summary** as a flat numbered list (one line per artifact, layer + status). Do not return file contents — the entry skill handles the approval interaction.
-
-## Mode: resume
-
-Called by the entry skill when existing runs are detected. Receives the raw output of `find … -name "plan.md"` and `find … -name "figma-groups.json"` as `found_plans` and `found_figma`. Owns the full resume flow — run selection, figma repair, and intent gathering.
-
-**Step 1 — Classify found paths**
-
-From `found_plans` and `found_figma`:
-- **Partial-planning run** — a `run_dir` that has `figma-groups.json` but no `plan.md` alongside it. For each, derive `run_dir` from the figma-groups.json path.
-- **Complete run** — a `run_dir` that has `plan.md` (with or without `figma-groups.json`).
-
-**Step 2 — Run selection**
-
-If any partial-planning run exists, call `AskUserQuestion`:
-
-```
-question    : "A planning session was interrupted before the plan was written. Resume it or discard?"
-header      : "Resume Planning"
-multiSelect : false
-options     :
-  - label: "Resume",  description: "Restore planner findings and re-enter the planning loop"
-  - label: "Discard", description: "Delete the partial run and start fresh"
-```
-
-**Resume** → set `run_dir`, read `figma-groups.json` to restore `figma_groups`, read all `findings-round-*.json` files (sorted) to restore `all_findings` and last completed `round`. Return:
-
-```
-## Decision: restore-partial
-run_dir: <run_dir>
-figma_groups: <json>
-all_findings: <concatenated findings>
-round: <last + 1>
-```
-
-**Discard** → return `## Decision: discard-partial` with `run_dir`. Entry skill deletes and starts fresh.
-
-If only complete runs exist, call `AskUserQuestion`:
-
-```
-question    : "Existing plans found. What would you like to do?"
-header      : "Resume or Start"
-multiSelect : false
-options     :
-  - label: "Continue existing", description: "Pick an existing plan to review and resume"
-  - label: "Start fresh",       description: "Plan and build a new feature from scratch"
-```
-
-**Start fresh** → return `## Decision: start-fresh`.
-
-**Continue existing** → extract run metadata via bash:
-
-```bash
-for plan_path in <each path from found_plans>; do
-  dir="$(dirname "$plan_path")"
-  feature="$(grep "^feature:" "$plan_path" | head -1 | sed 's/^feature: *//')"
-  plan_status="$(grep "^status:" "$plan_path" | head -1 | sed 's/^status: *//')"
-  count="$(python3 -c "import json; d=json.load(open('$dir/state.json')); print(len(d.get('completed_artifacts',[])))" 2>/dev/null || echo '?')"
-  echo "$feature|$plan_status|$count|$dir"
-done
-```
-
-Call `AskUserQuestion` with one option per line:
-
-```
-question    : "Which plan would you like to resume?"
-header      : "Existing Plans"
-multiSelect : false
-options     : one per line — label: <feature>, description: "<count> artifacts done · status: <plan_status>"
-```
-
-Set `run_dir` from the selected line's `<dir>` value.
-
-**Step 3 — Figma repair**
-
-```bash
-find "<run_dir>/inputs" -name "figma-*.md" 2>/dev/null | sort
-ls "<run_dir>/figma-groups.json" 2>/dev/null
-```
-
-For any `figma-*.md` whose `screenshot:` frontmatter starts with `http` and has no matching `.png` on disk:
-
-```bash
-curl -sL "<url>" -o "<run_dir>/inputs/figma-<slug>-screenshot.png"
-```
-
-Update the `screenshot:` frontmatter to the local path. Add `screenshot_url: <url>` if absent.
-
-If `figma-groups.json` is missing but figma inputs exist, reconstruct from `parent_frame` frontmatter:
-
-```bash
-cat > "<run_dir>/figma-groups.json" << 'EOF'
-<reconstructed JSON grouped by parent_frame>
-EOF
-```
-
-If `figma-groups.json` now exists, read it and store as `figma_groups`.
-
-**Step 4 — Load minimal plan state**
-
-Read from `run_dir`:
-- `plan.md` — frontmatter (`feature`, `platform`, `operations`) + artifact rows (name, type, progress column only)
-- `state.json` — `completed_artifacts` list
-
-Cross-reference rows against `completed_artifacts`. Produce a one-line summary:
-
-> `<X> of <Y> artifacts done — pending: <comma-separated names>`
-
-**Step 5 — Gather intent**
-
-Call `AskUserQuestion`:
-
-```
-question    : "<summary line>. What needs to change, or should we just continue?"
-header      : "Resume Intent"
-multiSelect : false
-options     :
-  - label: "Continue as-is",   description: "No changes — resume execution from the next pending artifact"
-  - label: "Describe changes", description: "Something needs to change — I'll describe what"
-```
-
-**Continue as-is** → return:
-
-```
-## Decision: resume-as-is
-```
-
-**Describe changes** → ask the user to describe what needs fixing or changing. Listen fully before responding.
-
-**Step 6 — Decide which layers are affected**
-
-From the user's description, determine which layers need re-planning:
-
-| User describes | Spawn |
-|---|---|
-| UI layout / visual / icon / ordering issues | `pres` |
-| New or changed fields on existing data | `domain` + `data` |
-| New screen or flow | `domain` + `data` + `pres` + `app` |
-| Navigation or routing change | `pres` + `app` |
-| Business rule / logic change | `domain` |
-| API contract change | `data` |
-
-Return `Decision: spawn-planners` with `open_questions` carrying the user's stated issues as explicit questions for planners to answer:
-
-```
-## Decision: spawn-planners
-round: 1
-spawn:
-  - <layer>
-reason: <one line per planner>
-scope:
-  <layer>: [<artifact types>]
-open_questions:
-  - <specific question from user's stated issue>
-feature: <from plan.md frontmatter>
-platform: <from plan.md frontmatter>
-module_path: <from plan.md frontmatter or inferred>
-completed_artifacts: [<list from state.json>]
-figma_groups: <json, omit if absent>
-```
 
 ## Write Path Rule
 

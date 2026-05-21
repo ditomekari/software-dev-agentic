@@ -5,6 +5,16 @@ user-invocable: true
 allowed-tools: Agent, AskUserQuestion, Bash, Read, WebFetch
 ---
 
+## Routing Contract
+
+This skill is a pure router. Its only permitted direct operations:
+- `Bash` — preflight existence checks and run-dir persistence writes only
+- `Read` — only for explicit `.md` input files passed as arguments
+- `WebFetch` — only for non-Figma URLs passed as arguments
+- `AskUserQuestion` — approval prompts defined in each step
+
+Never read source files, search the codebase, or write code. All exploration, planning, and implementation is exclusively delegated to orchestrator / planner / worker agents.
+
 ## Preflight — Detect Existing Runs
 
 ```bash
@@ -12,25 +22,7 @@ find "$(git rev-parse --show-toplevel)/.claude/agentic-state/runs" -maxdepth 2 -
 find "$(git rev-parse --show-toplevel)/.claude/agentic-state/runs" -maxdepth 2 -name "figma-groups.json" 2>/dev/null
 ```
 
-If neither found → proceed to Step 0.
-
-If any paths found → spawn `builder-feature-orchestrator` in `resume` mode, passing the raw find output:
-
-> **Mode: resume**
->
-> **found_plans:**
-> \<newline-separated list of plan.md paths, or empty\>
->
-> **found_figma:**
-> \<newline-separated list of figma-groups.json paths, or empty\>
-
-Wait for the orchestrator's decision:
-
-- **`Decision: start-fresh`** → proceed to Step 0.
-- **`Decision: discard-partial`** → `rm -rf "<run_dir from decision>"`, proceed to Step 0.
-- **`Decision: restore-partial`** → extract `run_dir`, `figma_groups`, `all_findings`, `round`. Reconstruct `visited` from `all_findings`. Skip Steps 0–1.5b, re-enter Step 2.
-- **`Decision: resume-as-is`** → extract `run_dir`. Proceed directly to Step 5 (Execute).
-- **`Decision: spawn-planners`** → extract `feature`, `platform`, `module_path`, `completed_artifacts`, `open_questions`, `figma_groups` (if present). Initialize `visited = []`, `all_findings = []`, `round = 1`, `update_mode = true`. Proceed to Step 2.
+Collect results as `found_plans` and `found_figma`. **Do not route yet.** Pass them to Step 1 so the orchestrator sees the user's intent alongside any existing runs before making a routing decision.
 
 ## Step 0 — Classify Inputs
 
@@ -74,27 +66,28 @@ Spawn `builder-feature-orchestrator` with mode `gather-intent`:
 
 > **Mode: gather-intent**
 >
+> <if found_plans or found_figma is non-empty, include:>
+> **Existing runs:**
+> \<found_plans list, or "(none)"\>
+> **Existing figma groups:**
+> \<found_figma list, or "(none)"\>
+>
 > <if resolved_inputs or pending_figma_urls is non-empty, include the following block — otherwise omit>
 > **Resolved Inputs:**
 > <for each non-Figma item: "### <type> — <source>\n<content>">
 > <if pending_figma_urls is non-empty: "### Figma designs (pending fetch)\n<list each URL — will be fetched after feature name is confirmed>">
 >
-> Ask the user for feature intent. Return a `Decision: spawn-planners` block when done.
+> Ask the user for feature intent. Surface any existing runs and let the user choose to continue or start fresh. Return a Decision block when done.
 
-Wait for the orchestrator to return. Extract the `Decision: spawn-planners` block. Note the `feature` name from the orchestrator output.
+Wait for the orchestrator to return. Route based on the Decision block:
 
-Initialize:
-- `visited` = [] (empty set of explored layers)
-- `all_findings` = [] (accumulated planner findings across all rounds)
-- `round` = 1
+- **`Decision: discard-partial`** → `rm -rf "<run_dir from decision>"`. Re-spawn orchestrator in `gather-intent` mode (same inputs, minus the discarded path from `found_plans`/`found_figma`).
+- **`Decision: resume-as-is`** → extract `run_dir`. Proceed directly to Step 5 (Execute).
+- **`Decision: spawn-planners`** → extract `feature`, `platform`, `module_path`, `run_dir`. If `update_mode: true` also extract `completed_artifacts`, `open_questions`, `figma_groups`. Initialize `visited = []`, `all_findings = []`, `round = 1`. Proceed to Step 1.5 (if `pending_figma_urls` non-empty) or Step 2.
 
 ## Step 1.5 — Fetch Figma Inputs (skip if `pending_figma_urls` is empty)
 
-Now that `feature` is known, resolve the run directory:
-
-```bash
-echo "$(git rev-parse --show-toplevel)/.claude/agentic-state/runs/<feature>"
-```
+`run_dir` is already known from the `Decision: spawn-planners` block — use it directly.
 
 Spawn one `builder-figma-worker` per URL in `pending_figma_urls` — pass `figma_url`, `feature`, and `run_dir`. **Spawn all workers in parallel** (single Agent tool call).
 
@@ -179,6 +172,8 @@ Initialize:
 - `visited` = [] (empty set of explored layers)
 - `all_findings` = [] (accumulated planner findings across all rounds)
 - `round` = 1
+
+Proceed to Step 2. Do not read widget files, grep the codebase, or write any code — all exploration, planning, and implementation is done by planners and workers.
 
 ## Step 2 — Planning Convergence Loop
 
