@@ -7,253 +7,222 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f0f2f5; padding: 32px; }
   h1 { font-size: 14px; font-weight: 600; color: #444; margin-bottom: 24px; letter-spacing: 0.3px; }
-  .diagram { position: relative; }
-  svg { display: block; }
-
-  /* typography inside SVG */
-  text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  svg text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 </style>
 </head>
 <body>
 <h1>builder-plan-feature — Context Window &amp; Agent Spawn Flow</h1>
-<div class="diagram">
-<svg viewBox="0 0 700 1080" width="700" height="1080" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 760 1100" width="760" height="1100" xmlns="http://www.w3.org/2000/svg">
 
   <!-- ── DEFS ── -->
   <defs>
-    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-      <path d="M0,0 L0,6 L8,3 z" fill="#333"/>
-    </marker>
-    <marker id="arr-disk" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-      <path d="M0,0 L0,6 L8,3 z" fill="#5b8dd9"/>
-    </marker>
-    <marker id="arr-read" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-      <path d="M0,0 L0,6 L8,3 z" fill="#e09b2d"/>
-    </marker>
+    <marker id="arr"      markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#333"/></marker>
+    <marker id="arr-disk" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4a90d9"/></marker>
+    <marker id="arr-read" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#d4820a"/></marker>
   </defs>
 
-  <!-- ══════════════════════════════════════════════
-       BACKGROUND ZONES
-  ══════════════════════════════════════════════ -->
+  <!-- ── helper macro: labeled arrow (implemented inline per use) ── -->
 
-  <!-- Main context zone label -->
-  <text x="14" y="18" font-size="10" fill="#888" font-weight="500">Context Window</text>
-  <text x="14" y="30" font-size="10" fill="#888" font-weight="500">Main Agent</text>
+  <!-- ════════════════════════════════════════
+       BACKGROUND ZONES
+  ════════════════════════════════════════ -->
+  <text x="14" y="18" font-size="10" fill="#999" font-weight="500">Context Window · Main Agent</text>
 
   <!-- Disk zone -->
-  <rect x="555" y="0" width="145" height="1080" rx="4" fill="#d0d5de" opacity="0.55"/>
-  <text x="610" y="22" font-size="11" fill="#666" font-weight="600">Disk</text>
+  <rect x="580" y="0" width="180" height="1100" rx="4" fill="#cdd2dc" opacity="0.5"/>
+  <text x="670" y="24" font-size="12" fill="#666" font-weight="700" text-anchor="middle">Disk</text>
 
-  <!-- ══════════════════════════════════════════════
-       MAIN CONTEXT BAR (skill: builder-plan-feature)
-  ══════════════════════════════════════════════ -->
-  <rect x="14" y="44" width="56" height="1010" rx="6" fill="#4a90d9" opacity="0.85"/>
-  <text x="42" y="66" font-size="8.5" fill="white" text-anchor="middle" font-weight="600">Skill:</text>
-  <text x="42" y="77" font-size="7.5" fill="white" text-anchor="middle">builder-</text>
-  <text x="42" y="87" font-size="7.5" fill="white" text-anchor="middle">plan-feature</text>
-  <text x="42" y="100" font-size="7" fill="white" text-anchor="middle" opacity="0.75">200K ctx</text>
+  <!-- ════════════════════════════════════════
+       MAIN CONTEXT BAR
+  ════════════════════════════════════════ -->
+  <rect x="14" y="44" width="58" height="1020" rx="7" fill="#4a90d9" opacity="0.9"/>
+  <text x="43" y="68"  font-size="9"   fill="white" text-anchor="middle" font-weight="700">Skill</text>
+  <text x="43" y="81"  font-size="7.5" fill="white" text-anchor="middle">builder-</text>
+  <text x="43" y="92"  font-size="7.5" fill="white" text-anchor="middle">plan-feature</text>
+  <text x="43" y="105" font-size="7"   fill="white" text-anchor="middle" opacity="0.7">200K ctx</text>
 
-  <!-- ══════════════════════════════════════════════
-       STEP LABELS (left gutter)
-  ══════════════════════════════════════════════ -->
-  <text x="80" y="148" font-size="8" fill="#aaa">Step 1</text>
-  <text x="80" y="285" font-size="8" fill="#aaa">Step 1.5</text>
-  <text x="80" y="430" font-size="8" fill="#aaa">Step 2a</text>
-  <text x="80" y="530" font-size="8" fill="#aaa">Step 2a</text>
-  <text x="80" y="660" font-size="8" fill="#aaa">Step 2b/3</text>
-  <text x="80" y="790" font-size="8" fill="#aaa">Step 5</text>
-  <text x="80" y="940" font-size="8" fill="#aaa">Step 5</text>
+  <!-- step labels -->
+  <text x="82" y="152" font-size="8.5" fill="#bbb" font-weight="500">Step 1</text>
+  <text x="82" y="292" font-size="8.5" fill="#bbb" font-weight="500">Step 1.5</text>
+  <text x="82" y="435" font-size="8.5" fill="#bbb" font-weight="500">Step 2a</text>
+  <text x="82" y="535" font-size="8.5" fill="#bbb" font-weight="500">Step 2a</text>
+  <text x="82" y="665" font-size="8.5" fill="#bbb" font-weight="500">Step 2b/3</text>
+  <text x="82" y="800" font-size="8.5" fill="#bbb" font-weight="500">Step 5</text>
+  <text x="82" y="950" font-size="8.5" fill="#bbb" font-weight="500">Step 5</text>
 
-  <!-- ══════════════════════════════════════════════
-       AGENT 1 — builder-feature-orchestrator (gather-intent)
-  ══════════════════════════════════════════════ -->
-  <!-- spawn arrow -->
-  <line x1="70" y1="145" x2="148" y2="145" stroke="#333" stroke-width="1.3" marker-end="url(#arr)"/>
-  <!-- agent box -->
-  <rect x="150" y="120" width="200" height="55" rx="5" fill="#4a90d9"/>
-  <text x="250" y="141" font-size="9.5" fill="white" text-anchor="middle" font-weight="600">builder-feature-orchestrator</text>
-  <text x="250" y="155" font-size="8.5" fill="white" text-anchor="middle" opacity="0.85">mode: gather-intent</text>
-  <text x="250" y="167" font-size="8" fill="white" text-anchor="middle" opacity="0.7">Context Window: 200K</text>
-  <!-- return arrow -->
-  <line x1="150" y1="162" x2="72" y2="162" stroke="#333" stroke-width="1.3" marker-end="url(#arr)"/>
-  <text x="110" y="175" font-size="7.5" fill="#555" text-anchor="middle">Decision block</text>
+  <!-- ════════════════════════════════════════
+       ARROW LABEL HELPER (white bg + text)
+       Used inline: rect then text
+  ════════════════════════════════════════ -->
 
-  <!-- ══════════════════════════════════════════════
-       AGENT 2 — builder-figma-worker × N (parallel)
-  ══════════════════════════════════════════════ -->
-  <!-- spawn arrow -->
-  <line x1="70" y1="280" x2="148" y2="280" stroke="#333" stroke-width="1.3" marker-end="url(#arr)"/>
-  <!-- agent box -->
-  <rect x="150" y="255" width="200" height="55" rx="5" fill="#4a90d9"/>
-  <text x="250" y="276" font-size="9.5" fill="white" text-anchor="middle" font-weight="600">builder-figma-worker × N</text>
-  <text x="250" y="290" font-size="8.5" fill="white" text-anchor="middle" opacity="0.85">parallel per figma URL</text>
-  <text x="250" y="302" font-size="8" fill="white" text-anchor="middle" opacity="0.7">Context Window: 200K each</text>
-  <!-- return arrow -->
-  <line x1="150" y1="297" x2="72" y2="297" stroke="#333" stroke-width="1.3" marker-end="url(#arr)"/>
-  <text x="110" y="310" font-size="7.5" fill="#555" text-anchor="middle">figma_resolved / sections</text>
-
-  <!-- disk write: figma-*.md + layout.jsx + screenshots -->
-  <line x1="350" y1="272" x2="552" y2="272" stroke="#5b8dd9" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#arr-disk)"/>
-  <circle cx="568" cy="265" r="10" fill="#5b8dd9" opacity="0.8"/>
-  <text x="568" y="269" font-size="6.5" fill="white" text-anchor="middle">figma</text>
-  <circle cx="592" cy="265" r="10" fill="#5b8dd9" opacity="0.8"/>
-  <text x="592" y="269" font-size="6.5" fill="white" text-anchor="middle">.md</text>
-  <circle cx="580" cy="285" r="10" fill="#5b8dd9" opacity="0.65"/>
-  <text x="580" y="289" font-size="6" fill="white" text-anchor="middle">layout</text>
-  <text x="580" y="295" font-size="5.5" fill="white" text-anchor="middle">.jsx</text>
-
-  <!-- disk write label -->
-  <text x="450" y="268" font-size="7" fill="#5b8dd9" text-anchor="middle">inputs/figma-*.md</text>
-
-  <!-- ── section expansion note ── -->
-  <rect x="152" y="320" width="196" height="22" rx="3" fill="#e8f0fb" stroke="#b5cef5" stroke-width="0.8"/>
-  <text x="250" y="334" font-size="7.5" fill="#4a90d9" text-anchor="middle">▶  section detected → 2nd batch of child workers</text>
-
-  <!-- ══════════════════════════════════════════════
-       AGENT 3 — builder-domain-planner
-  ══════════════════════════════════════════════ -->
-  <!-- spawn arrow -->
-  <line x1="70" y1="420" x2="148" y2="420" stroke="#333" stroke-width="1.3" marker-end="url(#arr)"/>
-  <!-- agent box -->
-  <rect x="150" y="395" width="200" height="55" rx="5" fill="#4a90d9"/>
-  <text x="250" y="416" font-size="9.5" fill="white" text-anchor="middle" font-weight="600">builder-domain-planner</text>
-  <text x="250" y="430" font-size="8.5" fill="white" text-anchor="middle" opacity="0.85">round 1 — explores codebase</text>
-  <text x="250" y="442" font-size="8" fill="white" text-anchor="middle" opacity="0.7">Context Window: 200K</text>
-  <!-- return arrow -->
-  <line x1="150" y1="437" x2="72" y2="437" stroke="#333" stroke-width="1.3" marker-end="url(#arr)"/>
-
-  <!-- disk write: findings -->
-  <line x1="350" y1="415" x2="552" y2="390" stroke="#5b8dd9" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#arr-disk)"/>
-  <circle cx="568" cy="383" r="10" fill="#5b8dd9" opacity="0.8"/>
-  <text x="568" y="386" font-size="5.5" fill="white" text-anchor="middle">find.</text>
-  <text x="568" y="393" font-size="5.5" fill="white" text-anchor="middle">r1.json</text>
-
-  <!-- ══════════════════════════════════════════════
-       AGENT 4 — builder-data-planner (parallel with domain)
-  ══════════════════════════════════════════════ -->
-  <!-- spawn arrow -->
-  <line x1="70" y1="520" x2="148" y2="520" stroke="#333" stroke-width="1.3" marker-end="url(#arr)"/>
-  <!-- agent box -->
-  <rect x="150" y="495" width="200" height="55" rx="5" fill="#4a90d9"/>
-  <text x="250" y="516" font-size="9.5" fill="white" text-anchor="middle" font-weight="600">builder-data-planner</text>
-  <text x="250" y="530" font-size="8.5" fill="white" text-anchor="middle" opacity="0.85">round 1 — explores codebase</text>
-  <text x="250" y="542" font-size="8" fill="white" text-anchor="middle" opacity="0.7">Context Window: 200K</text>
-  <!-- return arrow -->
-  <line x1="150" y1="537" x2="72" y2="537" stroke="#333" stroke-width="1.3" marker-end="url(#arr)"/>
-
-  <!-- disk write: findings -->
-  <line x1="350" y1="515" x2="552" y2="490" stroke="#5b8dd9" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#arr-disk)"/>
-  <circle cx="568" cy="483" r="10" fill="#5b8dd9" opacity="0.8"/>
-  <text x="568" y="486" font-size="5.5" fill="white" text-anchor="middle">find.</text>
-  <text x="568" y="493" font-size="5.5" fill="white" text-anchor="middle">r1.json</text>
-
-  <!-- parallel brace between domain + data planners -->
-  <text x="138" y="480" font-size="8" fill="#888" text-anchor="middle">parallel</text>
-  <line x1="138" y1="450" x2="138" y2="544" stroke="#bbb" stroke-width="1" stroke-dasharray="3,2"/>
-
-  <!-- ══════════════════════════════════════════════
-       AGENT 5 — builder-feature-orchestrator (process-findings + synthesize)
-  ══════════════════════════════════════════════ -->
-  <!-- spawn arrow -->
-  <line x1="70" y1="650" x2="148" y2="650" stroke="#333" stroke-width="1.3" marker-end="url(#arr)"/>
-  <!-- agent box -->
-  <rect x="150" y="625" width="200" height="60" rx="5" fill="#4a90d9"/>
-  <text x="250" y="646" font-size="9.5" fill="white" text-anchor="middle" font-weight="600">builder-feature-orchestrator</text>
-  <text x="250" y="660" font-size="8.5" fill="white" text-anchor="middle" opacity="0.85">mode: process-findings → synthesize</text>
-  <text x="250" y="672" font-size="8" fill="white" text-anchor="middle" opacity="0.7">Context Window: 200K</text>
-  <!-- return arrow -->
-  <line x1="150" y1="667" x2="72" y2="667" stroke="#333" stroke-width="1.3" marker-end="url(#arr)"/>
-  <text x="110" y="680" font-size="7.5" fill="#555" text-anchor="middle">Decision: converged</text>
-
-  <!-- disk READ: findings -->
-  <line x1="556" y1="450" x2="352" y2="643" stroke="#e09b2d" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#arr-read)"/>
-  <text x="490" y="560" font-size="7" fill="#e09b2d" text-anchor="middle" transform="rotate(-25,490,560)">reads findings</text>
-
-  <!-- disk WRITE: plan.md + context.md -->
-  <line x1="350" y1="648" x2="552" y2="660" stroke="#5b8dd9" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#arr-disk)"/>
-  <circle cx="568" cy="655" r="10" fill="#3d7cc9" opacity="0.9"/>
-  <text x="568" y="658" font-size="5.5" fill="white" text-anchor="middle">plan</text>
-  <text x="568" y="665" font-size="5.5" fill="white" text-anchor="middle">.md</text>
-  <circle cx="592" cy="655" r="10" fill="#3d7cc9" opacity="0.9"/>
-  <text x="592" y="658" font-size="5.5" fill="white" text-anchor="middle">ctx</text>
-  <text x="592" y="665" font-size="5.5" fill="white" text-anchor="middle">.md</text>
-
-  <!-- ══════════════════════════════════════════════
-       AGENT 6 — builder-feature-worker (Phase 1)
-  ══════════════════════════════════════════════ -->
-  <!-- spawn arrow -->
-  <line x1="70" y1="785" x2="148" y2="785" stroke="#333" stroke-width="1.3" marker-end="url(#arr)"/>
-  <!-- agent box -->
-  <rect x="150" y="760" width="200" height="60" rx="5" fill="#4a90d9"/>
-  <text x="250" y="781" font-size="9.5" fill="white" text-anchor="middle" font-weight="600">builder-feature-worker</text>
-  <text x="250" y="795" font-size="8.5" fill="white" text-anchor="middle" opacity="0.85">Phase 1: domain/data/pres/app</text>
-  <text x="250" y="807" font-size="8" fill="white" text-anchor="middle" opacity="0.7">Context Window: 200K</text>
-  <!-- return arrow -->
-  <line x1="150" y1="802" x2="72" y2="802" stroke="#333" stroke-width="1.3" marker-end="url(#arr)"/>
-  <text x="110" y="815" font-size="7.5" fill="#555" text-anchor="middle">Layers Complete / Checkpoint</text>
-
-  <!-- disk READ: plan.md -->
-  <line x1="556" y1="662" x2="352" y2="778" stroke="#e09b2d" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#arr-read)"/>
-
-  <!-- disk WRITE: state.json -->
-  <line x1="350" y1="783" x2="552" y2="770" stroke="#5b8dd9" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#arr-disk)"/>
-  <circle cx="580" cy="763" r="10" fill="#2e6db5" opacity="0.9"/>
-  <text x="580" y="766" font-size="5.5" fill="white" text-anchor="middle">state</text>
-  <text x="580" y="773" font-size="5.5" fill="white" text-anchor="middle">.json</text>
-
-  <!-- checkpoint re-spawn note -->
-  <rect x="152" y="830" width="196" height="22" rx="3" fill="#fff8e8" stroke="#e8c97a" stroke-width="0.8"/>
-  <text x="250" y="844" font-size="7.5" fill="#b87c12" text-anchor="middle">↩  Context Checkpoint → re-spawn with state.json</text>
-
-  <!-- ══════════════════════════════════════════════
-       AGENT 7 — builder-ui-worker (Phase 2)
-  ══════════════════════════════════════════════ -->
-  <!-- spawn arrow -->
-  <line x1="70" y1="930" x2="148" y2="930" stroke="#333" stroke-width="1.3" marker-end="url(#arr)"/>
-  <!-- agent box -->
-  <rect x="150" y="905" width="200" height="60" rx="5" fill="#4a90d9"/>
-  <text x="250" y="926" font-size="9.5" fill="white" text-anchor="middle" font-weight="600">builder-ui-worker</text>
-  <text x="250" y="940" font-size="8.5" fill="white" text-anchor="middle" opacity="0.85">Phase 2: UI layer</text>
-  <text x="250" y="952" font-size="8" fill="white" text-anchor="middle" opacity="0.7">Context Window: 200K</text>
-  <!-- return arrow -->
-  <line x1="150" y1="947" x2="72" y2="947" stroke="#333" stroke-width="1.3" marker-end="url(#arr)"/>
-  <text x="110" y="960" font-size="7.5" fill="#555" text-anchor="middle">Feature Complete</text>
-
-  <!-- disk WRITE: state.json update -->
-  <line x1="350" y1="928" x2="552" y2="900" stroke="#5b8dd9" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#arr-disk)"/>
-  <circle cx="580" cy="893" r="10" fill="#2e6db5" opacity="0.9"/>
-  <text x="580" y="896" font-size="5.5" fill="white" text-anchor="middle">state</text>
-  <text x="580" y="903" font-size="5.5" fill="white" text-anchor="middle">.json</text>
-
-  <!-- ══════════════════════════════════════════════
-       LEGEND
-  ══════════════════════════════════════════════ -->
-  <rect x="14" y="1000" width="530" height="70" rx="5" fill="white" stroke="#ddd" stroke-width="1"/>
-  <text x="24" y="1016" font-size="9" fill="#555" font-weight="600">Legend</text>
-
-  <!-- spawn -->
-  <line x1="24" y1="1030" x2="60" y2="1030" stroke="#333" stroke-width="1.3" marker-end="url(#arr)"/>
-  <text x="65" y="1033" font-size="8" fill="#555">Spawn agent (skill → agent)</text>
-
+  <!-- ════════════════════════════════════════
+       AGENT 1 — orchestrator gather-intent
+  ════════════════════════════════════════ -->
+  <line x1="72" y1="148" x2="155" y2="148" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="160" y="123" width="215" height="58" rx="6" fill="#4a90d9"/>
+  <text x="267" y="145" font-size="10"  fill="white" text-anchor="middle" font-weight="700">builder-feature-orchestrator</text>
+  <text x="267" y="160" font-size="9"   fill="white" text-anchor="middle" opacity="0.88">mode: gather-intent</text>
+  <text x="267" y="173" font-size="8.5" fill="white" text-anchor="middle" opacity="0.65">Context Window: 200K</text>
   <!-- return -->
-  <line x1="24" y1="1046" x2="60" y2="1046" stroke="#333" stroke-width="1.3" marker-end="url(#arr)"/>
-  <text x="65" y="1049" font-size="8" fill="#555">Return output/Decision block (agent → skill)</text>
+  <line x1="160" y1="165" x2="75" y2="165" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="85" y="170" width="80" height="14" rx="3" fill="white" opacity="0.88"/>
+  <text x="125" y="180" font-size="9" fill="#333" text-anchor="middle" font-weight="500">Decision block</text>
+
+  <!-- ════════════════════════════════════════
+       AGENT 2 — figma-worker × N
+  ════════════════════════════════════════ -->
+  <line x1="72" y1="288" x2="155" y2="288" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="160" y="263" width="215" height="58" rx="6" fill="#4a90d9"/>
+  <text x="267" y="285" font-size="10"  fill="white" text-anchor="middle" font-weight="700">builder-figma-worker × N</text>
+  <text x="267" y="300" font-size="9"   fill="white" text-anchor="middle" opacity="0.88">parallel per Figma URL</text>
+  <text x="267" y="313" font-size="8.5" fill="white" text-anchor="middle" opacity="0.65">Context Window: 200K each</text>
+  <!-- return -->
+  <line x1="160" y1="305" x2="75" y2="305" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="78" y="310" width="100" height="14" rx="3" fill="white" opacity="0.88"/>
+  <text x="128" y="320" font-size="9" fill="#333" text-anchor="middle" font-weight="500">figma_resolved / sections</text>
+
+  <!-- disk write: figma files -->
+  <line x1="375" y1="279" x2="576" y2="270" stroke="#4a90d9" stroke-width="1.4" stroke-dasharray="5,3" marker-end="url(#arr-disk)"/>
+  <!-- label -->
+  <rect x="390" y="261" width="105" height="14" rx="3" fill="white" opacity="0.9"/>
+  <text x="443" y="271" font-size="9" fill="#4a90d9" text-anchor="middle" font-weight="500">write: inputs/figma-*.md</text>
+  <!-- pill badges -->
+  <rect x="588" y="253" width="80" height="20" rx="10" fill="#4a90d9"/>
+  <text x="628" y="267" font-size="9" fill="white" text-anchor="middle" font-weight="600">figma-*.md</text>
+  <rect x="588" y="278" width="80" height="20" rx="10" fill="#4a90d9" opacity="0.75"/>
+  <text x="628" y="292" font-size="9" fill="white" text-anchor="middle" font-weight="600">layout.jsx</text>
+  <rect x="588" y="303" width="80" height="20" rx="10" fill="#4a90d9" opacity="0.6"/>
+  <text x="628" y="317" font-size="9" fill="white" text-anchor="middle" font-weight="600">screenshot.png</text>
+
+  <!-- section expansion note -->
+  <rect x="162" y="332" width="211" height="22" rx="4" fill="#e6f0ff" stroke="#aecaf5" stroke-width="1"/>
+  <text x="267" y="347" font-size="8.5" fill="#3a7dd4" text-anchor="middle">▶  section detected → 2nd batch of child workers</text>
+
+  <!-- ════════════════════════════════════════
+       AGENT 3 — domain-planner
+  ════════════════════════════════════════ -->
+  <line x1="72" y1="430" x2="155" y2="430" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="160" y="405" width="215" height="58" rx="6" fill="#4a90d9"/>
+  <text x="267" y="427" font-size="10"  fill="white" text-anchor="middle" font-weight="700">builder-domain-planner</text>
+  <text x="267" y="442" font-size="9"   fill="white" text-anchor="middle" opacity="0.88">round 1 — explores codebase</text>
+  <text x="267" y="455" font-size="8.5" fill="white" text-anchor="middle" opacity="0.65">Context Window: 200K</text>
+  <line x1="160" y1="447" x2="75" y2="447" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
 
   <!-- disk write -->
-  <line x1="200" y1="1030" x2="236" y2="1030" stroke="#5b8dd9" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#arr-disk)"/>
-  <text x="241" y="1033" font-size="8" fill="#555">Write to disk</text>
+  <line x1="375" y1="422" x2="576" y2="400" stroke="#4a90d9" stroke-width="1.4" stroke-dasharray="5,3" marker-end="url(#arr-disk)"/>
+  <rect x="588" y="387" width="90" height="20" rx="10" fill="#3d7cc9"/>
+  <text x="633" y="401" font-size="9" fill="white" text-anchor="middle" font-weight="600">findings-r1.json</text>
 
-  <!-- disk read -->
-  <line x1="200" y1="1046" x2="236" y2="1046" stroke="#e09b2d" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#arr-read)"/>
-  <text x="241" y="1049" font-size="8" fill="#555">Read from disk</text>
+  <!-- ════════════════════════════════════════
+       AGENT 4 — data-planner (parallel)
+  ════════════════════════════════════════ -->
+  <line x1="72" y1="530" x2="155" y2="530" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="160" y="505" width="215" height="58" rx="6" fill="#4a90d9"/>
+  <text x="267" y="527" font-size="10"  fill="white" text-anchor="middle" font-weight="700">builder-data-planner</text>
+  <text x="267" y="542" font-size="9"   fill="white" text-anchor="middle" opacity="0.88">round 1 — explores codebase</text>
+  <text x="267" y="555" font-size="8.5" fill="white" text-anchor="middle" opacity="0.65">Context Window: 200K</text>
+  <line x1="160" y1="547" x2="75" y2="547" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
 
-  <!-- context window note -->
-  <rect x="350" y="1020" width="185" height="42" rx="3" fill="#f0f5ff" stroke="#c5d8f5" stroke-width="0.8"/>
-  <text x="442" y="1033" font-size="7.5" fill="#4a90d9" text-anchor="middle">Each agent runs in its own isolated</text>
-  <text x="442" y="1044" font-size="7.5" fill="#4a90d9" text-anchor="middle">context window — raw content stays</text>
-  <text x="442" y="1055" font-size="7.5" fill="#4a90d9" text-anchor="middle">inside; only distilled output returns.</text>
+  <!-- disk write -->
+  <line x1="375" y1="522" x2="576" y2="500" stroke="#4a90d9" stroke-width="1.4" stroke-dasharray="5,3" marker-end="url(#arr-disk)"/>
+  <rect x="588" y="487" width="90" height="20" rx="10" fill="#3d7cc9"/>
+  <text x="633" y="501" font-size="9" fill="white" text-anchor="middle" font-weight="600">findings-r1.json</text>
+
+  <!-- parallel indicator -->
+  <line x1="148" y1="460" x2="148" y2="560" stroke="#bbb" stroke-width="1.2" stroke-dasharray="3,3"/>
+  <rect x="118" y="495" width="46" height="14" rx="3" fill="white" opacity="0.85"/>
+  <text x="141" y="505" font-size="8.5" fill="#999" text-anchor="middle">parallel</text>
+
+  <!-- ════════════════════════════════════════
+       AGENT 5 — orchestrator process-findings + synthesize
+  ════════════════════════════════════════ -->
+  <line x1="72" y1="660" x2="155" y2="660" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="160" y="633" width="215" height="62" rx="6" fill="#4a90d9"/>
+  <text x="267" y="655" font-size="10"  fill="white" text-anchor="middle" font-weight="700">builder-feature-orchestrator</text>
+  <text x="267" y="670" font-size="9"   fill="white" text-anchor="middle" opacity="0.88">process-findings → synthesize</text>
+  <text x="267" y="685" font-size="8.5" fill="white" text-anchor="middle" opacity="0.65">Context Window: 200K</text>
+  <!-- return -->
+  <line x1="160" y1="677" x2="75" y2="677" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="79" y="682" width="88" height="14" rx="3" fill="white" opacity="0.88"/>
+  <text x="123" y="692" font-size="9" fill="#333" text-anchor="middle" font-weight="500">Decision: converged</text>
+
+  <!-- disk READ: findings -->
+  <line x1="580" y1="500" x2="378" y2="652" stroke="#d4820a" stroke-width="1.4" stroke-dasharray="5,3" marker-end="url(#arr-read)"/>
+  <rect x="468" y="567" width="74" height="14" rx="3" fill="white" opacity="0.9" transform="rotate(-28,468,567)"/>
+  <text x="490" y="577" font-size="9" fill="#c97c08" text-anchor="middle" font-weight="500" transform="rotate(-28,490,577)">reads findings</text>
+
+  <!-- disk WRITE: plan.md + context.md -->
+  <line x1="375" y1="655" x2="576" y2="655" stroke="#4a90d9" stroke-width="1.4" stroke-dasharray="5,3" marker-end="url(#arr-disk)"/>
+  <rect x="390" y="638" width="80" height="14" rx="3" fill="white" opacity="0.9"/>
+  <text x="430" y="648" font-size="9" fill="#4a90d9" text-anchor="middle" font-weight="500">write: plan + context</text>
+  <rect x="588" y="643" width="66" height="20" rx="10" fill="#3060a8"/>
+  <text x="621" y="657" font-size="9" fill="white" text-anchor="middle" font-weight="600">plan.md</text>
+  <rect x="588" y="668" width="66" height="20" rx="10" fill="#3060a8" opacity="0.8"/>
+  <text x="621" y="682" font-size="9" fill="white" text-anchor="middle" font-weight="600">context.md</text>
+
+  <!-- ════════════════════════════════════════
+       AGENT 6 — feature-worker Phase 1
+  ════════════════════════════════════════ -->
+  <line x1="72" y1="796" x2="155" y2="796" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="160" y="769" width="215" height="62" rx="6" fill="#4a90d9"/>
+  <text x="267" y="791" font-size="10"  fill="white" text-anchor="middle" font-weight="700">builder-feature-worker</text>
+  <text x="267" y="806" font-size="9"   fill="white" text-anchor="middle" opacity="0.88">Phase 1: domain / data / pres / app</text>
+  <text x="267" y="821" font-size="8.5" fill="white" text-anchor="middle" opacity="0.65">Context Window: 200K</text>
+  <!-- return -->
+  <line x1="160" y1="813" x2="75" y2="813" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="75" y="818" width="112" height="14" rx="3" fill="white" opacity="0.88"/>
+  <text x="131" y="828" font-size="9" fill="#333" text-anchor="middle" font-weight="500">Layers Complete / Checkpoint</text>
+
+  <!-- disk READ: plan.md -->
+  <line x1="580" y1="668" x2="378" y2="788" stroke="#d4820a" stroke-width="1.4" stroke-dasharray="5,3" marker-end="url(#arr-read)"/>
+  <rect x="458" y="718" width="66" height="14" rx="3" fill="white" opacity="0.9" transform="rotate(-20,458,718)"/>
+  <text x="476" y="727" font-size="9" fill="#c97c08" text-anchor="middle" font-weight="500" transform="rotate(-20,476,727)">reads plan.md</text>
+
+  <!-- disk WRITE: state.json -->
+  <line x1="375" y1="790" x2="576" y2="775" stroke="#4a90d9" stroke-width="1.4" stroke-dasharray="5,3" marker-end="url(#arr-disk)"/>
+  <rect x="588" y="763" width="70" height="20" rx="10" fill="#2a58a0"/>
+  <text x="623" y="777" font-size="9" fill="white" text-anchor="middle" font-weight="600">state.json</text>
+
+  <!-- checkpoint note -->
+  <rect x="162" y="843" width="211" height="22" rx="4" fill="#fff7e0" stroke="#e8c570" stroke-width="1"/>
+  <text x="267" y="858" font-size="8.5" fill="#a06a00" text-anchor="middle">↩  Context Checkpoint → re-spawn with state.json</text>
+
+  <!-- ════════════════════════════════════════
+       AGENT 7 — ui-worker Phase 2
+  ════════════════════════════════════════ -->
+  <line x1="72" y1="946" x2="155" y2="946" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="160" y="919" width="215" height="62" rx="6" fill="#4a90d9"/>
+  <text x="267" y="941" font-size="10"  fill="white" text-anchor="middle" font-weight="700">builder-ui-worker</text>
+  <text x="267" y="956" font-size="9"   fill="white" text-anchor="middle" opacity="0.88">Phase 2: UI layer</text>
+  <text x="267" y="971" font-size="8.5" fill="white" text-anchor="middle" opacity="0.65">Context Window: 200K</text>
+  <!-- return -->
+  <line x1="160" y1="963" x2="75" y2="963" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="84" y="968" width="88" height="14" rx="3" fill="white" opacity="0.88"/>
+  <text x="128" y="978" font-size="9" fill="#333" text-anchor="middle" font-weight="500">Feature Complete</text>
+
+  <!-- disk WRITE: state.json -->
+  <line x1="375" y1="940" x2="576" y2="910" stroke="#4a90d9" stroke-width="1.4" stroke-dasharray="5,3" marker-end="url(#arr-disk)"/>
+  <rect x="588" y="898" width="70" height="20" rx="10" fill="#2a58a0"/>
+  <text x="623" y="912" font-size="9" fill="white" text-anchor="middle" font-weight="600">state.json</text>
+
+  <!-- ════════════════════════════════════════
+       LEGEND
+  ════════════════════════════════════════ -->
+  <rect x="14" y="1020" width="580" height="68" rx="6" fill="white" stroke="#ddd" stroke-width="1"/>
+  <text x="24" y="1038" font-size="9.5" fill="#444" font-weight="700">Legend</text>
+
+  <line x1="24" y1="1052" x2="64" y2="1052" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="70" y="1056" font-size="9" fill="#555">Spawn agent / return output</text>
+
+  <line x1="220" y1="1052" x2="260" y2="1052" stroke="#4a90d9" stroke-width="1.4" stroke-dasharray="5,3" marker-end="url(#arr-disk)"/>
+  <text x="266" y="1056" font-size="9" fill="#555">Write to disk</text>
+
+  <line x1="360" y1="1052" x2="400" y2="1052" stroke="#d4820a" stroke-width="1.4" stroke-dasharray="5,3" marker-end="url(#arr-read)"/>
+  <text x="406" y="1056" font-size="9" fill="#555">Read from disk</text>
+
+  <rect x="24" y="1062" width="540" height="14" rx="3" fill="#f0f5ff"/>
+  <text x="294" y="1072" font-size="8.5" fill="#4a90d9" text-anchor="middle">Each agent has its own isolated context — raw file content stays inside; only distilled Decision blocks return to the skill.</text>
 
 </svg>
-</div>
 </body>
 </html>
