@@ -56,8 +56,37 @@ options     :
 ```
 
 - If PRD URL provided → fetch via `mmpa_get_confluence_page`, read staging file, extract `.content`
-- If Figma URL provided → fetch via `mcp__Figma__get_figma_data`
 - Hold all fetched content inline — do not write to disk
+
+### Step 3a — Figma Frame Drill-Down (mandatory when Figma URL is provided)
+
+Never call `get_design_context` on a canvas or top-level file URL and accept a failure or sparse result as final.
+
+1. Extract `fileKey` and `canvasNodeId` from the Figma URL (convert `-` to `:` in nodeId).
+2. Call `mcp__Figma_MCP__get_design_context(fileKey, canvasNodeId, clientLanguages: dart, clientFrameworks: flutter)`.
+3. **If the response is sparse / section-level** (child `<frame>` elements present, or note says "call get_design_context individually"):
+   - Call `mcp__Figma_MCP__get_metadata(fileKey, canvasNodeId)` to get the full node tree.
+   - From the tree, collect all instance nodes where `width ≤ 414` (mobile frame width).
+   - Group by semantic name — e.g. "Select assignee", "Edit ticket", "Filter screen".
+   - Pick the 2–3 most representative states per group (default, empty/error, variant).
+   - Call `mcp__Figma_MCP__get_design_context` on each selected frame **in parallel**.
+4. **If the response is a full design context** (JSX code returned): still call `get_metadata` to check for child frames — the provided node may contain multiple distinct screens.
+
+From each `get_design_context` response, extract and record inline per frame:
+- **components**: component names and Figma node IDs
+- **tokens**: color hex values → MekariPixel candidate (`MpColors.*`), spacing values → `MpSpacing.*`, typography style names → `MpTypography.*`
+- **controls**: interaction type per selectable row — checkbox / radio / chevron `>` / toggle / text link — inferred from screenshot and JSX
+- **navigation**: flat list / two-level drill-down / modal / inline expansion — inferred from chevron presence and screen count
+
+### Step 3b — Design System Component Resolution (mandatory for every UI-layer Epic)
+
+For each unique component description found across all frames:
+
+1. Query `mcp_mobile-qontak_search_design_system` (or `mcp_mobile-qontak2_search_design_system`) with the component description.
+2. Also grep `features/qontak_component_lib/` for an existing widget implementation.
+3. Classify each as `reuse-existing` (exact component/widget name) or `create-new` (reason why nothing matches).
+
+Hold all frame data and component bindings inline as `figma_design_context`. Do not write to disk yet.
 
 ## Step 4 — Derive Planning Inputs
 
@@ -70,6 +99,41 @@ Inline — do not spawn an agent:
 | `operations` | Scan AC + description for GET/list, GET/single, POST/create, PUT/update, DELETE. Default to all when ambiguous. |
 | `separate-ui-layer` | Detect from labels/components (ios/android/flutter → `true`; web → `false`). Default `true`. |
 | `platform` | Detect from labels, components, or project key prefix. If undetectable, call `AskUserQuestion` to resolve. |
+
+## Step 4b — Mechanism Deep-Read (mandatory — runs before convergence loop)
+
+**Rule: Never propose a new Domain or Data artifact based on PRD text alone. Always confirm from code that an existing mechanism cannot handle the requirement.**
+
+From the Epic description and PRD, identify the domain objects involved (e.g., "team assignment", "filter by assignee", "ticket status change"). Then for each:
+
+**1. Search for existing implementations:**
+
+```
+grep_search(
+  query: "<domain-object> | FieldType | crmProperties | propertyBuilder | <feature-verb>",
+  includePattern: "features/<module>/lib/**/*.dart"
+)
+```
+
+**2. Deep-read the mechanism** — for each match, read the full method body (not just the file name):
+- Does it already accept the new value type?
+- Does the mapper already handle this field / property?
+- Are there existing constants (e.g. `FieldType.*`, `FilterType.*`) that cover the new requirement?
+
+**3. Search for similar interaction patterns** for BLoC behavior proposals:
+- Find existing bottomsheets, drilldown flows, or multi-level navigation in the module
+- Read how they handle sub-navigation events (drill-down vs flat selection)
+
+**4. Produce `mechanism_coverage`** — a table for each PRD capability:
+
+| PRD Capability | Existing Mechanism Found | Coverage | Notes |
+|---|---|---|---|
+| Team assignment | `crmProperties` + `FieldType.assigneeWithTeam` | ✓ Covered | No new Domain/Data needed |
+| New field X | (none found) | ✗ Not covered | New entity + use case required |
+
+Also record `reference_bloc_patterns` — any existing BLoC patterns found for similar interactions.
+
+Hold `mechanism_coverage` and `reference_bloc_patterns` inline.
 
 ## Step 5 — Gather Intent (Non-Interactive)
 
@@ -90,8 +154,17 @@ Spawn `builder-feature-orchestrator` with mode `gather-intent-prefilled`:
 > **PRD context:**
 > <prd content, or "None — use Epic description only.">
 >
-> **Design context:**
-> <figma content, or "None provided.">
+> **Mechanism Coverage (from Step 4b):**
+> <mechanism_coverage table>
+> **Rule:** Do NOT propose new Domain or Data artifacts for any capability marked ✓ Covered above.
+>
+> **Reference BLoC Patterns (from Step 4b):**
+> <reference_bloc_patterns — existing drill-down / navigation patterns found in the codebase>
+> **Rule:** Match proposed BLoC events to the actual navigation model confirmed from Figma screenshots and existing patterns. Never invent event names from PRD text alone.
+>
+> **Figma Design Context (from Step 3a–3b):**
+> <figma_design_context — per-frame: component names, token values, interaction controls, navigation model, component bindings (reuse vs create)>
+> **Rule:** All UI ticket widget names, interaction controls, and navigation models must come from this context. Never describe UI from PRD text alone.
 
 Wait for `Decision: spawn-planners`. Initialize:
 - `visited` = []
@@ -168,13 +241,25 @@ Read `plan.md` and `context.md` from the run directory. Then spawn `builder-rfc-
 > **PRD content:**
 > <prd content or "None">
 >
-> **Design content:**
-> <figma content or "None">
+> **Mechanism Coverage:**
+> <mechanism_coverage table from Step 4b>
+>
+> **Figma Design Context:**
+> <figma_design_context from Step 3a–3b — per-frame: components, tokens, controls, navigation, component bindings>
 >
 > **plan.md:**
 > <content>
 >
 > **context.md:**
 > <content>
+>
+> **Mandatory output rules for UI tickets:**
+> 1. Every UI ticket MUST include a **Figma Design Context table**: screen state → Figma node ID → key observations (do not leave this absent).
+> 2. Every UI ticket MUST include a **Design Corrections callout** if any PRD description contradicts Figma pixels — call it out explicitly.
+> 3. Every UI ticket MUST include a **Design Tokens table**: colors / spacing / typography from Figma styles → MekariPixel mapping.
+> 4. Every UI ticket MUST include a **Component Bindings table** — for every UI element: `reuse-existing` (exact widget name) OR `create-new` (reason). Never leave the source ambiguous.
+> 5. Interaction model must be stated explicitly: checkbox / radio / chevron `>` / toggle / text link — verified from Figma, not inferred from PRD text.
+> 6. Navigation model must be stated explicitly: flat list / two-level drill-down / modal / inline expansion — verified from Figma, not inferred from PRD text.
+> 7. Never use a component name that was not found via Step 3b (design system query or `qontak_component_lib` grep). If creating a new widget, justify it.
 
 Wait for `builder-rfc-writer` to complete. Report the output file paths to the user.
