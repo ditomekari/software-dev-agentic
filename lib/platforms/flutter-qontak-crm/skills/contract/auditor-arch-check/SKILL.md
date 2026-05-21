@@ -20,6 +20,16 @@ Check the provided files against Flutter Qontak CRM–specific architecture rule
 - BLoCs are NOT registered in get_it — they are instantiated inline in `route_manager.dart` inside `BlocProvider`
 - Feature DI accessor pattern: `final qontak<Feature>Dependency = GetIt.instance;`
 
+### DI Topology (use to audit BLoC scope violations)
+
+CRM DI is structured in two layers:
+
+**App-root layer:** A top-level `MultiBlocProvider` in `App` wraps the entire widget tree. BLoCs listed here are **app-scoped** — they live for the entire session and are accessible from any screen. Accessing a BLoC here from a `BlocBuilder` or `context.watch<>()` will re-render on every state change across the app. If the BLoC changes frequently (e.g. a connection-status cubit), watching it in a build method is expensive.
+
+**Route layer:** `route_manager.dart` contains route-specific `BlocProvider` instantiations. BLoCs declared here are **screen-scoped** — they are created when the route is pushed and disposed when it is popped. These are the correct location for feature BLoCs.
+
+**Audit rule for U9 (Global BLoC watched in build):** When you see `context.watch<XxxBloc>()` or `BlocBuilder<XxxBloc, ...>`, `Grep` `route_manager.dart` for the BLoC class name. If it appears in the app-root `MultiBlocProvider` (not inside a route builder), it is app-scoped. Then evaluate: does the screen widget rebuild more often than necessary? Flag if yes.
+
 ## Navigation Rules
 
 - Navigation uses `Navigator` 1.0 — no `go_router`

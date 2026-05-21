@@ -20,6 +20,16 @@ Check the provided files against Flutter Qontak-specific architecture rules. Rep
 - Feature packages (`chat_*`) expose static `register*()` methods; resolved via typed accessors (`coreDependency<T>()`, `inboxDependency<T>()`, etc.)
 - `BlocProvider` for route-scoped BLoCs lives in `route_manager.dart`, NOT inside screen widgets
 
+### DI Topology (use to audit BLoC scope violations)
+
+Chat DI is structured in two layers:
+
+**App-root layer:** `AppWidget` (or the top-level `MultiBlocProvider`) wraps the entire widget tree with globally-shared BLoCs/Cubits — e.g. connectivity status, auth session, unread counts. These are **app-scoped**: they live for the entire session. Accessing an app-scoped BLoC via `context.watch<>()` or `BlocBuilder` in a leaf widget causes that widget to rebuild on every state change across the app.
+
+**Route layer:** `route_manager.dart` contains route-specific `BlocProvider` entries. BLoCs here are **screen-scoped** — created when the route is pushed, disposed when popped. All feature-level BLoCs belong here, not at app root.
+
+**Audit rule for U9 (Global BLoC watched in build):** When you see `context.watch<XxxBloc>()` or `BlocBuilder<XxxBloc, ...>`, `Grep` `route_manager.dart` and `AppWidget` for the BLoC class name. If it appears in an app-root provider (not inside a specific route builder), it is app-scoped. Then evaluate: does the widget rebuild more often than necessary? Flag if yes.
+
 ## Navigation Rules
 
 - Navigation uses `Navigator` 1.0 / `AppRouteManger` / `NavigationHelper.pushNamed` — no `go_router`
