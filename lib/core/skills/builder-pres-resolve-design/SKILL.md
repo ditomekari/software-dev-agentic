@@ -7,12 +7,12 @@ tools: Grep, Read, Bash, mekari_pixel_query, mekari_pixel_get
 
 ## Input
 
-| Parameter | Description |
-|---|---|
-| `artifact_name` | Name of the Screen or Component artifact from plan.md |
-| `ui_description` | UI elements to resolve — use Figma section content when available, otherwise plan.md artifact description |
-| `current_feature_pkg` | (optional) Current feature package name e.g. `crm_note` — used for feature-local placement paths |
-| `platform` | Platform identifier: `crm` or `chat` — controls which tiers are available |
+| Parameter             | Description                                                                                               |
+| --------------------- | --------------------------------------------------------------------------------------------------------- |
+| `artifact_name`       | Name of the Screen or Component artifact from plan.md                                                     |
+| `ui_description`      | UI elements to resolve — use Figma section content when available, otherwise plan.md artifact description |
+| `current_feature_pkg` | (optional) Current feature package name e.g. `crm_note` — used for feature-local placement paths          |
+| `platform`            | Platform identifier: `crm` or `chat` — controls which tiers are available                                 |
 
 ## Steps
 
@@ -29,6 +29,7 @@ Maintain three buckets throughout: `tier1_matched`, `tier2_matched`, `unmatched`
 For each keyword:
 
 **2a — MCP (primary):**
+
 - Call `mekari_pixel_query(query=<keyword>, n_results=3)`
 - From returned chunks: extract component name, description, key params
 - If high-confidence match: record in `tier1_matched`
@@ -36,6 +37,7 @@ For each keyword:
 - If MCP unavailable or returns empty results: fall through to 2b
 
 **2b — catalog.md Grep (fallback):**
+
 - `find "$(git rev-parse --show-toplevel)/.claude/reference/design-system" -name "*catalog.md" 2>/dev/null | head -1`
 - If catalog found: `Grep` for keyword (case-insensitive); `Read(offset=<line>, limit=8)` for each `### Mp<Name>` match
 - If catalog also absent: mark keyword as unmatched and continue
@@ -47,11 +49,13 @@ For each keyword:
 For each keyword still in `unmatched` after Tier 1 and `platform == "crm"`:
 
 **3a — RAG query (primary):**
+
 - Call `search_code("<keyword> widget", project_slug="crm")`
 - If a matching widget class is returned: `Read` the class file (limit=30 lines from class declaration) to confirm purpose and key constructor params
 - Record in `tier2_matched` if confirmed
 
 **3b — Grep fallback:**
+
 - If RAG unavailable or empty: `Grep` for keyword (case-insensitive) in `features/qontak_component_lib/lib/src/widgets/`
 - For each match: `Read` the file at the match location (limit=30) to confirm the widget's purpose
 - Record in `tier2_matched` if confirmed
@@ -63,12 +67,14 @@ For each keyword still in `unmatched` after Tier 1 and `platform == "crm"`:
 For each keyword still `unmatched` after Tier 1 and Tier 2:
 
 Answer: _"Will this widget be used across more than one feature module, or only within the current feature?"_
+
 - If the widget concept is generic (reusable across features) → `cross-feature`
 - If the widget is tightly specific to this screen's domain → `feature-local`
 
 When in doubt, default to `cross-feature` — it is easier to move inward later than to promote outward.
 
 Placement:
+
 - `cross-feature` (CRM) → `features/qontak_component_lib/lib/src/widgets/{atoms|components}/`
 - `cross-feature` (Chat) → `features/<current_feature_pkg>/lib/src/presentation/widgets/` _(Chat has no shared lib)_
 - `feature-local` → `features/<current_feature_pkg>/lib/src/presentation/widgets/`
@@ -117,6 +123,7 @@ After completing all tiers, for each keyword that was NOT matched in Tier 1 (i.e
 
 ```markdown
 ### <YYYY-MM-DD> · `<current_feature_pkg>` — <keyword>
+
 - **Requirement:** <requirement from ui_description context>
 - **Figma:** <Figma link from Figma worker context, or "not provided">
 - **Closest in mekari_pixel:** <nearest Tier 1 result, or "none found">
@@ -128,4 +135,3 @@ After completing all tiers, for each keyword that was NOT matched in Tier 1 (i.e
 
 Do not log Tier 2 matches — if resolved in `qontak_component_lib`, it is not a design system gap.
 Failure to write must never block or error the skill.
-

@@ -13,6 +13,7 @@ Domain is the innermost layer — it imports nothing from outer layers.
 **Allowed:** `dart:core`, `package:freezed_annotation`, `package:fpdart` (for `Either`), `package:[prefix]_core/[prefix]_core.dart` (re-exports `Failure` and `UseCase` base only).
 
 **Forbidden:**
+
 - `package:dio` / `package:http` — HTTP clients belong in data
 - `package:flutter/material.dart` or any Flutter UI package — domain must be pure Dart
 - Any BLoC, Cubit, or state-management import (`package:flutter_bloc`, `package:bloc`)
@@ -41,6 +42,7 @@ class User with _$User {
 ```
 
 **Rules:**
+
 - `@freezed` — immutability + `copyWith`
 - Only `.freezed.dart` part — never `.g.dart`
 - No `@JsonKey`, no `fromJson`, no `toJson`
@@ -73,9 +75,11 @@ If this entity unifies two or more data sources, do any fields or enum values re
 Before writing any field type, check if a more precise type already exists.
 
 **Step 1 — RAG query (primary):**
+
 ```
 search_code("<concept> enum value object", project_slug="chat")
 ```
+
 Returns existing enums, value objects, and typed IDs from live indexed Dartdoc. If a matching type is returned, use it.
 
 **Step 2 — Grep fallback:**
@@ -88,6 +92,7 @@ If RAG is unavailable or empty: `Grep` for the concept term in the domain direct
 A Read Model is a data class that combines the results of two or more domain entities into a single aggregate needed by one screen. It is the return type of a Page Init UseCase.
 
 **Rules:**
+
 - Naming: `<Screen>PageData` (e.g. `RoomDetailPageData`, `InboxPageData`)
 - Location: `features/<prefix>_<feature>/lib/src/domain/read_models/<screen>_page_data.dart`
 - Implementation: `@freezed` class — same style as an entity, but contains entity references, not raw fields
@@ -130,6 +135,7 @@ abstract class AuthRepository {
 ```
 
 **Rules:**
+
 - `abstract class` — never `interface` or `mixin`
 - Return `Either<Failure, T>` — never throw
 - Return domain entities, not DTOs

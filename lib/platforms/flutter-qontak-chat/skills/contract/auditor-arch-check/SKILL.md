@@ -38,6 +38,7 @@ Chat DI is structured in two layers:
 ## ViewDataState API Rules
 
 Grep for incorrect patterns and flag:
+
 - `state.*.isLoaded` → must be `state.*.status.isHasData`
 - `state.*.hasError` → must be `state.*.status.isError`
 - `state.*.isLoading` → must be `state.*.status.isLoading` (in BlocListener/listenWhen)
@@ -58,6 +59,7 @@ Grep for incorrect patterns and flag:
 ## Naming Rules
 
 Check against `lib/platforms/flutter-qontak-chat/reference/code-architecture/syntax-conventions-impl.md ## Naming Quick-Reference`:
+
 - Entity: no `Entity` suffix (e.g. `Conversation` not `ConversationEntity`)
 - UseCase: verb-only, no `UseCase` suffix (e.g. `GetInbox` not `GetInboxUseCase`)
 - Repository impl: `[Concept]RepositoryImpl` registered as `[Concept]Repository` abstract type
@@ -65,6 +67,7 @@ Check against `lib/platforms/flutter-qontak-chat/reference/code-architecture/syn
 ## Output
 
 List each violation as:
+
 - File: `<path>`
 - Line: `<n>`
 - Rule: `<rule name>`

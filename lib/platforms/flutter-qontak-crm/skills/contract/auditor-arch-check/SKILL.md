@@ -38,6 +38,7 @@ CRM DI is structured in two layers:
 ## ViewDataState API Rules
 
 Grep for incorrect patterns and flag:
+
 - `state.*.isLoaded` → must be `state.*.status.isHasData`
 - `state.*.hasError` → must be `state.*.status.isError`
 - `state.*.isLoading` → must be `state.*.status.isLoading` (only in BlocListener/listenWhen)
@@ -65,6 +66,7 @@ Grep for incorrect patterns and flag:
 ## Naming Rules
 
 Check against `lib/platforms/flutter-qontak-crm/reference/code-architecture/syntax-conventions-impl.md ## Naming Conventions`:
+
 - Entity: no suffix (e.g. `Company` not `CompanyEntity`)
 - UseCase: `<Verb><Entity>UseCase` suffix required
 - Repository impl: `[Entity]RepositoryImpl` registered as `[Entity]Repository` abstract type
@@ -78,6 +80,7 @@ Check against `lib/platforms/flutter-qontak-crm/reference/code-architecture/synt
 ## Output
 
 List each violation as:
+
 - File: `<path>`
 - Line: `<n>`
 - Rule: `<rule name>`

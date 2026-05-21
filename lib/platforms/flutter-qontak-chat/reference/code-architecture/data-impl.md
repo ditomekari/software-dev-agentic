@@ -13,6 +13,7 @@ Data depends on Domain only. It never imports from Presentation or UI.
 **Allowed:** `package:dio`, `package:hive`, `package:shared_preferences`, `package:injectable`, `package:freezed_annotation`, domain entities and repository interfaces from `package:[prefix]_core` or sibling feature packages (via their public API only).
 
 **Forbidden:**
+
 - Any BLoC or Cubit import (`package:flutter_bloc`, `package:bloc`)
 - `package:flutter/material.dart` or any UI package
 - Any presentation-layer type — data must not know how results are displayed
@@ -81,6 +82,7 @@ class UserDb with _$UserDb {
 ```
 
 **Rules:**
+
 - All fields nullable — API data is untrusted; handle defaults in mapper
 - `@JsonKey(name:)` for snake_case ↔ camelCase mapping
 - No business logic in models
@@ -123,6 +125,7 @@ class UserMapper {
 ```
 
 **Rules:**
+
 - Private constructor `._()` to prevent instantiation (no mocking needed — pure functions)
 - One mapper class per domain entity
 - Handle nulls with explicit defaults — never assume API fields are present
@@ -182,6 +185,7 @@ Apply when a single domain entity is assembled from two or more distinct data so
 **Rule:** The Repository Implementation is the only layer that sees multiple sources. It merges results and hands the mapper a single, complete data object. Mappers receive one input type; they never fan-out to other sources.
 
 **Structure:**
+
 1. Declare one `Mapper` per source.
 2. In the Repository, call both sources, then apply a `merge` or composite-map step.
 3. The entity produced is identical whether one source or both are available — absent data fills in domain defaults.

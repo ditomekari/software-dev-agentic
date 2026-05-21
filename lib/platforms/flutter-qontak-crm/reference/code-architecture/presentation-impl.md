@@ -130,6 +130,7 @@ class CompanyBloc extends Bloc<CompanyEvent, CompanyState> {
 ```
 
 **BLoC rules:**
+
 - Named constructor parameters with `required` — no positional args
 - Each handler emits `ViewDataState.loading()` first, then folds the result
 - Add `transformer: sequential()` for BLoCs handling `loadIndex` + `loadMore` + `filter` events
@@ -221,13 +222,14 @@ case AppRoute.company:
 
 One BLoC owns one screen's state. A second BLoC is only justified when it satisfies at least one of:
 
-| Condition | Example |
-|---|---|
-| Independent async lifecycle (separate loading/error state) | `SearchBloc` runs a debounced query while `CompanyBloc` loads the base list |
-| Reused across two or more unrelated screens | A global `NotificationBloc` provided at app root |
-| Genuinely orthogonal domain operations with separate failure paths | `FormValidationBloc` + `SubmitBloc` |
+| Condition                                                          | Example                                                                     |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| Independent async lifecycle (separate loading/error state)         | `SearchBloc` runs a debounced query while `CompanyBloc` loads the base list |
+| Reused across two or more unrelated screens                        | A global `NotificationBloc` provided at app root                            |
+| Genuinely orthogonal domain operations with separate failure paths | `FormValidationBloc` + `SubmitBloc`                                         |
 
 **Disqualified reasons (do NOT add a BLoC for these):**
+
 - "It felt complex" — split the event enum instead
 - Grouping form sub-sections — use nested state fields
 - A separate BLoC for a list inside a screen that is not reused elsewhere
@@ -241,6 +243,7 @@ One BLoC owns one screen's state. A second BLoC is only justified when it satisf
 In CRM, BLoCs are instantiated via `MultiBlocProvider` inside `RouteManager`. The provider tree determines scope — add a BLoC inside the route builder for screen-scope, or at the top-level `MultiBlocProvider` in `App` for app-scope.
 
 **Reactivity rule:**
+
 - `context.watch<XxxBloc>()` — re-renders on every state change. Only use if the widget must always reflect the latest state. Never use for a BLoC that changes frequently when the widget only needs infrequent updates.
 - `context.read<XxxBloc>()` — does not subscribe. Use for one-time reads and dispatching events. Mandatory inside `BlocListener` callbacks and gesture handlers.
 - `BlocSelector` — use to isolate a sub-field so rebuilds only trigger when that field changes.
@@ -253,10 +256,12 @@ In CRM, BLoCs are instantiated via `MultiBlocProvider` inside `RouteManager`. Th
 Apply when a screen needs data from more than one repository before it can render. Without this pattern, screens trigger multiple parallel BLoC events on `initState` and merge unrelated loading states in the widget — creating race conditions and redundant error-handling code.
 
 **Diagnostic question:** Does this screen need data from more than one repository?
+
 - No → a single `GetXxxUseCase` called from the BLoC `on<ScreenOpened>` handler is sufficient.
 - Yes → introduce a `GetXxxPageDataUseCase` (Page Init UseCase) that returns a `XxxPageData` read model.
 
 **Page Init UseCase:**
+
 ```dart
 // features/crm_company/lib/src/domain/usecases/get_company_detail_page_data_usecase.dart
 class GetCompanyDetailPageDataUseCase
@@ -279,6 +284,7 @@ class GetCompanyDetailPageDataUseCase
 ```
 
 **BLoC event handler:**
+
 ```dart
 on<CompanyDetailScreenOpened>((event, emit) async {
   emit(state.copyWith(pageDataState: ViewDataState.loading()));
@@ -293,6 +299,7 @@ on<CompanyDetailScreenOpened>((event, emit) async {
 ```
 
 **DI (CRM manual GetIt):** Register `GetCompanyDetailPageDataUseCase` in `QontakCompanyDependency`:
+
 ```dart
 getIt.registerLazySingleton<GetCompanyDetailPageDataUseCase>(() =>
   GetCompanyDetailPageDataUseCase(
@@ -305,17 +312,19 @@ getIt.registerLazySingleton<GetCompanyDetailPageDataUseCase>(() =>
 ---
 
 ## BlocListener (Side Effects) <!-- 28 -->
-  listener: (context, state) {
-    if (state.companyListState.status.isHasData) {
-      Navigator.of(context).pop();
-    } else if (state.companyListState.status.isError) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(state.companyListState.message ?? 'Error')),
-      );
-    }
-  },
-  child: ...,
+
+listener: (context, state) {
+if (state.companyListState.status.isHasData) {
+Navigator.of(context).pop();
+} else if (state.companyListState.status.isError) {
+ScaffoldMessenger.of(context).showSnackBar(
+SnackBar(content: Text(state.companyListState.message ?? 'Error')),
+);
+}
+},
+child: ...,
 )
+
 ```
 
 | Use | When |
@@ -337,3 +346,4 @@ Key: Use `.status.isHasData` (not `.isLoaded`), `.status.isError` (not `.hasErro
 | App-shell widgets | `lib/presentation/widgets/` |
 
 Search `qontak_component_lib` first before creating a new component.
+```

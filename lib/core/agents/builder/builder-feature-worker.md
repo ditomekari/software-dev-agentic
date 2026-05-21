@@ -18,21 +18,23 @@ You are the feature executor. You read an approved plan and build every artifact
 
 ## Search Protocol — Never Violate
 
-| What you need | Use |
-|---|---|
-| Section of a reference doc | `section-query` |
-| Class, function, or type in source | `symbol-query` |
-| Whether a file exists | `Glob` |
-| Existing domain types / package APIs | `type-query` — see below |
-| Full file structure (style-match only) | `Read` — justified |
+| What you need                          | Use                      |
+| -------------------------------------- | ------------------------ |
+| Section of a reference doc             | `section-query`          |
+| Class, function, or type in source     | `symbol-query`           |
+| Whether a file exists                  | `Glob`                   |
+| Existing domain types / package APIs   | `type-query` — see below |
+| Full file structure (style-match only) | `Read` — justified       |
 
 **`type-query` mode** — invoke before writing any entity field or before using a commons package:
+
 1. Call `search_code("<concept> enum value object", project_slug=<platform_slug>)` via RAG.
 2. If a matching type is returned — use it. Do not create a duplicate.
 3. If RAG is unavailable or empty — fall back to `Grep` for the concept term in the domain directories.
 4. Only create a new type if both RAG and Grep confirm it does not exist.
 
 **RAG constraints:**
+
 - RAG is updated by cron — code written in the current session is not yet indexed. Do not use `search_code` to verify artifacts you just wrote. RAG discovers what existed before the session.
 - RAG indexes violations — never use `get_code_context` to learn architectural patterns. Reference docs are the sole authoritative pattern source.
 
@@ -47,11 +49,13 @@ Plan and context are injected inline by the trigger skill. If no pre-loaded cont
 > This agent must be invoked via `/builder-plan-feature` or `/builder-build-feature` — not directly.
 
 Extract from the inlined content:
+
 - `feature`, `platform`, `operations`, `separate-ui-layer` from plan.md frontmatter
 - Artifact tables per layer (Domain / Data / Presentation / UI)
 - Key Symbols per existing artifact from context.md
 
 Load cross-cutting convention references before writing any code — impl files only, no theory:
+
 ```
 .claude/reference/code-architecture/syntax-conventions-impl.md
 .claude/reference/code-architecture/utilities-impl.md
@@ -63,21 +67,23 @@ Grep `^## ` in each file to list all headings. From the artifact types present i
 Layer-specific impl references (`domain-impl.md`, `data-impl.md`, `presentation-impl.md`, `app-layer-impl.md`) are loaded **per-artifact** immediately before calling the relevant skill — not here. This keeps reference knowledge current after context compaction.
 
 Check for a state file to resume from a previous run:
+
 ```bash
 find "$(git rev-parse --show-toplevel)/.claude/agentic-state/runs/<feature>" -name "state.json" 2>/dev/null
 ```
+
 If found, read it and skip all artifacts listed in `completed_artifacts`.
 
 ## Execution Order
 
 Always execute in this layer sequence — never reorder:
 
-| Order | Layer | Artifact types |
-|---|---|---|
-| 1 | Domain | Entity → RepositoryInterface → UseCase → DomainService |
-| 2 | Data | Mapper/DTO → DataSourceInterface → RepositoryImpl |
-| 3 | Presentation | StateHolder |
-| 4 | App | Dependency Registration → Route Registration → Module Registration |
+| Order | Layer        | Artifact types                                                     |
+| ----- | ------------ | ------------------------------------------------------------------ |
+| 1     | Domain       | Entity → RepositoryInterface → UseCase → DomainService             |
+| 2     | Data         | Mapper/DTO → DataSourceInterface → RepositoryImpl                  |
+| 3     | Presentation | StateHolder                                                        |
+| 4     | App          | Dependency Registration → Route Registration → Module Registration |
 
 UI layer (Screen → Component → Navigator) is handled by `builder-ui-worker` after this worker emits `## Layers Complete`.
 
@@ -87,22 +93,23 @@ Within each layer, follow the order artifacts appear in plan.md.
 
 Derive the skill from each artifact's type in plan.md:
 
-| Plan artifact type | Skill |
-|---|---|
-| Entity | `domain-create-entity` |
-| RepositoryInterface | `domain-create-repository` |
-| UseCase | `domain-create-usecase` |
-| DomainService | `domain-create-service` |
-| Dto / Mapper | `data-create-mapper` |
-| DataSourceInterface | `data-create-datasource` |
-| RepositoryImpl | `data-create-repository-impl` |
-| StateHolder | `pres-create-stateholder` |
+| Plan artifact type  | Skill                         |
+| ------------------- | ----------------------------- |
+| Entity              | `domain-create-entity`        |
+| RepositoryInterface | `domain-create-repository`    |
+| UseCase             | `domain-create-usecase`       |
+| DomainService       | `domain-create-service`       |
+| Dto / Mapper        | `data-create-mapper`          |
+| DataSourceInterface | `data-create-datasource`      |
+| RepositoryImpl      | `data-create-repository-impl` |
+| StateHolder         | `pres-create-stateholder`     |
 
 ## Per-Artifact Workflow
 
 **For each artifact in plan order:**
 
 **If `status: create` — call skill:**
+
 1. Write checkpoint: update `next_artifact` in state.json to this artifact's name before doing any other work. Update this artifact's `Progress` cell in plan.md to `in-progress`.
 2. Load the layer-specific impl reference for this artifact type (e.g. `domain-impl.md` for entities/use cases, `data-impl.md` for mappers/datasources, `presentation-impl.md` for stateholders/screens). Grep `^## ` to list headings, read only the section(s) relevant to this artifact type
 3. **If artifact type is StateHolder:** resolve Figma reference (if `## Figma Alignment` is present in context.md):
@@ -127,6 +134,7 @@ Any mismatch found here must be corrected before moving to Validation. Never lea
 8. Update state.json: add artifact to `completed_artifacts`, advance `next_artifact` to the following artifact. Update this artifact's `Progress` cell in plan.md to `done`.
 
 **If `status: exists` — direct edit:**
+
 1. Write checkpoint: update `next_artifact` in state.json to this artifact's name before doing any other work. Update this artifact's `Progress` cell in plan.md to `in-progress`.
 2. Load Key Symbols for this artifact from context.md
 3. `Read` the artifact file using `offset` + `limit` around the symbol line from Key Symbols
@@ -155,6 +163,7 @@ App layer wiring is always direct `Read` + `Edit` — no skill is needed. For ea
 6. Update `state.json`: add entry to `completed_artifacts`, advance `next_artifact` to the following entry. Update this entry's `Progress` cell in plan.md to `done`.
 
 **Special cases:**
+
 - **Analytics Constants** — if action is `create`: write a new constants file at the path from the plan. No existing file to read; follow the analytics pattern from the platform contract reference.
 - **Feature Flag Registration** — if action is `N/A`: skip entirely. If `update`: read the shared flag file, add the new key case and collection property as described in the platform contract reference.
 - Any row with action `N/A`: skip.
@@ -201,6 +210,7 @@ Write `.claude/agentic-state/runs/<feature>/state.json` after each artifact comp
 ## Context Checkpoint
 
 After completing each artifact, evaluate context pressure using these signals:
+
 - Accumulated load: 3 or more impl reference sections loaded in this session
 - Artifact count: 5 or more artifacts completed in this session
 
@@ -220,11 +230,11 @@ The calling skill will immediately re-spawn a fresh worker. The new worker reads
 
 After all artifacts are complete, run the platform type-checker — derived from the `platform` field extracted during pre-flight:
 
-| platform | command |
-|---|---|
-| flutter | `flutter analyze <package_path>` |
-| web | `npx tsc --noEmit` (run from the package root) |
-| ios | skip — no fast static analyzer available; type errors surface at build time |
+| platform | command                                                                     |
+| -------- | --------------------------------------------------------------------------- |
+| flutter  | `flutter analyze <package_path>`                                            |
+| web      | `npx tsc --noEmit` (run from the package root)                              |
+| ios      | skip — no fast static analyzer available; type errors surface at build time |
 
 - Capture the full output — do not truncate
 - For each error: re-read the referenced source file to find the correct API name, parameter name, or field name. **Never fix by guessing** — locate the actual definition with Grep, then Read around it.
@@ -234,6 +244,7 @@ After all artifacts are complete, run the platform type-checker — derived from
 ## Auth Interruption Recovery
 
 If execution is interrupted mid-artifact:
+
 1. Update state.json with the last successfully completed artifact
 2. Surface: "Session interrupted after `<last artifact>`. Resume via `/builder-build-feature` → Resume: `<feature>`."
 3. Do not retry inline — wait for explicit resume

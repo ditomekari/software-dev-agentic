@@ -19,6 +19,7 @@ Forbidden: any `RepositoryImpl`, `DataSourceImpl`, `DTO`, mapper, `http`/`dio` i
 In Flutter Qontak, the StateHolder is implemented as a **BLoC** (for event-driven flows) or **Cubit** (for simpler state). See `## BLoC` and `## Cubit (Simple State)` below for full implementation patterns.
 
 Invariants:
+
 - Receives use cases via constructor injection — annotated `@injectable`, created fresh per screen via `GetIt.instance`
 - Emits immutable `State` objects — never mutates state in place; use `emit(state.copyWith(...))`
 - Handles navigation as a side effect via `BlocListener` — not as a direct `Navigator.push` inside the BLoC
@@ -31,6 +32,7 @@ Invariants:
 In Flutter Qontak, **State** is an immutable `@freezed` class with a `ViewDataState<T>` field per async operation (from `[prefix]_core`). See `## States` below for the full pattern.
 
 Invariants:
+
 - Immutable — produced by the BLoC via `emit`; widgets observe, never mutate
 - One `ViewDataState<T>` per distinct async operation — no raw `isLoading` booleans
 - No widget types — no `Color`, `Widget`, `BuildContext` in state classes
@@ -42,6 +44,7 @@ Invariants:
 In Flutter Qontak (BLoC), Events are `@freezed sealed class` cases dispatched by the widget via `context.read<XBloc>().add(XEvent.loadX())`. In Cubit, they are direct method calls. See `## Events` below.
 
 Invariants:
+
 - Named after user actions using verb + noun — `loadInbox`, `markAsRead`, not `buttonTapped`
 - Carry only the data needed — no `BuildContext`, no raw widget references
 - Processed by the BLoC's `on<Event>` handler — widgets never act on events directly
@@ -53,15 +56,17 @@ Invariants:
 In Flutter Qontak, Actions/Output are navigation and one-time side effects handled via `BlocListener`. See `## BlocListener (Side Effects)` below.
 
 Invariants:
+
 - One-shot — triggered by a state transition (e.g. `markReadState.hasError`), consumed once in `BlocListener`
 - Named after the outcome — navigate, show snackbar, close dialog
-- Navigation targets are abstract — the BLoC transitions state; the `BlocListener` in the widget decides *how* to navigate
+- Navigation targets are abstract — the BLoC transitions state; the `BlocListener` in the widget decides _how_ to navigate
 
 ---
 
 ## StateHolder Contract <!-- 11 -->
 
 Before `builder-ui-worker` writes the Screen, `builder-feature-worker` produces `.claude/runs/<feature>/stateholder-contract.md` containing:
+
 - BLoC/Cubit class name and file path
 - `State` fields (name, type, purpose)
 - `Event` cases or Cubit method signatures (name, payload if any)
@@ -250,6 +255,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
 ```
 
 **BLoC rules:**
+
 - Named constructor parameters with `required` — no positional args
 - No `@injectable` in the app module — use `registerFactory` in `MainDependency`
 - Each handler emits loading first, then result via `result.fold()`
@@ -297,6 +303,7 @@ class LoginScreen extends StatelessWidget {
 ```
 
 The `BlocProvider` is in `route_manager.dart`:
+
 ```dart
 case QontakAppRoute.login:
   return BlocProvider(
@@ -314,13 +321,14 @@ case QontakAppRoute.login:
 
 One BLoC owns one screen's state. This is enforced as an invariant — Chat features have historically had one BLoC per screen. A second BLoC is only justified when it satisfies at least one of:
 
-| Condition | Example |
-|---|---|
-| Independent async lifecycle (separate loading/error state) | `SearchBloc` runs a debounced query while `RoomBloc` loads the room |
-| Reused across two or more unrelated screens | A global `UnreadCountCubit` provided at app root |
-| Genuinely orthogonal domain operations with separate failure paths | `AttachmentBloc` + `MessageBloc` |
+| Condition                                                          | Example                                                             |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| Independent async lifecycle (separate loading/error state)         | `SearchBloc` runs a debounced query while `RoomBloc` loads the room |
+| Reused across two or more unrelated screens                        | A global `UnreadCountCubit` provided at app root                    |
+| Genuinely orthogonal domain operations with separate failure paths | `AttachmentBloc` + `MessageBloc`                                    |
 
 **Disqualified reasons (do NOT add a BLoC for these):**
+
 - "It felt complex" — split the event enum instead
 - Grouping UI sub-sections — use nested state fields
 - A separate BLoC for a list that is not reused elsewhere
@@ -334,6 +342,7 @@ One BLoC owns one screen's state. This is enforced as an invariant — Chat feat
 In Chat, BLoCs are registered via `@injectable` and provided using `BlocProvider` inside route builders (feature-scoped). App-root BLoCs are provided in `AppWidget` via a top-level `MultiBlocProvider`.
 
 **Reactivity rule:**
+
 - `context.watch<XxxBloc>()` — re-renders on every state change. Only use if the widget must always reflect the latest state. Never use for a BLoC that changes frequently when the widget only needs infrequent updates.
 - `context.read<XxxBloc>()` — does not subscribe. Use for one-time reads and dispatching events. Mandatory inside `BlocListener` callbacks and gesture handlers.
 - `BlocSelector` — use to isolate a sub-field so rebuilds only trigger when that field changes.
@@ -346,10 +355,12 @@ In Chat, BLoCs are registered via `@injectable` and provided using `BlocProvider
 Apply when a screen needs data from more than one repository before it can render. Without this pattern, screens trigger multiple parallel BLoC events on `initState` and merge unrelated loading states in the widget — creating race conditions and redundant error-handling code.
 
 **Diagnostic question:** Does this screen need data from more than one repository?
+
 - No → a single `GetXxxUseCase` called from the BLoC `on<ScreenOpened>` handler is sufficient.
 - Yes → introduce a `GetXxxPageDataUseCase` (Page Init UseCase) that returns a `XxxPageData` read model.
 
 **Page Init UseCase:**
+
 ```dart
 // features/chat_room/lib/src/domain/usecases/get_room_detail_page_data_usecase.dart
 @lazySingleton
@@ -373,6 +384,7 @@ class GetRoomDetailPageDataUseCase
 ```
 
 **BLoC event handler:**
+
 ```dart
 on<RoomDetailScreenOpened>((event, emit) async {
   emit(state.copyWith(pageDataState: ViewDataState.loading()));
@@ -391,18 +403,20 @@ on<RoomDetailScreenOpened>((event, emit) async {
 ---
 
 ## BlocListener (Side Effects) <!-- 28 -->
-  listener: (context, state) {
-    if (state.resolveState.status.isHasData) {
-      Navigator.of(context).pop();
-    } else if (state.resolveState.status.isError) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(state.resolveState.message ?? 'Failed')),
-      );
-    }
-  },
-  child: ...,
+
+listener: (context, state) {
+if (state.resolveState.status.isHasData) {
+Navigator.of(context).pop();
+} else if (state.resolveState.status.isError) {
+ScaffoldMessenger.of(context).showSnackBar(
+SnackBar(content: Text(state.resolveState.message ?? 'Failed')),
+);
+}
+},
+child: ...,
 )
-```
+
+````
 
 **Key:** Use `.status.isHasData` and `.status.isError` (not `.isLoaded` / `.hasError`) — those are extension methods on the `ViewDataStatus` enum from `qontak_common`.
 
@@ -422,7 +436,7 @@ class ThemeCubit extends Cubit<ThemeMode> {
   ThemeCubit() : super(ThemeMode.light);
   void toggle() => emit(state == ThemeMode.light ? ThemeMode.dark : ThemeMode.light);
 }
-```
+````
 
 Use Cubit when there are no events — only direct method calls, no payloads.
 
@@ -430,9 +444,9 @@ Use Cubit when there are no events — only direct method calls, no payloads.
 
 ## Shared Component Paths <!-- 8 -->
 
-| Scope | Path |
-|---|---|
-| Cross-feature widgets | `shared/[prefix]_core/lib/src/widgets/` |
+| Scope                 | Path                                                  |
+| --------------------- | ----------------------------------------------------- |
+| Cross-feature widgets | `shared/[prefix]_core/lib/src/widgets/`               |
 | Feature-local widgets | `features/[prefix]_xxx/lib/src/presentation/widgets/` |
 
 Search `[prefix]_core` widgets first before creating a new one.

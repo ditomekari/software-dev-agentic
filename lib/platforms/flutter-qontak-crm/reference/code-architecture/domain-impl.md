@@ -94,6 +94,7 @@ If RAG is unavailable or empty: `Grep` for the concept term in `features/*/lib/s
 A Read Model is a data class that combines the results of two or more domain entities into a single aggregate needed by one screen. It is the return type of a Page Init UseCase.
 
 **Rules:**
+
 - Naming: `<Screen>PageData` (e.g. `CompanyDetailPageData`, `ContactDetailPageData`)
 - Location: `features/<prefix>_<feature>/lib/src/domain/read_models/<screen>_page_data.dart`
 - Implementation: `@freezed` class — same style as an entity, but contains entity references, not raw fields

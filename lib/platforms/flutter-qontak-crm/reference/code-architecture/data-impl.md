@@ -13,6 +13,7 @@ Data depends on Domain only. It never imports from Presentation or UI.
 **Allowed:** `package:mekari_network` (re-exports `BaseApi`), `package:fpdart`, `package:freezed_annotation`, `package:qontak_common`, domain entities and repository interfaces from the same feature package.
 
 **Forbidden:**
+
 - Any BLoC or Cubit import (`package:flutter_bloc`, `package:bloc`)
 - `package:flutter/material.dart` or any UI package
 - Any presentation-layer type
@@ -90,6 +91,7 @@ class CompanyObjectBox {
 ```
 
 **Rules:**
+
 - All fields nullable — API data is untrusted; handle defaults in mapper
 - `@JsonKey(name:)` for snake_case ↔ camelCase mapping
 - Both `.freezed.dart` and `.g.dart` parts required on DTOs (unlike entities which have only `.freezed.dart`)
@@ -130,6 +132,7 @@ class CompanyMapper {
 ```
 
 **Rules:**
+
 - Private constructor `._()` to prevent instantiation
 - One mapper class per domain entity (may have multiple static methods)
 - Handle nulls with explicit defaults — never assume API fields are present
@@ -192,6 +195,7 @@ Apply when a single domain entity is assembled from two or more distinct data so
 **Rule:** The Repository Implementation is the only layer that sees multiple sources. It merges results and hands the mapper a single, complete data object. Mappers receive one input type; they never fan-out to other sources.
 
 **Structure:**
+
 1. Declare one `Mapper` per source.
 2. In the Repository, call both sources, then apply a `merge` or composite-map step.
 3. The entity produced is identical whether one source or both are available — absent data fills in domain defaults.
@@ -261,6 +265,7 @@ class CompanyRepositoryImpl implements CompanyRepository {
 ```
 
 **TaskEither variant (FP style):**
+
 ```dart
 @override
 Future<Either<Failure, Company>> getCompany(String id) =>
@@ -289,6 +294,7 @@ class CompanyDataLocalDataSourceImpl implements CompanyDataLocalDataSource {
 ```
 
 **Rules:**
+
 - Features already in migration must implement both paths
 - New features: use ObjectBox only — Isar is legacy
 - `DataSourceSwapHelper.shouldUseObjectBox` is the single switch point per data source
