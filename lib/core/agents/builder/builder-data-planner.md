@@ -91,19 +91,24 @@ After reading primary artifact symbols, extract all referenced type names from f
 
 Before finalising a mapper or datasource as `create`, confirm that an existing generic data mechanism does not already handle the new field through a shared pipeline.
 
-1. Search for generic property builders or field-type mappers that write to a shared array (e.g. `crmProperties`, `extraFields`, `buildProperties`):
-   ```
-   Grep(query="buildProperties|toProperties|extraFields|fieldMapper|propertyMapper|propertyBuilder",
-        path="<module-path>/**/*.dart")
-   ```
-2. Read the **full body** of any matching builder method. Check:
-   - Does the builder iterate over a field-type enum and write to a shared array?
-   - If a new `FieldType` constant is added (by the domain planner), does this builder automatically handle it — or does it require a new explicit branch?
-3. Also check the DataSource: does the existing API endpoint already return the new field in a generic property array, or does it need a new endpoint/param?
-4. Verdict per capability:
-   - **✓ Covered** — adding a `FieldType` constant is sufficient; no new mapper class or datasource change needed. Set artifact Status to `covered-by-existing`.
+Do NOT use hardcoded search terms. Derive search terms from what you found in Steps 1–3.
+
+1. **Derive search terms from context.** From the artifacts found in Steps 1–3, extract:
+   - Any builder or factory method names that produce a typed list of data fields for this domain (look for methods returning `List<` + a domain-related type)
+   - Any mapper class names that operate on the same entity/DTO family
+   - The domain noun itself to search for related builder/mapper patterns
+   Construct a targeted grep query from these derived names.
+
+2. **Check for a shared builder pipeline.** Grep for the derived builder/mapper names under the module path. For each match, read the **full method body**. Check:
+   - Does the method iterate over a type-dispatch enum and write to a shared list?
+   - If a new type constant were added to that enum (by the domain planner), would this method handle it automatically — or would it need an explicit new branch?
+
+3. **Check the DataSource.** Does the existing API endpoint already return this field (possibly in a generic property array or as part of a shared response structure)? Or does it need a new endpoint or request parameter?
+
+4. **Verdict per capability:**
+   - **✓ Covered** — adding a new type constant to the existing enum is sufficient; no new mapper class or datasource change needed. Set artifact Status to `covered-by-existing`.
    - **Partial** — the mapper handles the type generically but the datasource needs a new parameter. Set Status to `create` for the datasource only.
-   - **✗ Not covered** — new mapper class and/or datasource required. Keep Status as `create`.
+   - **✗ Not covered** — no shared pipeline found; new mapper class and/or datasource required. Keep Status as `create`.
 
 Record all verdicts in the `### Mechanism Coverage` section of the output.
 

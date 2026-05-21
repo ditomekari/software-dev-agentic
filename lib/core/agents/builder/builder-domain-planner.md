@@ -91,20 +91,21 @@ Do not fetch types that are neither structurally required nor modification targe
 
 Before finalising any artifact as `create`, confirm that an existing domain mechanism does not already cover the requirement.
 
-1. Identify the domain capability implied by the feature (e.g. "assign a team", "filter by status", "apply a custom field").
-2. Search for generic property arrays, field-type enums, or capability builders that might already handle it:
-   ```
-   Grep(query="FieldType|PropertyType|fieldConfig|propertyBuilder|fieldKey|propertyType",
-        path="<module-path>/**/*.dart")
-   ```
-3. For each match, read the **full body** of the enum/constant file or builder method — not just the class name. Check whether an existing constant or case already covers the new capability.
-4. Also search for a similar interaction pattern (e.g. existing bottomsheet with sub-navigation) if the feature involves BLoC behaviour:
-   ```
-   Grep(query="OpenDetail|DrillDown|BackTo|SubScreen|BottomSheet",
-        path="<module-path>/**/*.dart")
-   ```
-   Read the event class of any match to document the established navigation event pattern.
-5. Verdict per capability:
+Do NOT use hardcoded search terms. Derive search terms from what you found in Steps 1–3.
+
+1. **Derive search terms from context.** From the artifacts found in Steps 1–3, extract:
+   - Any enum type names that enumerate capabilities (e.g. a `*Type`, `*Kind`, `*Category` enum associated with the feature domain)
+   - Any builder or factory method names that construct typed lists for this domain
+   - The domain noun itself (e.g. if the feature is "task assignment", use `Assignment`, `Assignee`, `AssignTask`)
+   Construct a grep query from these derived names.
+
+2. **Check for enum-based dispatch.** Grep for the derived enum name(s) under the module path. For each match, read the **full body** — check if an existing constant or case already covers the new capability. If the enum has a `switch`/`map` somewhere, read that too to confirm the dispatch is exhaustive.
+
+3. **Check for generic builder / list-construction pattern.** Grep for any method that returns `List<` + a typed entry related to this domain (e.g. `List<TaskField>`, `List<AssigneeOption>`). If found, read the full method — does it already handle the new capability through the type dispatch, or does it need an explicit new branch?
+
+4. **Check for similar BLoC navigation events** if the feature introduces a new screen or sub-flow. Grep for existing event class names that navigate within the same BLoC (look for events with `Open`, `Navigate`, `Show`, `Push`, `Back` + the feature domain noun). Read the event class to document the established navigation pattern.
+
+5. **Verdict per capability:**
    - **✓ Covered** — an existing mechanism handles it; set artifact Status to `covered-by-existing` and name the mechanism.
    - **✗ Not covered** — no existing mechanism found; keep Status as `create` and note why.
 

@@ -106,23 +106,26 @@ Inline — do not spawn an agent:
 
 From the Epic description and PRD, identify the domain objects involved (e.g., "team assignment", "filter by assignee", "ticket status change"). Then for each:
 
-**1. Search for existing implementations:**
+**1. Derive search terms — do NOT use hardcoded names.** From the Epic/PRD, identify the domain noun (e.g. "task", "contact", "deal"). Then:
+- Grep for `*Type`, `*Kind`, or `*Category` enums associated with that noun — these indicate an existing type-dispatch mechanism
+- Grep for any builder or factory method that returns `List<` + a typed entry for this domain — these indicate a shared pipeline
+- Use the domain noun + action verb (`assign`, `filter`, `create`) as a seed
 
 ```
 grep_search(
-  query: "<domain-object> | FieldType | PropertyType | propertyBuilder | fieldConfig | <feature-verb>",
+  query: "<DomainNoun>Type | <DomainNoun>Field | <DomainNoun>Builder | <feature-verb><DomainNoun>",
   includePattern: "features/<module>/lib/**/*.dart"
 )
 ```
 
 **2. Deep-read the mechanism** — for each match, read the full method body (not just the file name):
-- Does it already accept the new value type?
-- Does the mapper already handle this field / property?
-- Are there existing constants (e.g. `FieldType.*`, `FilterType.*`) that cover the new requirement?
+- Does the enum already have a case that covers the new capability?
+- Does the builder/mapper iterate the enum generically, or does it require explicit new branches?
+- Would adding a new enum constant be sufficient, or is a new artifact required?
 
 **3. Search for similar interaction patterns** for BLoC behavior proposals:
-- Find existing bottomsheets, drilldown flows, or multi-level navigation in the module
-- Read how they handle sub-navigation events (drill-down vs flat selection)
+- Grep for events with `Open`, `Navigate`, `Show`, `Push`, `Back` + the feature domain noun in the same BLoC
+- Read the event class to document the established navigation pattern in this project
 
 **4. Produce `mechanism_coverage`** — a table for each PRD capability:
 
