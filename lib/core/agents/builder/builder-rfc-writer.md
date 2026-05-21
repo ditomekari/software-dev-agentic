@@ -16,8 +16,27 @@ The calling skill passes all of the following inline:
 - Epic content — summary, description, acceptance criteria
 - PRD content — Confluence page body, or "None"
 - Design content — Figma data, or "None"
+- **`mechanism_coverage`** — table of PRD capabilities vs existing mechanisms, with `✓ Covered` / `✗ Not covered` verdicts (from builder-rfc Step 4b). May be "None" if skill did not produce it.
 - `plan.md` — converged artifact plan from `builder-feature-orchestrator`
 - `context.md` — discovered artifacts and naming conventions
+
+## Mechanism Coverage Rules (mandatory — check before writing any architecture section)
+
+If `mechanism_coverage` is provided and non-empty:
+
+**Rule A — Domain/Data sections**: For every PRD capability with `✓ Covered` verdict, the Architecture → Domain and Architecture → Data sub-sections for that capability MUST be:
+```
+#### Domain — No changes needed
+Covered by existing `<mechanism name>`. No new entity fields required.
+
+#### Data — No changes needed
+Covered by existing `<mechanism name>`. No new model fields or mapper branches required.
+```
+Do NOT write `@freezed` class extensions, new entity fields, or `@JsonKey` field additions for covered capabilities. A single explanatory sentence per sub-section is the maximum.
+
+**Rule B — API Contract section**: For each capability with `✓ Covered`, the API request body in the API Contract section MUST show the **existing mechanism's payload** (e.g., a `crmProperties` array update). Do NOT invent new top-level request fields from PRD field-name descriptions. If backend confirmation is still pending, state the assumption explicitly and add it as an Open Question.
+
+**Rule C — Breakdown tickets**: Do not create a Domain or Data ticket for a covered capability. If plan.md contains an artifact for a covered capability with `Status: covered-by-existing` or `Status: skip`, omit it from the breakdown entirely.
 
 ## Step 1 — Resolve Output Directory
 

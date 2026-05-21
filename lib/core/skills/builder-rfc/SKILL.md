@@ -138,6 +138,25 @@ Also record `reference_bloc_patterns` — any existing BLoC patterns found for s
 
 Hold `mechanism_coverage` and `reference_bloc_patterns` inline.
 
+### Covered-path enforcement (mandatory — apply before the convergence loop)
+
+For every capability marked **✓ Covered** in `mechanism_coverage`:
+
+1. **Convergence loop instruction** — when sending findings to the planners and orchestrator, prepend:
+   > "The following capabilities are confirmed covered by existing mechanisms and MUST be excluded from Domain and Data proposals: `<list of covered capabilities>`. Do not propose new entity fields, new `@freezed` unions, or new `@JsonKey` model fields for these. Any Domain or Data artifact that would only serve a covered capability must be marked `Status: covered-by-existing`."
+
+2. **Architecture section rule** — the RFC Architecture section for each covered capability MUST be written as:
+   ```
+   #### Domain — No changes needed
+   Covered by existing `<mechanism name>`. No new entity fields required.
+
+   #### Data — No changes needed
+   Covered by existing `<mechanism name>`. No new model fields or mapper branches required.
+   ```
+   No Dart code blocks. No `@freezed` / `@JsonKey` field listings. One explanatory sentence only.
+
+3. **API Contract rule** — the API Contract section for a covered capability MUST describe the **existing** payload format confirmed by the audit (e.g., the `crmProperties` array, the existing enum dispatch body). Do NOT derive new top-level request fields from PRD field names alone. If the existing mechanism is the only confirmed submission path, say so and raise an Open Question if backend confirmation is still needed.
+
 ## Step 5 — Gather Intent (Non-Interactive)
 
 Spawn `builder-feature-orchestrator` with mode `gather-intent-prefilled`:
@@ -263,6 +282,10 @@ Read `plan.md` and `context.md` from the run directory. Then spawn `builder-rfc-
 > 4. Every UI ticket MUST include a **Component Bindings table** — for every UI element: `reuse-existing` (exact widget name) OR `create-new` (reason). Never leave the source ambiguous.
 > 5. Interaction model must be stated explicitly: checkbox / radio / chevron `>` / toggle / text link — verified from Figma, not inferred from PRD text.
 > 6. Navigation model must be stated explicitly: flat list / two-level drill-down / modal / inline expansion — verified from Figma, not inferred from PRD text.
+
+**Mandatory output rules for Domain/Data architecture (applies to every RFC):**
+> 7. For every PRD capability with `✓ Covered` in Mechanism Coverage: the RFC Architecture → Domain and → Data sub-sections for that capability MUST be written as "No changes needed — covered by existing `<mechanism name>`." A single sentence is sufficient. **Never write `@freezed` class extensions, new entity fields, or `@JsonKey` model fields for a covered capability.**
+> 8. The API Contract section for each capability MUST be derived from the **confirmed existing submission mechanism** found in the audit (e.g., the `crmProperties` array, an existing endpoint body). Do not invent new top-level request fields from PRD field-name descriptions alone. If the existing mechanism was confirmed but backend confirmation is still pending, state the assumption and raise it as an Open Question.
 > 7. Never use a component name that was not found via Step 3b (design system query or `qontak_component_lib` grep). If creating a new widget, justify it.
 
 Wait for `builder-rfc-writer` to complete. Report the output file paths to the user.
